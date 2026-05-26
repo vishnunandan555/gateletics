@@ -1,4 +1,4 @@
-# 🏁 GATE Progress Tracker
+# 🏁 GATE Progress Tracker `v0.0.3`
 
 A sleek, premium, dark-themed offline preparation progress tracker built using **Flutter** and **Isar Database**. Designed specifically for GATE (Graduate Aptitude Test in Engineering) aspirants to organize, track, and visualize their video course progress across all core Computer Science subjects.
 
@@ -6,13 +6,13 @@ A sleek, premium, dark-themed offline preparation progress tracker built using *
 
 ## ✨ Features
 
-- **📊 Dynamic Dashboard:** Sleek progress squircle with overall completion percentage (accurate to two decimal places).
-- **🎨 Rich Modern Aesthetics:** harmonized dark mode palette (`zinc` and custom high-contrast neon accents) with subtle glassmorphic elements.
-- **⚡ Tactile Physics-Based Micro-Animations:** Minor scale-down micro-animations (`0.92` scale on press over `100ms` using `Curves.easeOutCubic`) on counter adjustments and link tags for a highly responsive, physical feel.
-- **📦 Zero-Permission Backup System:**
-  - **Export:** Saves backup `.json` locally to your device via the native system document manager (SAF) using zero-permission scoped storage.
-  - **Import:** Restores database records securely from a `.json` backup file.
-- **🔗 Direct Subject Playlist Redirection:** Seamlessly launch video playlist URLs directly on mobile devices with verified Android package-visibility query intents.
+- **📊 Dynamic Dashboard:** Sleek progress squircle with overall completion percentage tracking active subjects.
+- **🛠️ Subject Presets:** Instantly apply course metadata (GoClasses/YouTube) for standard GATE subjects with one click.
+- **🎨 Modern Alpha UI:** Adaptive scaling, premium zinc-palette dark mode, and glassmorphic elements.
+- **⚡ Tactile UX:** Physics-based micro-animations on all interactive elements.
+- **📦 Full Metadata Backups:**
+  - **Export/Import:** Now supports full synchronization of sources, course links, progress, and active status.
+- **🔗 Smart URL Handling:** Automatic `https://` detection and native app redirection (YouTube/Browsers).
 - **💾 Embedded Offline Storage:** High-performance local storage powered by **Isar Community Database**.
 
 ---
@@ -23,23 +23,23 @@ A sleek, premium, dark-themed offline preparation progress tracker built using *
 - **State Management:** [Riverpod](https://pub.dev/packages/flutter_riverpod)
 - **Database:** [Isar Community](https://pub.dev/packages/isar_community)
 - **Navigation:** [GoRouter](https://pub.dev/packages/go_router)
-- **Platform Utils:** `file_picker`, `url_launcher`
+- **Platform Utils:** `file_picker`, `url_launcher`, `share_plus`
 
 ---
 
 ## 🚀 Getting Started
 
 ### 📋 Prerequisites
-- Flutter SDK (3.19.0 or higher recommended)
+- Flutter SDK (3.11.0 or higher)
 - Android Studio / VS Code
-- Android Device / Emulator
+- Linux/Windows/Android environment
 
 ### 🔧 Installation
 
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd GATE
+   cd gate-tracker
    ```
 
 2. **Get packages:**
@@ -77,18 +77,19 @@ lib/
 
 ---
 
-## 💾 Local Backup Format
+## 💾 Local Backup Format (v0.0.3)
 
-Backups are exported in a standard `.json` format:
+Backups now capture the full application state:
 ```json
 [
   {
     "name": "Engineering Mathematics",
-    "completedVideos": 15
-  },
-  {
-    "name": "Discrete Mathematics",
-    "completedVideos": 24
+    "category": "Mathematical Foundation",
+    "completedVideos": 15,
+    "totalVideos": 111,
+    "playlistLink": "https://...",
+    "sourceName": "GoClasses",
+    "isActive": true
   }
 ]
 ```
