@@ -122,15 +122,55 @@ jobs:
       - name: Build Linux App
         run: flutter build linux --release
 
-      - name: Compress Linux Release Bundle
+      - name: Compress Linux Release Bundle (Tarball)
         run: |
           tar -czf gate-tracker-linux.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Package Linux Desktop App as AppImage
+        run: |
+          # 1. Download official AppImage compiler tool
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          
+          # 2. Build AppDir directory structure
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          mkdir -p AppDir/usr/share
+          
+          # 3. Copy compiled files into AppDir
+          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          
+          # 4. Create AppRun launch script
+          cat << 'EOF' > AppDir/AppRun
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/usr/bin/gate_tracker" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+          # 5. Create desktop entry file
+          cat << 'EOF' > AppDir/gate_tracker.desktop
+          [Desktop Entry]
+          Name=GATE Tracker
+          Exec=gate_tracker
+          Icon=gate_tracker
+          Type=Application
+          Categories=Utility;
+          EOF
+          
+          # 6. Copy icon file
+          cp icon.png AppDir/gate_tracker.png
+          
+          # 7. Compile the AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gate-tracker-linux.AppImage
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: gate-tracker-linux.tar.gz
+          path: |
+            gate-tracker-linux.tar.gz
+            gate-tracker-linux.AppImage
 
   # -------------------------------------------------------------------------
   # Job 4: Pull and Publish to GitHub Releases
@@ -170,6 +210,7 @@ jobs:
             release-files/gate-tracker.aab
             release-files/gate-tracker-windows.zip
             release-files/gate-tracker-linux.tar.gz
+            release-files/gate-tracker-linux.AppImage
           draft: false
           prerelease: ${{ startsWith(github.ref_name, 'v0.') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true
