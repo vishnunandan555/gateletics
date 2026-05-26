@@ -171,7 +171,7 @@ jobs:
             release-files/gate-tracker-windows.zip
             release-files/gate-tracker-linux.tar.gz
           draft: false
-          prerelease: false
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
