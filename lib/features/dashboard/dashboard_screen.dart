@@ -248,7 +248,8 @@ class DashboardScreen extends ConsumerWidget {
 
   /// Renders large category text that fills left-to-right with [color] based on [progress].
   /// Grey base → colored fill from left at the progress percentage.
-  Widget _textFillHeader(String text, Color color, double progress) {
+  Widget _textFillHeader(BuildContext context, String text, Color color, double progress) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return ShaderMask(
       blendMode: BlendMode.srcIn,
       shaderCallback: (bounds) {
@@ -268,10 +269,10 @@ class DashboardScreen extends ConsumerWidget {
       },
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'Legend',
           color: Colors.white, // white so ShaderMask paints through
-          fontSize: 28,
+          fontSize: (screenWidth * 0.07).clamp(20.0, 28.0),
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,
           height: 1.2,
@@ -419,7 +420,7 @@ class DashboardScreen extends ConsumerWidget {
                     // Text-fill category header
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
-                      child: _textFillHeader(category, catColor, catProgress),
+                      child: _textFillHeader(context, category, catColor, catProgress),
                     ),
                     // Subject cards
                     ...catSubjects.map(
@@ -432,9 +433,9 @@ class DashboardScreen extends ConsumerWidget {
                         onDecrement: () => ref
                             .read(subjectControllerProvider.notifier)
                             .decrement(s),
-                        onEdit: (val) => ref
+                        onEdit: (comp, tot) => ref
                             .read(subjectControllerProvider.notifier)
-                            .updateProgress(s, val),
+                            .updateFullProgress(s, comp, tot),
                       ),
                     ),
                   ]),

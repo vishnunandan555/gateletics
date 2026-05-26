@@ -7,7 +7,7 @@ class SubjectCard extends StatelessWidget {
   final Subject subject;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
-  final Function(int) onEdit;
+  final Function(int completed, int total) onEdit;
   final Color color;
 
   const SubjectCard({
@@ -33,8 +33,11 @@ class SubjectCard extends StatelessWidget {
   }
 
   void _showEditDialog(BuildContext context) {
-    final controller = TextEditingController(
+    final completedController = TextEditingController(
       text: subject.completedVideos.toString(),
+    );
+    final totalController = TextEditingController(
+      text: subject.totalVideos.toString(),
     );
     showDialog(
       context: context,
@@ -47,13 +50,27 @@ class SubjectCard extends StatelessWidget {
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Videos (Max: ${subject.totalVideos})',
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: totalController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Total',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: completedController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Current',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -62,8 +79,11 @@ class SubjectCard extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              final val = int.tryParse(controller.text);
-              if (val != null) onEdit(val);
+              final comp = int.tryParse(completedController.text);
+              final tot = int.tryParse(totalController.text);
+              if (comp != null && tot != null) {
+                onEdit(comp, tot);
+              }
               Navigator.of(context).pop();
             },
             style: FilledButton.styleFrom(
@@ -137,6 +157,8 @@ class SubjectCard extends StatelessWidget {
         ? 0.0
         : (subject.completedVideos / subject.totalVideos) * 100;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+
     // Card content: Row without IntrinsicHeight (incompatible with LayoutBuilder in ProgressBar)
     final cardContent = Material(
       color: Colors.transparent,
@@ -167,10 +189,10 @@ class SubjectCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             subject.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
-                              fontSize: 15,
+                              fontSize: (screenWidth * 0.038).clamp(12.0, 15.0),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -223,25 +245,41 @@ class SubjectCard extends StatelessWidget {
 
               const SizedBox(width: 16),
 
-              // ── RIGHT: big % ────────────────────────────
+              // ── RIGHT: big % + completion info ──────────
               Container(
                 width: 80,
                 alignment: Alignment.centerRight,
-                child: Text(
-                  '${percentage.toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w900,
-                    color: color,
-                    letterSpacing: -1.5,
-                    height: 1,
-                    shadows: [
-                      Shadow(
-                        color: color.withValues(alpha: 0.55),
-                        blurRadius: 14,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${percentage.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: (screenWidth * 0.08).clamp(24.0, 34.0),
+                        fontWeight: FontWeight.w900,
+                        color: color,
+                        letterSpacing: -1.5,
+                        height: 1,
+                        shadows: [
+                          Shadow(
+                            color: color.withValues(alpha: 0.55),
+                            blurRadius: 14,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${subject.completedVideos}/${subject.totalVideos}',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: (screenWidth * 0.028).clamp(9.0, 11.0),
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

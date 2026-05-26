@@ -41,6 +41,17 @@ class SubjectController extends StateNotifier<AsyncValue<void>> {
     await _isarService.updateSubject(subject);
   }
 
+  Future<void> updateFullProgress(Subject subject, int completed, int total) async {
+    if (completed < 0) completed = 0;
+    if (total < 0) total = 0;
+    // Allow completed to be up to total, but don't force it if total is 0 (though unlikely)
+    if (total > 0 && completed > total) completed = total;
+
+    subject.completedVideos = completed;
+    subject.totalVideos = total;
+    await _isarService.updateSubject(subject);
+  }
+
   Future<void> increment(Subject subject) async {
     await updateProgress(subject, subject.completedVideos + 1);
   }
