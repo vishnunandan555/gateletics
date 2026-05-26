@@ -5,7 +5,7 @@ allprojects {
     }
 }
 
-val rootBuildDir = rootProject.layout.projectDirectory.dir("../build")
+val rootBuildDir = rootProject.layout.projectDirectory.dir("build")
 rootProject.layout.buildDirectory.set(rootBuildDir)
 
 subprojects {
@@ -13,18 +13,6 @@ subprojects {
 }
 
 subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-subprojects {
-    plugins.withType<JavaPlugin> {
-        extensions.configure<JavaPluginExtension> {
-            toolchain {
-                languageVersion.set(JavaLanguageVersion.of(21))
-            }
-        }
-    }
-
     tasks.withType<JavaCompile>().configureEach {
         sourceCompatibility = "21"
         targetCompatibility = "21"
