@@ -129,7 +129,7 @@ jobs:
       - name: Package Linux Desktop App as AppImage
         run: |
           # 1. Download official AppImage compiler tool
-          wget -q https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
           
           # 2. Build AppDir directory structure
@@ -140,23 +140,19 @@ jobs:
           # 3. Copy compiled files into AppDir
           cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
           
-          # 4. Create AppRun launch script
-          cat << 'EOF' > AppDir/AppRun
-          #!/bin/sh
-          HERE="$(dirname "$(readlink -f "${0}")")"
-          exec "$HERE/usr/bin/gate_tracker" "$@"
-          EOF
+          # 4. Create AppRun launch script (using echo to avoid heredoc indentation bugs)
+          echo '#!/bin/sh' > AppDir/AppRun
+          echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
+          echo 'exec "$HERE/usr/bin/gate_tracker" "$@"' >> AppDir/AppRun
           chmod +x AppDir/AppRun
           
           # 5. Create desktop entry file
-          cat << 'EOF' > AppDir/gate_tracker.desktop
-          [Desktop Entry]
-          Name=GATE Tracker
-          Exec=gate_tracker
-          Icon=gate_tracker
-          Type=Application
-          Categories=Utility;
-          EOF
+          echo '[Desktop Entry]' > AppDir/gate_tracker.desktop
+          echo 'Name=GATE Tracker' >> AppDir/gate_tracker.desktop
+          echo 'Exec=gate_tracker' >> AppDir/gate_tracker.desktop
+          echo 'Icon=gate_tracker' >> AppDir/gate_tracker.desktop
+          echo 'Type=Application' >> AppDir/gate_tracker.desktop
+          echo 'Categories=Utility;' >> AppDir/gate_tracker.desktop
           
           # 6. Copy icon file
           cp icon.png AppDir/gate_tracker.png
