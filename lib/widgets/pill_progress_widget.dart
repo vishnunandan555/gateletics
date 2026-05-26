@@ -81,8 +81,9 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
       child: AnimatedBuilder(
         animation: _anim,
         builder: (context, _) {
-          final w = (MediaQuery.of(context).size.width / 2).clamp(160.0, 240.0);
-          const h = 160.0;
+          final screenWidth = MediaQuery.of(context).size.width;
+          final w = (screenWidth * 0.75).clamp(240.0, 400.0);
+          const h = 140.0;
           const fontSize = 42.0;
           final color = ref.watch(overallProgressColorProvider);
           final progress = _anim.value;
@@ -96,7 +97,7 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                   progress: progress,
                   color: color,
                   trackColor: Colors.white.withValues(alpha: 0.07),
-                  strokeWidth: 14,
+                  strokeWidth: 10,
                 ),
                 child: Center(
                   child: Column(

@@ -27,14 +27,20 @@ const SubjectSchema = CollectionSchema(
       name: r'completedVideos',
       type: IsarType.long,
     ),
-    r'name': PropertySchema(id: 2, name: r'name', type: IsarType.string),
+    r'isActive': PropertySchema(id: 2, name: r'isActive', type: IsarType.bool),
+    r'name': PropertySchema(id: 3, name: r'name', type: IsarType.string),
     r'playlistLink': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'playlistLink',
       type: IsarType.string,
     ),
+    r'sourceName': PropertySchema(
+      id: 5,
+      name: r'sourceName',
+      type: IsarType.string,
+    ),
     r'totalVideos': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'totalVideos',
       type: IsarType.long,
     ),
@@ -64,6 +70,7 @@ int _subjectEstimateSize(
   bytesCount += 3 + object.category.length * 3;
   bytesCount += 3 + object.name.length * 3;
   bytesCount += 3 + object.playlistLink.length * 3;
+  bytesCount += 3 + object.sourceName.length * 3;
   return bytesCount;
 }
 
@@ -75,9 +82,11 @@ void _subjectSerialize(
 ) {
   writer.writeString(offsets[0], object.category);
   writer.writeLong(offsets[1], object.completedVideos);
-  writer.writeString(offsets[2], object.name);
-  writer.writeString(offsets[3], object.playlistLink);
-  writer.writeLong(offsets[4], object.totalVideos);
+  writer.writeBool(offsets[2], object.isActive);
+  writer.writeString(offsets[3], object.name);
+  writer.writeString(offsets[4], object.playlistLink);
+  writer.writeString(offsets[5], object.sourceName);
+  writer.writeLong(offsets[6], object.totalVideos);
 }
 
 Subject _subjectDeserialize(
@@ -90,9 +99,11 @@ Subject _subjectDeserialize(
   object.category = reader.readString(offsets[0]);
   object.completedVideos = reader.readLong(offsets[1]);
   object.id = id;
-  object.name = reader.readString(offsets[2]);
-  object.playlistLink = reader.readString(offsets[3]);
-  object.totalVideos = reader.readLong(offsets[4]);
+  object.isActive = reader.readBool(offsets[2]);
+  object.name = reader.readString(offsets[3]);
+  object.playlistLink = reader.readString(offsets[4]);
+  object.sourceName = reader.readString(offsets[5]);
+  object.totalVideos = reader.readLong(offsets[6]);
   return object;
 }
 
@@ -108,10 +119,14 @@ P _subjectDeserializeProp<P>(
     case 1:
       return (reader.readLong(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -470,6 +485,16 @@ extension SubjectQueryFilter
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> isActiveEqualTo(
+    bool value,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'isActive', value: value),
+      );
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterFilterCondition> nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -763,6 +788,152 @@ extension SubjectQueryFilter
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'sourceName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'sourceName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'sourceName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'sourceName',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'sourceName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'sourceName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameContains(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'sourceName',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameMatches(
+    String pattern, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'sourceName',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'sourceName', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterFilterCondition> sourceNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'sourceName', value: ''),
+      );
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterFilterCondition> totalVideosEqualTo(
     int value,
   ) {
@@ -854,6 +1025,18 @@ extension SubjectQuerySortBy on QueryBuilder<Subject, Subject, QSortBy> {
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterSortBy> sortByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> sortByIsActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.desc);
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -875,6 +1058,18 @@ extension SubjectQuerySortBy on QueryBuilder<Subject, Subject, QSortBy> {
   QueryBuilder<Subject, Subject, QAfterSortBy> sortByPlaylistLinkDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'playlistLink', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> sortBySourceName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> sortBySourceNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceName', Sort.desc);
     });
   }
 
@@ -929,6 +1124,18 @@ extension SubjectQuerySortThenBy
     });
   }
 
+  QueryBuilder<Subject, Subject, QAfterSortBy> thenByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> thenByIsActiveDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isActive', Sort.desc);
+    });
+  }
+
   QueryBuilder<Subject, Subject, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -950,6 +1157,18 @@ extension SubjectQuerySortThenBy
   QueryBuilder<Subject, Subject, QAfterSortBy> thenByPlaylistLinkDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'playlistLink', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> thenBySourceName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QAfterSortBy> thenBySourceNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'sourceName', Sort.desc);
     });
   }
 
@@ -982,6 +1201,12 @@ extension SubjectQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Subject, Subject, QDistinct> distinctByIsActive() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isActive');
+    });
+  }
+
   QueryBuilder<Subject, Subject, QDistinct> distinctByName({
     bool caseSensitive = true,
   }) {
@@ -995,6 +1220,14 @@ extension SubjectQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'playlistLink', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Subject, Subject, QDistinct> distinctBySourceName({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'sourceName', caseSensitive: caseSensitive);
     });
   }
 
@@ -1025,6 +1258,12 @@ extension SubjectQueryProperty
     });
   }
 
+  QueryBuilder<Subject, bool, QQueryOperations> isActiveProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isActive');
+    });
+  }
+
   QueryBuilder<Subject, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
@@ -1034,6 +1273,12 @@ extension SubjectQueryProperty
   QueryBuilder<Subject, String, QQueryOperations> playlistLinkProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'playlistLink');
+    });
+  }
+
+  QueryBuilder<Subject, String, QQueryOperations> sourceNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'sourceName');
     });
   }
 

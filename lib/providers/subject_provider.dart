@@ -41,15 +41,55 @@ class SubjectController extends StateNotifier<AsyncValue<void>> {
     await _isarService.updateSubject(subject);
   }
 
-  Future<void> updateFullProgress(Subject subject, int completed, int total) async {
+  Future<void> updateSubjectDetails(
+    Subject subject, {
+    required int completed,
+    required int total,
+    required String sourceName,
+    required String playlistLink,
+    required bool isActive,
+  }) async {
     if (completed < 0) completed = 0;
     if (total < 0) total = 0;
-    // Allow completed to be up to total, but don't force it if total is 0 (though unlikely)
     if (total > 0 && completed > total) completed = total;
 
     subject.completedVideos = completed;
     subject.totalVideos = total;
+    subject.sourceName = sourceName;
+    subject.playlistLink = playlistLink;
+    subject.isActive = isActive;
+
     await _isarService.updateSubject(subject);
+  }
+
+  Future<void> resetTrackingData() async {
+    state = const AsyncValue.loading();
+    try {
+      await _isarService.resetTrackingData();
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> resetEverything() async {
+    state = const AsyncValue.loading();
+    try {
+      await _isarService.hardResetEverything();
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<void> applyPreset() async {
+    state = const AsyncValue.loading();
+    try {
+      await _isarService.applyDefaultPreset();
+      state = const AsyncValue.data(null);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
   }
 
   Future<void> increment(Subject subject) async {

@@ -15,4 +15,8 @@ class Subject {
   late int totalVideos;
 
   String playlistLink = '';
+
+  String sourceName = 'Source';
+
+  bool isActive = false;
 }

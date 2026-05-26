@@ -20,13 +20,18 @@ class DashboardScreen extends ConsumerWidget {
     try {
       final subjects = ref.read(subjectsProvider).value;
       if (subjects == null) return;
-      
-      final json = jsonEncode(
-        subjects
-            .map((s) => {'name': s.name, 'completedVideos': s.completedVideos})
-            .toList(),
-      );
 
+      final data = subjects.map((s) => {
+        'name': s.name,
+        'category': s.category,
+        'completedVideos': s.completedVideos,
+        'totalVideos': s.totalVideos,
+        'playlistLink': s.playlistLink,
+        'sourceName': s.sourceName,
+        'isActive': s.isActive,
+      }).toList();
+
+      final json = jsonEncode(data);
       final bytes = Uint8List.fromList(utf8.encode(json));
 
       // Trigger the native Android system "Save as" file manager dialog
@@ -75,12 +80,16 @@ class DashboardScreen extends ConsumerWidget {
       final isar = await ref.read(isarServiceProvider).db;
       await isar.writeTxn(() async {
         for (final item in list) {
-          final s = await isar.subjects
-              .filter()
-              .nameEqualTo(item['name'])
-              .findFirst();
+          final name = item['name'] as String?;
+          if (name == null) continue;
+
+          final s = await isar.subjects.filter().nameEqualTo(name).findFirst();
           if (s != null) {
             s.completedVideos = (item['completedVideos'] as int?) ?? 0;
+            s.totalVideos = (item['totalVideos'] as int?) ?? s.totalVideos;
+            s.playlistLink = (item['playlistLink'] as String?) ?? s.playlistLink;
+            s.sourceName = (item['sourceName'] as String?) ?? s.sourceName;
+            s.isActive = (item['isActive'] as bool?) ?? s.isActive;
             await isar.subjects.put(s);
           }
         }
@@ -100,16 +109,22 @@ class DashboardScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _resetData(BuildContext context, WidgetRef ref) async {
+  Future<void> _performReset(BuildContext context, WidgetRef ref,
+      {required bool everything}) async {
+    final title = everything ? 'Reset Everything' : 'Reset Tracking Data';
+    final content = everything
+        ? 'This will clear ALL your sources, links, and progress. This cannot be undone.'
+        : 'This will reset all your progress counts to zero but keep your sources and links.';
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF18181B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Reset All Data'),
-        content: const Text(
-          'This will reset all progress to zero. Are you sure?',
-          style: TextStyle(color: Colors.white70),
+        title: Text(title),
+        content: Text(
+          content,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
@@ -124,26 +139,28 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
     );
+
     if (confirmed != true || !context.mounted) return;
+
     try {
-      final isar = await ref.read(isarServiceProvider).db;
-      await isar.writeTxn(() async {
-        final all = await isar.subjects.where().findAll();
-        for (final s in all) {
-          s.completedVideos = 0;
-        }
-        await isar.subjects.putAll(all);
-      });
+      if (everything) {
+        await ref.read(subjectControllerProvider.notifier).resetEverything();
+      } else {
+        await ref
+            .read(subjectControllerProvider.notifier)
+            .resetTrackingData();
+      }
+
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Progress reset!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(everything ? 'System reset!' : 'Progress reset!')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Reset failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reset failed: $e')),
+        );
       }
     }
   }
@@ -151,79 +168,155 @@ class DashboardScreen extends ConsumerWidget {
   void _showSettingsSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF18181B),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+                Text(
+                  'Settings',
+                  style: Theme.of(
+                    ctx,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
+                  title: const Text('Export Data'),
+                  subtitle: const Text(
+                    'Save progress to JSON',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _exportData(context, ref);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
+                  title: const Text('Import Data'),
+                  subtitle: const Text(
+                    'Restore from JSON file',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _importData(context, ref);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                  title: const Text('Apply Preset'),
+                  subtitle: const Text(
+                    'Apply default GoClasses/YouTube sources',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: const Color(0xFF18181B),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        title: const Text('Apply Preset'),
+                        content: const Text(
+                          'This will overwrite current sources and counts for some subjects. Continue?',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.amberAccent,
+                              foregroundColor: Colors.black,
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      await ref
+                          .read(subjectControllerProvider.notifier)
+                          .applyPreset();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Preset applied!')),
+                        );
+                      }
+                    }
+                  },
+                ),
+                const Divider(color: Colors.white12),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'RESET DATA',
+                    style: TextStyle(
+                      color: Colors.redAccent.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history_rounded,
+                      color: Colors.redAccent),
+                  title: const Text('Reset Tracking Data'),
+                  subtitle: const Text(
+                    'Set all progress counts to zero',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _performReset(context, ref, everything: false);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_forever_rounded,
+                      color: Colors.redAccent),
+                  title: const Text('Reset Everything'),
+                  subtitle: const Text(
+                    'Clear sources, links, and progress',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _performReset(context, ref, everything: true);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            const SizedBox(height: 20),
-            Text(
-              'Settings',
-              style: Theme.of(
-                ctx,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
-              title: const Text('Export Data'),
-              subtitle: const Text(
-                'Save progress to JSON',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _exportData(context, ref);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
-              title: const Text('Import Data'),
-              subtitle: const Text(
-                'Restore from JSON file',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _importData(context, ref);
-              },
-            ),
-            const Divider(color: Colors.white12),
-            ListTile(
-              leading: const Icon(
-                Icons.restart_alt_rounded,
-                color: Colors.redAccent,
-              ),
-              title: const Text(
-                'Reset All Data',
-                style: TextStyle(color: Colors.redAccent),
-              ),
-              subtitle: const Text(
-                'Clear all progress',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () {
-                Navigator.pop(ctx);
-                _resetData(context, ref);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
     );
@@ -294,10 +387,10 @@ class DashboardScreen extends ConsumerWidget {
             return const Center(child: Text('No subjects found.'));
           }
 
-          // Overall totals — only count subjects that are ready/tracked (totalVideos > 0)
+          // Overall totals — only count subjects that are ACTIVE
           int totalCompleted = 0, totalVideos = 0;
           for (final s in subjects) {
-            if (s.totalVideos > 0) {
+            if (s.isActive) {
               totalCompleted += s.completedVideos;
               totalVideos += s.totalVideos;
             }
@@ -355,8 +448,8 @@ class DashboardScreen extends ConsumerWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'v0.0.2 ',
+                        const Text(
+                          'v0.0.3 ',
                           style: TextStyle(color: Colors.grey, fontSize: 10),
                         ),
                         Consumer(
@@ -408,8 +501,10 @@ class DashboardScreen extends ConsumerWidget {
                 final catColor = _getCategoryColor(category);
                 int catCompleted = 0, catTotal = 0;
                 for (final s in catSubjects) {
-                  catCompleted += s.completedVideos;
-                  catTotal += s.totalVideos;
+                  if (s.isActive) {
+                    catCompleted += s.completedVideos;
+                    catTotal += s.totalVideos;
+                  }
                 }
                 final catProgress = catTotal == 0
                     ? 0.0
@@ -433,9 +528,23 @@ class DashboardScreen extends ConsumerWidget {
                         onDecrement: () => ref
                             .read(subjectControllerProvider.notifier)
                             .decrement(s),
-                        onEdit: (comp, tot) => ref
-                            .read(subjectControllerProvider.notifier)
-                            .updateFullProgress(s, comp, tot),
+                        onEdit: ({
+                          required completed,
+                          required total,
+                          required sourceName,
+                          required playlistLink,
+                          required isActive,
+                        }) =>
+                            ref
+                                .read(subjectControllerProvider.notifier)
+                                .updateSubjectDetails(
+                                  s,
+                                  completed: completed,
+                                  total: total,
+                                  sourceName: sourceName,
+                                  playlistLink: playlistLink,
+                                  isActive: isActive,
+                                ),
                       ),
                     ),
                   ]),

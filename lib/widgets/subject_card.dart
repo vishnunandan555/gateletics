@@ -7,7 +7,13 @@ class SubjectCard extends StatelessWidget {
   final Subject subject;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
-  final Function(int completed, int total) onEdit;
+  final Function({
+    required int completed,
+    required int total,
+    required String sourceName,
+    required String playlistLink,
+    required bool isActive,
+  }) onEdit;
   final Color color;
 
   const SubjectCard({
@@ -20,15 +26,27 @@ class SubjectCard extends StatelessWidget {
   });
 
   Future<void> _launchUrl() async {
-    if (subject.playlistLink.isEmpty) return;
+    String link = subject.playlistLink.trim();
+    if (link.isEmpty) return;
+
+    // Add https if missing
+    if (!link.startsWith('http://') && !link.startsWith('https://')) {
+      link = 'https://$link';
+    }
+
     try {
-      final url = Uri.parse(subject.playlistLink);
-      await launchUrl(
+      final url = Uri.parse(link);
+      final bool launched = await launchUrl(
         url,
         mode: LaunchMode.externalApplication,
       );
-    } catch (_) {
-      // Silently ignore malformed URLs
+
+      if (!launched) {
+        // Fallback or just ignore if it couldn't be launched
+        debugPrint('Could not launch $link');
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
     }
   }
 
@@ -39,60 +57,125 @@ class SubjectCard extends StatelessWidget {
     final totalController = TextEditingController(
       text: subject.totalVideos.toString(),
     );
+    final sourceNameController = TextEditingController(
+      text: subject.sourceName,
+    );
+    final playlistLinkController = TextEditingController(
+      text: subject.playlistLink,
+    );
+    bool isActive = subject.isActive;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          'Edit Progress',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: totalController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Total',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF18181B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            'Edit Subject',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: sourceNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Source Name',
+                    hintText: 'e.g. YouTube, GoClasses',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: playlistLinkController,
+                  decoration: InputDecoration(
+                    labelText: 'Source Link',
+                    hintText: 'URL of the playlist',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: totalController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Total',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: completedController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Current',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Is Active',
+                      style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    isActive ? 'ENABLED' : 'DISABLED',
+                    style: TextStyle(
+                      color: isActive ? Colors.greenAccent : Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  value: isActive,
+                  onChanged: (val) => setState(() => isActive = val),
+                  activeColor: color,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: completedController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Current',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            FilledButton(
+              onPressed: () {
+                final comp = int.tryParse(completedController.text) ?? 0;
+                final tot = int.tryParse(totalController.text) ?? 0;
+                onEdit(
+                  completed: comp,
+                  total: tot,
+                  sourceName: sourceNameController.text,
+                  playlistLink: playlistLinkController.text,
+                  isActive: isActive,
+                );
+                Navigator.of(context).pop();
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.black,
               ),
+              child: const Text('Save'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          FilledButton(
-            onPressed: () {
-              final comp = int.tryParse(completedController.text);
-              final tot = int.tryParse(totalController.text);
-              if (comp != null && tot != null) {
-                onEdit(comp, tot);
-              }
-              Navigator.of(context).pop();
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: color,
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -144,18 +227,25 @@ class SubjectCard extends StatelessWidget {
   }
 
   String _getSourceLabel() {
+    if (subject.sourceName.toLowerCase() != 'source' &&
+        subject.sourceName.isNotEmpty) {
+      return subject.sourceName;
+    }
+
     final link = subject.playlistLink.toLowerCase();
     if (link.contains('goclasses')) return 'GoClasses';
     if (link.contains('youtube') || link.contains('youtu.be')) return 'YouTube';
-    return 'Link';
+    return subject.sourceName.isEmpty ? 'Source' : subject.sourceName;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isNotReady = subject.totalVideos == 0;
+    final bool isNotReady = !subject.isActive;
     final percentage = isNotReady
         ? 0.0
-        : (subject.completedVideos / subject.totalVideos) * 100;
+        : (subject.totalVideos == 0
+            ? 0.0
+            : (subject.completedVideos / subject.totalVideos) * 100);
 
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -163,126 +253,131 @@ class SubjectCard extends StatelessWidget {
     final cardContent = Material(
       color: Colors.transparent,
       child: InkWell(
-        onLongPress: isNotReady ? null : () => _showEditDialog(context),
+        onLongPress: () => _showEditDialog(context),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(14.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // ── LEFT: main content ─────────────────────
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Row 1: icon + name + link icon
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _getIconForSubject(subject.name),
-                          color: color,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            subject.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontSize: (screenWidth * 0.038).clamp(12.0, 15.0),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Row 2: progress bar
-                    ProgressBar(
-                      percentage: percentage,
-                      height: 10,
-                      color: color,
-                      showTicks: true,
-                      tickCount: 10,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Row 3: source label (left) + counter buttons (right)
-                    Row(
-                      children: [
-                        if (subject.playlistLink.isNotEmpty)
-                          _PillButton(
-                            label: _getSourceLabel(),
+          child: Opacity(
+            opacity: isNotReady ? 0.4 : 1.0,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // ── LEFT: main content ─────────────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Row 1: icon + name + link icon
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _getIconForSubject(subject.name),
                             color: color,
-                            onTap: isNotReady ? null : _launchUrl,
+                            size: 18,
                           ),
-                        const Spacer(),
-                        _CircleButton(
-                          icon: Icons.remove_rounded,
-                          onTap: isNotReady ? null : onDecrement,
-                          bgColor: Colors.white.withValues(alpha: 0.06),
-                          iconColor: Colors.white54,
-                        ),
-                        const SizedBox(width: 8),
-                        _CircleButton(
-                          icon: Icons.add_rounded,
-                          onTap: isNotReady ? null : onIncrement,
-                          bgColor: color.withValues(alpha: 0.18),
-                          iconColor: color,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 16),
-
-              // ── RIGHT: big % + completion info ──────────
-              Container(
-                width: 80,
-                alignment: Alignment.centerRight,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${percentage.toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        fontSize: (screenWidth * 0.08).clamp(24.0, 34.0),
-                        fontWeight: FontWeight.w900,
-                        color: color,
-                        letterSpacing: -1.5,
-                        height: 1,
-                        shadows: [
-                          Shadow(
-                            color: color.withValues(alpha: 0.55),
-                            blurRadius: 14,
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              subject.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: (screenWidth * 0.038).clamp(12.0, 15.0),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${subject.completedVideos}/${subject.totalVideos}',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: (screenWidth * 0.028).clamp(9.0, 11.0),
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
+
+                      const SizedBox(height: 12),
+
+                      // Row 2: progress bar
+                      ProgressBar(
+                        percentage: percentage,
+                        height: 10,
+                        color: color,
+                        showTicks: true,
+                        tickCount: 10,
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Row 3: source label (left) + counter buttons (right)
+                      Row(
+                        children: [
+                          if (subject.isActive)
+                            _PillButton(
+                              label: _getSourceLabel(),
+                              color: color,
+                              onTap: subject.playlistLink.trim().isEmpty
+                                  ? null
+                                  : _launchUrl,
+                            ),
+                          const Spacer(),
+                          _CircleButton(
+                            icon: Icons.remove_rounded,
+                            onTap: isNotReady ? null : onDecrement,
+                            bgColor: Colors.white.withValues(alpha: 0.06),
+                            iconColor: Colors.white54,
+                          ),
+                          const SizedBox(width: 8),
+                          _CircleButton(
+                            icon: Icons.add_rounded,
+                            onTap: isNotReady ? null : onIncrement,
+                            bgColor: color.withValues(alpha: 0.18),
+                            iconColor: color,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(width: 16),
+
+                // ── RIGHT: big % + completion info ──────────
+                Container(
+                  width: 80,
+                  alignment: Alignment.centerRight,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${percentage.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: (screenWidth * 0.08).clamp(24.0, 34.0),
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                          letterSpacing: -1.5,
+                          height: 1,
+                          shadows: [
+                            Shadow(
+                              color: color.withValues(alpha: 0.55),
+                              blurRadius: 14,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${subject.completedVideos}/${subject.totalVideos}',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: (screenWidth * 0.028).clamp(9.0, 11.0),
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -303,31 +398,34 @@ class SubjectCard extends StatelessWidget {
           cardContent,
           if (isNotReady)
             Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.redAccent.withValues(alpha: 0.35),
+              child: IgnorePointer(
+                ignoring: true,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
                       ),
-                    ),
-                    child: const Text(
-                      'NOT READY',
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                        fontSize: 12,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: const Text(
+                        'DISABLED',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),

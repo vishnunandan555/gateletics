@@ -75,49 +75,19 @@ class IsarService {
     if (count > 0) return;
 
     final defaults = [
-      _subject(
-        'Engineering Mathematics',
-        'Mathematical Foundation',
-        111,
-        'https://www.goclasses.in/courses/Engineering-Mathematics-60fdd8530cf2c7989e1f109d#tableofcontents',
-      ),
-      _subject(
-        'Discrete Mathematics',
-        'Mathematical Foundation',
-        550,
-        'https://www.goclasses.in/courses/Discrete-Mathematics-Course-63f9aa9be4b0a8a370cfb0ad#tableofcontents',
-      ),
-      _subject('C Programming', 'Programming Foundation', 0, ''),
-      _subject('Data Structures', 'Programming Foundation', 0, ''),
-      _subject('Algorithms', 'Programming Foundation', 0, ''),
-      _subject('Digital Logic', 'System Depth', 0, ''),
-      _subject(
-        'COA',
-        'System Depth',
-        70,
-        'https://www.youtube.com/playlist?list=PLG9aCp4uE-s0xddCBjwMDnEVyc523WbA2',
-      ),
-      _subject(
-        'Operating Systems',
-        'System Depth',
-        62,
-        'https://www.youtube.com/playlist?list=PLG9aCp4uE-s17rFjWM8KchGlffXgOzzVP',
-      ),
-      _subject(
-        'DBMS',
-        'Rest of the Stuff',
-        225,
-        'https://www.youtube.com/playlist?list=PLC36xJgs4dxGcz7nZaxGxxmbJrcgDXhFk',
-      ),
-      _subject('Computer Networks', 'Rest of the Stuff', 0, ''),
-      _subject(
-        'Theory of Computation',
-        'Rest of the Stuff',
-        157,
-        'https://www.youtube.com/playlist?list=PLC36xJgs4dxGvebewU4z2CZYo-8nB93E7',
-      ),
-      _subject('GATE Apti', 'Rest of the Stuff', 0, ''),
-      _subject('Compiler Design', 'Rest of the Stuff', 0, ''),
+      _subject('Engineering Mathematics', 'Mathematical Foundation'),
+      _subject('Discrete Mathematics', 'Mathematical Foundation'),
+      _subject('C Programming', 'Programming Foundation'),
+      _subject('Data Structures', 'Programming Foundation'),
+      _subject('Algorithms', 'Programming Foundation'),
+      _subject('Digital Logic', 'System Depth'),
+      _subject('COA', 'System Depth'),
+      _subject('Operating Systems', 'System Depth'),
+      _subject('DBMS', 'Rest of the Stuff'),
+      _subject('Computer Networks', 'Rest of the Stuff'),
+      _subject('Theory of Computation', 'Rest of the Stuff'),
+      _subject('GATE Apti', 'Rest of the Stuff'),
+      _subject('Compiler Design', 'Rest of the Stuff'),
     ];
 
     await isar.writeTxn(() async {
@@ -125,71 +95,103 @@ class IsarService {
     });
   }
 
-  Subject _subject(String name, String category, int total, String link) {
+  Subject _subject(String name, String category) {
     return Subject()
       ..name = name
       ..category = category
-      ..totalVideos = total
-      ..playlistLink = link;
+      ..totalVideos = 0
+      ..playlistLink = ''
+      ..sourceName = 'Source'
+      ..isActive = false;
   }
 
-  // Migrates existing data to match current subject definitions
-  Future<void> _runMigration(Isar isar) async {
-    const targetData = {
+  Future<void> resetTrackingData() async {
+    final isar = await db;
+    await isar.writeTxn(() async {
+      final all = await isar.subjects.where().findAll();
+      for (final s in all) {
+        s.completedVideos = 0;
+      }
+      await isar.subjects.putAll(all);
+    });
+  }
+
+  Future<void> hardResetEverything() async {
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.subjects.clear();
+    });
+    // This will seed the empty DB back to original empty-subject state
+    await _initializeDefaultSubjects(isar);
+  }
+
+  Future<void> applyDefaultPreset() async {
+    final isar = await db;
+    final preset = {
       'Engineering Mathematics': (
         total: 111,
         link:
             'https://www.goclasses.in/courses/Engineering-Mathematics-60fdd8530cf2c7989e1f109d#tableofcontents',
+        source: 'GoClasses',
       ),
       'Discrete Mathematics': (
         total: 550,
         link:
             'https://www.goclasses.in/courses/Discrete-Mathematics-Course-63f9aa9be4b0a8a370cfb0ad#tableofcontents',
+        source: 'GoClasses',
       ),
       'COA': (
         total: 70,
         link:
             'https://www.youtube.com/playlist?list=PLG9aCp4uE-s0xddCBjwMDnEVyc523WbA2',
+        source: 'YouTube',
       ),
       'Operating Systems': (
         total: 62,
         link:
             'https://www.youtube.com/playlist?list=PLG9aCp4uE-s17rFjWM8KchGlffXgOzzVP',
+        source: 'YouTube',
       ),
       'DBMS': (
         total: 225,
         link:
             'https://www.youtube.com/playlist?list=PLC36xJgs4dxGcz7nZaxGxxmbJrcgDXhFk',
+        source: 'YouTube',
       ),
       'Theory of Computation': (
         total: 157,
         link:
             'https://www.youtube.com/playlist?list=PLC36xJgs4dxGvebewU4z2CZYo-8nB93E7',
+        source: 'YouTube',
       ),
     };
 
     await isar.writeTxn(() async {
       final all = await isar.subjects.where().findAll();
-      final toUpdate = <Subject>[];
-
       for (final s in all) {
-        final target = targetData[s.name];
-        if (target != null) {
-          if (s.totalVideos != target.total || s.playlistLink != target.link) {
-            s.totalVideos = target.total;
-            s.playlistLink = target.link;
-            toUpdate.add(s);
-          }
-        } else if (s.totalVideos != 0) {
-          s.totalVideos = 0;
-          s.playlistLink = '';
-          toUpdate.add(s);
+        final data = preset[s.name];
+        if (data != null) {
+          s.totalVideos = data.total;
+          s.playlistLink = data.link;
+          s.sourceName = data.source;
+          s.isActive = true;
         }
       }
+      await isar.subjects.putAll(all);
+    });
+  }
 
-      if (toUpdate.isNotEmpty) {
-        await isar.subjects.putAll(toUpdate);
+  // Migrates existing data to match current subject definitions
+  Future<void> _runMigration(Isar isar) async {
+    await isar.writeTxn(() async {
+      final all = await isar.subjects.where().findAll();
+      for (final s in all) {
+        // Isar handles basic type defaults, but we can nudge them if needed.
+        if (s.sourceName.isEmpty) {
+          s.sourceName = 'Source';
+        }
       }
+      await isar.subjects.putAll(all);
     });
   }
 
