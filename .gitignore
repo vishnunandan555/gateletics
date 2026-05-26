@@ -14,6 +14,8 @@
 .buildlog/
 .history
 .svn/
+*.orig
+*.rej
 *~
 
 # IDE and Editor files
@@ -22,6 +24,13 @@
 *.iws
 .idea/
 .vscode/
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.factorypath
+.externalToolBuilders/
 
 # Flutter / Dart / Pub related
 **/doc/api/
@@ -30,11 +39,15 @@
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
+.packages
 /build/
 **/build/
 /coverage/
 
 # Android-specific build, credentials, and local files
+.gradle/
+build/
+Captures/
 /android/local.properties
 /android/key.properties
 /android/app/local.properties
@@ -46,6 +59,8 @@
 *.jks
 *.apk
 *.aab
+/android/app/src/main/res/raw/google_services.json
+/android/app/src/main/res/values/google-services.xml
 
 # iOS-specific build and local files
 **/ios/Flutter/Generated.xcconfig
@@ -63,7 +78,15 @@ Podfile.lock
 /linux/flutter/ephemeral/
 /macos/Flutter/ephemeral/
 /windows/flutter/ephemeral/
+/windows/flutter/generated_plugin_registrant.cc
+/windows/flutter/generated_plugin_registrant.h
+/windows/flutter/generated_plugins.cmake
 
 # Symbolication and Obfuscation related
 app.*.symbols
 app.*.map.json
+
+# Generated code
+# *.g.dart is often committed in Flutter projects for Isar/Riverpod
+*.freezed.dart
+

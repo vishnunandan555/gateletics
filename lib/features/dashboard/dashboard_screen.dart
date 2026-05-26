@@ -35,7 +35,7 @@ class DashboardScreen extends ConsumerWidget {
       final bytes = Uint8List.fromList(utf8.encode(json));
 
       // Trigger the native Android system "Save as" file manager dialog
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: 'Save backup to device',
         fileName: 'gate_tracker_backup.json',
         bytes: bytes,
@@ -60,7 +60,7 @@ class DashboardScreen extends ConsumerWidget {
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
     try {
       // Pick file using Storage Access Framework (SAF) - requires no storage permissions
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.any,
       );
       if (result == null || result.files.single.path == null) return;
@@ -325,18 +325,8 @@ class DashboardScreen extends ConsumerWidget {
   // ── Helpers ───────────────────────────────────────────────
 
   Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Mathematical Foundation':
-        return const Color(0xFFFF073A); // Ultra-punchy neon red
-      case 'Programming Foundation':
-        return const Color(0xFFFF6C00); // Vivid neon orange
-      case 'System Depth':
-        return const Color(0xFF00F0FF); // Electric neon cyan
-      case 'Rest of the Stuff':
-        return const Color(0xFFD500F9); // Bright neon magenta/purple
-      default:
-        return const Color(0xFF00F0FF);
-    }
+    final colorValue = Subject.categoryColors[category];
+    return colorValue != null ? Color(colorValue) : const Color(0xFF00F0FF);
   }
 
   /// Renders large category text that fills left-to-right with [color] based on [progress].
@@ -400,22 +390,17 @@ class DashboardScreen extends ConsumerWidget {
               : (totalCompleted / totalVideos) * 100;
 
           // Category grouping + ordering
-          const categoryOrder = [
-            'Mathematical Foundation',
-            'Programming Foundation',
-            'System Depth',
-            'Rest of the Stuff',
-          ];
           final grouped = groupBy(subjects, (s) => s.category);
           final sortedCategories = grouped.keys.toList()
             ..sort((a, b) {
-              final ai = categoryOrder.indexOf(a);
-              final bi = categoryOrder.indexOf(b);
+              final ai = Subject.categories.indexOf(a);
+              final bi = Subject.categories.indexOf(b);
               if (ai != -1 && bi != -1) return ai.compareTo(bi);
               return ai != -1 ? -1 : (bi != -1 ? 1 : a.compareTo(b));
             });
 
           return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
               // ── AppBar ──────────────────────────────────
               SliverAppBar(
@@ -430,57 +415,7 @@ class DashboardScreen extends ConsumerWidget {
                   onPressed: () => _showSettingsSheet(context, ref),
                   tooltip: 'Settings',
                 ),
-                title: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'GATE\nPROGRESS\nTRACKER',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: 'BatmanForever',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.8,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'v0.0.3 ',
-                          style: TextStyle(color: Colors.grey, fontSize: 10),
-                        ),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final progressColor = ref.watch(
-                              overallProgressColorProvider,
-                            );
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: progressColor.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'Alpha',
-                                style: TextStyle(
-                                  color: progressColor,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                title: const _AppBarTitle(),
               ),
 
               // ── Overall progress squircle ────────────────
@@ -499,6 +434,7 @@ class DashboardScreen extends ConsumerWidget {
               ...sortedCategories.map((category) {
                 final catSubjects = grouped[category]!;
                 final catColor = _getCategoryColor(category);
+                
                 int catCompleted = 0, catTotal = 0;
                 for (final s in catSubjects) {
                   if (s.isActive) {
@@ -510,44 +446,50 @@ class DashboardScreen extends ConsumerWidget {
                     ? 0.0
                     : (catCompleted / catTotal) * 100;
 
-                return SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Text-fill category header
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
-                      child: _textFillHeader(context, category, catColor, catProgress),
-                    ),
-                    // Subject cards
-                    ...catSubjects.map(
-                      (s) => SubjectCard(
-                        subject: s,
-                        color: catColor,
-                        onIncrement: () => ref
-                            .read(subjectControllerProvider.notifier)
-                            .increment(s),
-                        onDecrement: () => ref
-                            .read(subjectControllerProvider.notifier)
-                            .decrement(s),
-                        onEdit: ({
-                          required completed,
-                          required total,
-                          required sourceName,
-                          required playlistLink,
-                          required isActive,
-                        }) =>
-                            ref
-                                .read(subjectControllerProvider.notifier)
-                                .updateSubjectDetails(
-                                  s,
-                                  completed: completed,
-                                  total: total,
-                                  sourceName: sourceName,
-                                  playlistLink: playlistLink,
-                                  isActive: isActive,
-                                ),
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
+                        child: _textFillHeader(context, category, catColor, catProgress),
                       ),
                     ),
-                  ]),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final s = catSubjects[index];
+                          return SubjectCard(
+                            subject: s,
+                            color: catColor,
+                            onIncrement: () => ref
+                                .read(subjectControllerProvider.notifier)
+                                .increment(s),
+                            onDecrement: () => ref
+                                .read(subjectControllerProvider.notifier)
+                                .decrement(s),
+                            onEdit: ({
+                              required completed,
+                              required total,
+                              required sourceName,
+                              required playlistLink,
+                              required isActive,
+                            }) =>
+                                ref
+                                    .read(subjectControllerProvider.notifier)
+                                    .updateSubjectDetails(
+                                      s,
+                                      completed: completed,
+                                      total: total,
+                                      sourceName: sourceName,
+                                      playlistLink: playlistLink,
+                                      isActive: isActive,
+                                    ),
+                          );
+                        },
+                        childCount: catSubjects.length,
+                      ),
+                    ),
+                  ],
                 );
               }),
 
@@ -558,6 +500,63 @@ class DashboardScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
       ),
+    );
+  }
+}
+
+class _AppBarTitle extends StatelessWidget {
+  const _AppBarTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'GATE\nPROGRESS\nTRACKER',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'BatmanForever',
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.8,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'v0.0.3 ',
+              style: TextStyle(color: Colors.grey, fontSize: 10),
+            ),
+            Consumer(
+              builder: (context, ref, _) {
+                final progressColor = ref.watch(overallProgressColorProvider);
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: progressColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'Alpha',
+                    style: TextStyle(
+                      color: progressColor,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

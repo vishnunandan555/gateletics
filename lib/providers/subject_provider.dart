@@ -1,43 +1,54 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../database/models/subject.dart';
 import '../database/isar_service.dart';
+import '../core/theme/colors.dart';
 
-final overallProgressColorProvider = StateProvider<Color>((ref) {
-  const colors = [
-    Color(0xFF00F0FF), // Neon cyan
-    Color(0xFF39FF14), // Neon green
-    Color(0xFFFF073A), // Neon scarlet red
-    Color(0xFFFFAD00), // Neon golden amber
-    Color(0xFFE040FB), // Neon magenta/purple
-    Color(0xFFFF5E00), // Neon orange
-    Color(0xFF00B0FF), // Neon electric blue
-    Color(0xFF00FFCC), // Neon mint/teal
-  ];
-  return colors[math.Random().nextInt(colors.length)];
-});
+part 'subject_provider.g.dart';
+
+@riverpod
+class OverallProgressColor extends _$OverallProgressColor {
+  @override
+  Color build() {
+    return AppColors.neonCycle[math.Random().nextInt(AppColors.neonCycle.length)];
+  }
+
+  void randomize() {
+    state = build();
+  }
+
+  void next() {
+    final currentIdx = AppColors.neonCycle.indexOf(state);
+    final nextIdx = (currentIdx + 1) % AppColors.neonCycle.length;
+    state = AppColors.neonCycle[nextIdx];
+  }
+}
 
 // NOTE: This provider is always overridden in main.dart with the singleton
 // instance created before runApp. The factory body here acts as a fallback
 // (e.g. in widget tests that don't set up the full ProviderScope override).
-final isarServiceProvider = Provider<IsarService>((ref) => IsarService());
+@Riverpod(keepAlive: true)
+IsarService isarService(Ref ref) => IsarService();
 
-final subjectsProvider = StreamProvider<List<Subject>>((ref) {
-  final isarService = ref.watch(isarServiceProvider);
-  return isarService.listenToSubjects();
-});
+@riverpod
+Stream<List<Subject>> subjects(Ref ref) {
+  final service = ref.watch(isarServiceProvider);
+  return service.listenToSubjects();
+}
 
-class SubjectController extends StateNotifier<AsyncValue<void>> {
-  final IsarService _isarService;
+@riverpod
+class SubjectController extends _$SubjectController {
+  @override
+  AsyncValue<void> build() => const AsyncValue.data(null);
 
-  SubjectController(this._isarService) : super(const AsyncValue.data(null));
+  IsarService get _isarService => ref.read(isarServiceProvider);
 
   Future<void> updateProgress(Subject subject, int newProgress) async {
-    if (newProgress < 0) newProgress = 0;
-    if (newProgress > subject.totalVideos) newProgress = subject.totalVideos;
+    final clampedProgress = newProgress.clamp(0, subject.totalVideos);
+    if (subject.completedVideos == clampedProgress) return;
 
-    subject.completedVideos = newProgress;
+    subject.completedVideos = clampedProgress;
     await _isarService.updateSubject(subject);
   }
 
@@ -49,12 +60,11 @@ class SubjectController extends StateNotifier<AsyncValue<void>> {
     required String playlistLink,
     required bool isActive,
   }) async {
-    if (completed < 0) completed = 0;
-    if (total < 0) total = 0;
-    if (total > 0 && completed > total) completed = total;
+    final safeTotal = total.clamp(0, 9999); // Reasonable upper bound
+    final safeCompleted = completed.clamp(0, safeTotal);
 
-    subject.completedVideos = completed;
-    subject.totalVideos = total;
+    subject.completedVideos = safeCompleted;
+    subject.totalVideos = safeTotal;
     subject.sourceName = sourceName;
     subject.playlistLink = playlistLink;
     subject.isActive = isActive;
@@ -64,32 +74,17 @@ class SubjectController extends StateNotifier<AsyncValue<void>> {
 
   Future<void> resetTrackingData() async {
     state = const AsyncValue.loading();
-    try {
-      await _isarService.resetTrackingData();
-      state = const AsyncValue.data(null);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    state = await AsyncValue.guard(() => _isarService.resetTrackingData());
   }
 
   Future<void> resetEverything() async {
     state = const AsyncValue.loading();
-    try {
-      await _isarService.hardResetEverything();
-      state = const AsyncValue.data(null);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    state = await AsyncValue.guard(() => _isarService.hardResetEverything());
   }
 
   Future<void> applyPreset() async {
     state = const AsyncValue.loading();
-    try {
-      await _isarService.applyDefaultPreset();
-      state = const AsyncValue.data(null);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    state = await AsyncValue.guard(() => _isarService.applyDefaultPreset());
   }
 
   Future<void> increment(Subject subject) async {
@@ -100,9 +95,3 @@ class SubjectController extends StateNotifier<AsyncValue<void>> {
     await updateProgress(subject, subject.completedVideos - 1);
   }
 }
-
-final subjectControllerProvider =
-    StateNotifierProvider<SubjectController, AsyncValue<void>>((ref) {
-      final isarService = ref.watch(isarServiceProvider);
-      return SubjectController(isarService);
-    });

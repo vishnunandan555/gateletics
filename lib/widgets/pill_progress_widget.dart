@@ -58,20 +58,7 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
   }
 
   void _cycleColor() {
-    const colors = [
-      Color(0xFF00F0FF), // Neon cyan
-      Color(0xFF39FF14), // Neon green
-      Color(0xFFFF073A), // Neon scarlet red
-      Color(0xFFFFAD00), // Neon golden amber
-      Color(0xFFE040FB), // Neon magenta/purple
-      Color(0xFFFF5E00), // Neon orange
-      Color(0xFF00B0FF), // Neon electric blue
-      Color(0xFF00FFCC), // Neon mint/teal
-    ];
-    final current = ref.read(overallProgressColorProvider);
-    final idx = colors.indexOf(current);
-    final nextIdx = (idx == -1) ? 0 : (idx + 1) % colors.length;
-    ref.read(overallProgressColorProvider.notifier).state = colors[nextIdx];
+    ref.read(overallProgressColorProvider.notifier).next();
   }
 
   @override

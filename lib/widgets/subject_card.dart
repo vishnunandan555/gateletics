@@ -145,7 +145,7 @@ class SubjectCard extends StatelessWidget {
                   ),
                   value: isActive,
                   onChanged: (val) => setState(() => isActive = val),
-                  activeColor: color,
+                  activeThumbColor: color,
                 ),
               ],
             ),

@@ -75,19 +75,19 @@ class IsarService {
     if (count > 0) return;
 
     final defaults = [
-      _subject('Engineering Mathematics', 'Mathematical Foundation'),
-      _subject('Discrete Mathematics', 'Mathematical Foundation'),
-      _subject('C Programming', 'Programming Foundation'),
-      _subject('Data Structures', 'Programming Foundation'),
-      _subject('Algorithms', 'Programming Foundation'),
-      _subject('Digital Logic', 'System Depth'),
-      _subject('COA', 'System Depth'),
-      _subject('Operating Systems', 'System Depth'),
-      _subject('DBMS', 'Rest of the Stuff'),
-      _subject('Computer Networks', 'Rest of the Stuff'),
-      _subject('Theory of Computation', 'Rest of the Stuff'),
-      _subject('GATE Apti', 'Rest of the Stuff'),
-      _subject('Compiler Design', 'Rest of the Stuff'),
+      _subject('Engineering Mathematics', Subject.categories[0]),
+      _subject('Discrete Mathematics', Subject.categories[0]),
+      _subject('C Programming', Subject.categories[1]),
+      _subject('Data Structures', Subject.categories[1]),
+      _subject('Algorithms', Subject.categories[1]),
+      _subject('Digital Logic', Subject.categories[2]),
+      _subject('COA', Subject.categories[2]),
+      _subject('Operating Systems', Subject.categories[2]),
+      _subject('DBMS', Subject.categories[3]),
+      _subject('Computer Networks', Subject.categories[3]),
+      _subject('Theory of Computation', Subject.categories[3]),
+      _subject('GATE Apti', Subject.categories[3]),
+      _subject('Compiler Design', Subject.categories[3]),
     ];
 
     await isar.writeTxn(() async {
