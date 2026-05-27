@@ -42,7 +42,7 @@ final class OverallProgressColorProvider
 }
 
 String _$overallProgressColorHash() =>
-    r'303451cfc9dd669048d926fe427b5cf5cb4fd912';
+    r'326c9bbcef3a56e3eea9807738d89a0a957fa79a';
 
 abstract class _$OverallProgressColor extends $Notifier<Color> {
   Color build();
@@ -174,7 +174,7 @@ final class SubjectControllerProvider
   }
 }
 
-String _$subjectControllerHash() => r'1dec020548482dba0779d9130f09e68268b2e87d';
+String _$subjectControllerHash() => r'4b4c11771153d6f00292d06718d7a0ac0255a747';
 
 abstract class _$SubjectController extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();

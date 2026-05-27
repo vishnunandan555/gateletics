@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:isar_community/isar.dart';
 import '../../providers/subject_provider.dart';
 import '../../providers/target_date_provider.dart';
 import '../../database/models/subject.dart';
@@ -24,21 +26,21 @@ class DashboardScreen extends ConsumerWidget {
         'completedVideos': s.completedVideos,
         'totalVideos': s.totalVideos,
         'category': s.category,
-        'sourceName': s.sourceName,
         'playlistLink': s.playlistLink,
+        'sourceName': s.sourceName,
         'isActive': s.isActive,
       }).toList();
 
-      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
-      final bytes = utf8.encode(jsonString);
+      final json = const JsonEncoder.withIndent('  ').convert(data);
+      final bytes = Uint8List.fromList(utf8.encode(json));
 
-      final result = await FilePicker.saveFile(
-        dialogTitle: 'Export Subjects Data',
+      final path = await FilePicker.saveFile(
+        dialogTitle: 'Save backup to device',
         fileName: 'subjects_export.json',
         bytes: bytes,
       );
 
-      if (result != null && context.mounted) {
+      if (path != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Data exported successfully!')),
         );
@@ -55,32 +57,44 @@ class DashboardScreen extends ConsumerWidget {
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
     try {
       final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
+        type: FileType.any,
       );
-
       if (result == null || result.files.single.path == null) return;
 
       final file = File(result.files.single.path!);
-      final content = await file.readAsString();
-      final List<dynamic> data = json.decode(content);
-
-      for (final item in data) {
-        final Map<String, dynamic> map = item as Map<String, dynamic>;
-        await ref.read(subjectControllerProvider.notifier).addSubject(
-              name: map['name'] ?? 'Imported Subject',
-              completed: map['completedVideos'] ?? 0,
-              total: map['totalVideos'] ?? 100,
-              category: map['category'] ?? 'General',
-              sourceName: map['sourceName'] ?? '',
-              playlistLink: map['playlistLink'] ?? '',
-              isActive: map['isActive'] ?? true,
-            );
+      if (!file.path.endsWith('.json')) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a valid .json backup file.')),
+          );
+        }
+        return;
       }
+
+      final raw = await file.readAsString();
+      final list = jsonDecode(raw) as List<dynamic>;
+      final isar = await ref.read(isarServiceProvider).db;
+      
+      await isar.writeTxn(() async {
+        for (final item in list) {
+          final name = item['name'] as String?;
+          if (name == null) continue;
+
+          final s = await isar.subjects.filter().nameEqualTo(name).findFirst();
+          if (s != null) {
+            s.completedVideos = (item['completedVideos'] as int?) ?? 0;
+            s.totalVideos = (item['totalVideos'] as int?) ?? s.totalVideos;
+            s.playlistLink = (item['playlistLink'] as String?) ?? s.playlistLink;
+            s.sourceName = (item['sourceName'] as String?) ?? s.sourceName;
+            s.isActive = (item['isActive'] as bool?) ?? s.isActive;
+            await isar.subjects.put(s);
+          }
+        }
+      });
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data imported successfully!')),
+          const SnackBar(content: Text('Progress imported successfully!')),
         );
       }
     } catch (e) {
@@ -92,73 +106,234 @@ class DashboardScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _performReset(BuildContext context, WidgetRef ref,
+      {required bool everything}) async {
+    final title = everything ? 'Reset Everything' : 'Reset Tracking Data';
+    final content = everything
+        ? 'This will clear ALL your sources, links, and progress. This cannot be undone.'
+        : 'This will reset all your progress counts to zero but keep your sources and links.';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(title),
+        content: Text(
+          content,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      if (everything) {
+        await ref.read(subjectControllerProvider.notifier).resetEverything();
+      } else {
+        await ref
+            .read(subjectControllerProvider.notifier)
+            .resetTrackingData();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(everything ? 'System reset!' : 'Progress reset!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reset failed: $e')),
+        );
+      }
+    }
+  }
+
   void _showSettingsSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white10,
-                borderRadius: BorderRadius.circular(2),
+      builder: (context) => Material(
+        color: const Color(0xFF18181B),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Settings',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
+                    title: const Text('Export Data'),
+                    subtitle: const Text(
+                      'Save progress to JSON',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _exportData(context, ref);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
+                    title: const Text('Import Data'),
+                    subtitle: const Text(
+                      'Restore from JSON file',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _importData(context, ref);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                    title: const Text('Apply Preset'),
+                    subtitle: const Text(
+                      'Apply default GoClasses/YouTube sources',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF18181B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          title: const Text('Apply Preset'),
+                          content: const Text(
+                            'This will overwrite current sources and counts for some subjects. Continue?',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.amberAccent,
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Apply'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        await ref
+                            .read(subjectControllerProvider.notifier)
+                            .applyPreset();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Preset applied!')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                  const Divider(color: Colors.white12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'RESET DATA',
+                      style: TextStyle(
+                        color: Colors.redAccent.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
+                    title: const Text('Reset Tracking Data'),
+                    subtitle: const Text(
+                      'Set all progress counts to zero',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _performReset(context, ref, everything: false);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                    title: const Text('Reset Everything'),
+                    subtitle: const Text(
+                      'Clear sources, links, and progress',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _performReset(context, ref, everything: true);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'GATE Tracker v0.0.4',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'SETTINGS',
-              style: TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 18,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ListTile(
-              leading: const Icon(Icons.file_upload_outlined),
-              title: const Text('Export Data'),
-              subtitle: const Text('Save your progress to a JSON file'),
-              onTap: () {
-                Navigator.pop(context);
-                _exportData(context, ref);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.file_download_outlined),
-              title: const Text('Import Data'),
-              subtitle: const Text('Load progress from a JSON file'),
-              onTap: () {
-                Navigator.pop(context);
-                _importData(context, ref);
-              },
-            ),
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
-            const SizedBox(height: 16),
-            Text(
-              'GATE Tracker v0.0.4',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.3),
-                fontSize: 10,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Color _getCategoryColor(String category) {
+    final intColor = Subject.categoryColors[category];
+    if (intColor != null) {
+      return Color(intColor);
+    }
     switch (category.toLowerCase()) {
       case 'engineering mathematics': return Colors.blueAccent;
       case 'digital logic': return Colors.cyanAccent;
@@ -436,18 +611,18 @@ class _CountdownWidget extends ConsumerWidget {
               '$daysLeft',
               style: TextStyle(
                 fontFamily: 'BatmanForever',
-                fontSize: 40,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: progressColor,
                 height: 1.0,
-                shadows: [Shadow(color: progressColor.withAlpha(204), blurRadius: 12)],
+                shadows: [Shadow(color: progressColor.withAlpha(204), blurRadius: 10)],
               ),
             ),
             const SizedBox(height: 2),
             const Text(
               'DAYS LEFT',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 8,
                 fontFamily: 'BatmanForever',
                 fontWeight: FontWeight.bold,
                 color: Colors.white70,

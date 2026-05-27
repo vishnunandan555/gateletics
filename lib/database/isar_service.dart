@@ -185,13 +185,17 @@ class IsarService {
   Future<void> _runMigration(Isar isar) async {
     await isar.writeTxn(() async {
       final all = await isar.subjects.where().findAll();
+      bool changed = false;
       for (final s in all) {
         // Isar handles basic type defaults, but we can nudge them if needed.
         if (s.sourceName.isEmpty) {
           s.sourceName = 'Source';
+          changed = true;
         }
       }
-      await isar.subjects.putAll(all);
+      if (changed) {
+        await isar.subjects.putAll(all);
+      }
     });
   }
 
