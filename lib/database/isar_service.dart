@@ -206,4 +206,11 @@ class IsarService {
       await isar.subjects.put(subject);
     });
   }
+
+  Future<void> addSubject(Subject subject) async {
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.subjects.put(subject);
+    });
+  }
 }

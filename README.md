@@ -1,13 +1,13 @@
 # 🏁 GATE Progress Tracker
 
 [![Build & Release App](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-0.0.3-blue.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
+[![Version](https://img.shields.io/badge/version-0.0.4-blue.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
 A simple tool to track your GATE exam preparation progress.
 
-Note: This project is in prerelease. Make sure to back up your data.
+Note: This project is in prerelease (v0.0.4). Make sure to back up your data.
 
 ---
 
@@ -44,8 +44,11 @@ Note: This project is in prerelease. Make sure to back up your data.
    ```bash
    git clone https://github.com/vishnunandan555/gate-tracker.git
    cd gate-tracker
+   flutter --version
    flutter pub get
    ```
+
+   Requires Flutter 3.44.0+ (Dart 3.12).
 
 2. **Generate Code:**
    ```bash

@@ -52,6 +52,27 @@ class SubjectController extends _$SubjectController {
     await _isarService.updateSubject(subject);
   }
 
+  Future<void> addSubject({
+    required String name,
+    required int completed,
+    required int total,
+    required String category,
+    required String sourceName,
+    required String playlistLink,
+    required bool isActive,
+  }) async {
+    final subject = Subject()
+      ..name = name
+      ..completedVideos = completed
+      ..totalVideos = total
+      ..category = category
+      ..sourceName = sourceName
+      ..playlistLink = playlistLink
+      ..isActive = isActive;
+
+    await _isarService.addSubject(subject);
+  }
+
   Future<void> updateSubjectDetails(
     Subject subject, {
     required int completed,

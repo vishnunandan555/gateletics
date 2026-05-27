@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:isar_community/isar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
-import 'dart:typed_data';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/subject_provider.dart';
+import '../../providers/target_date_provider.dart';
 import '../../database/models/subject.dart';
 import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
-
-  // ── Settings actions ──────────────────────────────────────
 
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     try {
@@ -23,143 +21,72 @@ class DashboardScreen extends ConsumerWidget {
 
       final data = subjects.map((s) => {
         'name': s.name,
-        'category': s.category,
         'completedVideos': s.completedVideos,
         'totalVideos': s.totalVideos,
-        'playlistLink': s.playlistLink,
+        'category': s.category,
         'sourceName': s.sourceName,
+        'playlistLink': s.playlistLink,
         'isActive': s.isActive,
       }).toList();
 
-      final json = jsonEncode(data);
-      final bytes = Uint8List.fromList(utf8.encode(json));
+      final jsonString = const JsonEncoder.withIndent('  ').convert(data);
+      final bytes = utf8.encode(jsonString);
 
-      // Trigger the native Android system "Save as" file manager dialog
-      final path = await FilePicker.saveFile(
-        dialogTitle: 'Save backup to device',
-        fileName: 'gate_tracker_backup.json',
+      final result = await FilePicker.saveFile(
+        dialogTitle: 'Export Subjects Data',
+        fileName: 'subjects_export.json',
         bytes: bytes,
       );
 
-      if (path != null) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Backup saved successfully!')),
-          );
-        }
+      if (result != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data exported successfully!')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
       }
     }
   }
 
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
     try {
-      // Pick file using Storage Access Framework (SAF) - requires no storage permissions
       final result = await FilePicker.pickFiles(
-        type: FileType.any,
+        type: FileType.custom,
+        allowedExtensions: ['json'],
       );
+
       if (result == null || result.files.single.path == null) return;
 
       final file = File(result.files.single.path!);
-      if (!file.path.endsWith('.json')) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a valid .json backup file.')),
-          );
-        }
-        return;
-      }
+      final content = await file.readAsString();
+      final List<dynamic> data = json.decode(content);
 
-      final raw = await file.readAsString();
-      final list = jsonDecode(raw) as List<dynamic>;
-      final isar = await ref.read(isarServiceProvider).db;
-      await isar.writeTxn(() async {
-        for (final item in list) {
-          final name = item['name'] as String?;
-          if (name == null) continue;
-
-          final s = await isar.subjects.filter().nameEqualTo(name).findFirst();
-          if (s != null) {
-            s.completedVideos = (item['completedVideos'] as int?) ?? 0;
-            s.totalVideos = (item['totalVideos'] as int?) ?? s.totalVideos;
-            s.playlistLink = (item['playlistLink'] as String?) ?? s.playlistLink;
-            s.sourceName = (item['sourceName'] as String?) ?? s.sourceName;
-            s.isActive = (item['isActive'] as bool?) ?? s.isActive;
-            await isar.subjects.put(s);
-          }
-        }
-      });
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Progress imported successfully!')));
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
-      }
-    }
-  }
-
-  Future<void> _performReset(BuildContext context, WidgetRef ref,
-      {required bool everything}) async {
-    final title = everything ? 'Reset Everything' : 'Reset Tracking Data';
-    final content = everything
-        ? 'This will clear ALL your sources, links, and progress. This cannot be undone.'
-        : 'This will reset all your progress counts to zero but keep your sources and links.';
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(title),
-        content: Text(
-          content,
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !context.mounted) return;
-
-    try {
-      if (everything) {
-        await ref.read(subjectControllerProvider.notifier).resetEverything();
-      } else {
-        await ref
-            .read(subjectControllerProvider.notifier)
-            .resetTrackingData();
+      for (final item in data) {
+        final Map<String, dynamic> map = item as Map<String, dynamic>;
+        await ref.read(subjectControllerProvider.notifier).addSubject(
+              name: map['name'] ?? 'Imported Subject',
+              completed: map['completedVideos'] ?? 0,
+              total: map['totalVideos'] ?? 100,
+              category: map['category'] ?? 'General',
+              sourceName: map['sourceName'] ?? '',
+              playlistLink: map['playlistLink'] ?? '',
+              isActive: map['isActive'] ?? true,
+            );
       }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(everything ? 'System reset!' : 'Progress reset!')),
+          const SnackBar(content: Text('Data imported successfully!')),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Reset failed: $e')),
+          SnackBar(content: Text('Import failed: $e')),
         );
       }
     }
@@ -169,202 +96,120 @@ class DashboardScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF18181B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Settings',
-                  style: Theme.of(
-                    ctx,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
-                  title: const Text('Export Data'),
-                  subtitle: const Text(
-                    'Save progress to JSON',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _exportData(context, ref);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
-                  title: const Text('Import Data'),
-                  subtitle: const Text(
-                    'Restore from JSON file',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _importData(context, ref);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                  title: const Text('Apply Preset'),
-                  subtitle: const Text(
-                    'Apply default GoClasses/YouTube sources',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: const Color(0xFF18181B),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        title: const Text('Apply Preset'),
-                        content: const Text(
-                          'This will overwrite current sources and counts for some subjects. Continue?',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel',
-                                style: TextStyle(color: Colors.grey)),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.amberAccent,
-                              foregroundColor: Colors.black,
-                            ),
-                            child: const Text('Apply'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed == true) {
-                      await ref
-                          .read(subjectControllerProvider.notifier)
-                          .applyPreset();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Preset applied!')),
-                        );
-                      }
-                    }
-                  },
-                ),
-                const Divider(color: Colors.white12),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'RESET DATA',
-                    style: TextStyle(
-                      color: Colors.redAccent.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.history_rounded,
-                      color: Colors.redAccent),
-                  title: const Text('Reset Tracking Data'),
-                  subtitle: const Text(
-                    'Set all progress counts to zero',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _performReset(context, ref, everything: false);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete_forever_rounded,
-                      color: Colors.redAccent),
-                  title: const Text('Reset Everything'),
-                  subtitle: const Text(
-                    'Clear sources, links, and progress',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _performReset(context, ref, everything: true);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            const Text(
+              'SETTINGS',
+              style: TextStyle(
+                fontFamily: 'BatmanForever',
+                fontSize: 18,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ListTile(
+              leading: const Icon(Icons.file_upload_outlined),
+              title: const Text('Export Data'),
+              subtitle: const Text('Save your progress to a JSON file'),
+              onTap: () {
+                Navigator.pop(context);
+                _exportData(context, ref);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.file_download_outlined),
+              title: const Text('Import Data'),
+              subtitle: const Text('Load progress from a JSON file'),
+              onTap: () {
+                Navigator.pop(context);
+                _importData(context, ref);
+              },
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 16),
+            Text(
+              'GATE Tracker v0.0.4',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.3),
+                fontSize: 10,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
-
-  // ── Helpers ───────────────────────────────────────────────
 
   Color _getCategoryColor(String category) {
-    final colorValue = Subject.categoryColors[category];
-    return colorValue != null ? Color(colorValue) : const Color(0xFF00F0FF);
+    switch (category.toLowerCase()) {
+      case 'engineering mathematics': return Colors.blueAccent;
+      case 'digital logic': return Colors.cyanAccent;
+      case 'computer organization': return Colors.orangeAccent;
+      case 'programming & data structures': return Colors.greenAccent;
+      case 'algorithms': return Colors.redAccent;
+      case 'theory of computation': return Colors.purpleAccent;
+      case 'compiler design': return Colors.yellowAccent;
+      case 'operating systems': return Colors.pinkAccent;
+      case 'databases': return Colors.tealAccent;
+      case 'computer networks': return Colors.indigoAccent;
+      case 'general aptitude': return Colors.amberAccent;
+      default: return Colors.cyanAccent;
+    }
   }
 
-  /// Renders large category text that fills left-to-right with [color] based on [progress].
-  /// Grey base → colored fill from left at the progress percentage.
-  Widget _textFillHeader(BuildContext context, String text, Color color, double progress) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) {
-        final fill = (progress / 100).clamp(0.0, 1.0);
-        // Add a micro-interpolation stop zone (0.01 width) to prevent font pixel shifting/shaking on GPU
-        final stop1 = (fill - 0.005).clamp(0.0, 1.0);
-        final stop2 = (fill + 0.005).clamp(0.0, 1.0);
-        return LinearGradient(
-          colors: [
-            color,
-            color,
-            const Color(0xFF4A4A4A), // Premium gunmetal grey base
-            const Color(0xFF4A4A4A),
+  Widget _textFillHeader(BuildContext context, String title, Color color, double progress) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                fontFamily: 'BatmanForever',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1,
+              ),
+            ),
+            Text(
+              '${progress.toStringAsFixed(1)}%',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
           ],
-          stops: [0.0, stop1, stop2, 1.0],
-        ).createShader(bounds);
-      },
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Legend',
-          color: Colors.white, // white so ShaderMask paints through
-          fontSize: (screenWidth * 0.07).clamp(20.0, 28.0),
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-          height: 1.2,
         ),
-      ),
+        const SizedBox(height: 8),
+        LinearProgressIndicator(
+          value: progress / 100,
+          backgroundColor: Colors.white10,
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+      ],
     );
   }
-
-  // ── Build ─────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -373,11 +218,6 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       body: subjectsAsync.when(
         data: (subjects) {
-          if (subjects.isEmpty) {
-            return const Center(child: Text('No subjects found.'));
-          }
-
-          // Overall totals — only count subjects that are ACTIVE
           int totalCompleted = 0, totalVideos = 0;
           for (final s in subjects) {
             if (s.isActive) {
@@ -385,11 +225,7 @@ class DashboardScreen extends ConsumerWidget {
               totalVideos += s.totalVideos;
             }
           }
-          final overallProgress = totalVideos == 0
-              ? 0.0
-              : (totalCompleted / totalVideos) * 100;
-
-          // Category grouping + ordering
+          final overallProgress = totalVideos == 0 ? 0.0 : (totalCompleted / totalVideos) * 100;
           final grouped = groupBy(subjects, (s) => s.category);
           final sortedCategories = grouped.keys.toList()
             ..sort((a, b) {
@@ -402,7 +238,6 @@ class DashboardScreen extends ConsumerWidget {
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              // ── AppBar ──────────────────────────────────
               SliverAppBar(
                 toolbarHeight: 112,
                 floating: true,
@@ -416,9 +251,10 @@ class DashboardScreen extends ConsumerWidget {
                   tooltip: 'Settings',
                 ),
                 title: const _AppBarTitle(),
+                actions: const [
+                  _CountdownWidget(),
+                ],
               ),
-
-              // ── Overall progress squircle ────────────────
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
@@ -429,12 +265,9 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
-              // ── Category sections ────────────────────────
               ...sortedCategories.map((category) {
                 final catSubjects = grouped[category]!;
                 final catColor = _getCategoryColor(category);
-                
                 int catCompleted = 0, catTotal = 0;
                 for (final s in catSubjects) {
                   if (s.isActive) {
@@ -442,9 +275,7 @@ class DashboardScreen extends ConsumerWidget {
                     catTotal += s.totalVideos;
                   }
                 }
-                final catProgress = catTotal == 0
-                    ? 0.0
-                    : (catCompleted / catTotal) * 100;
+                final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
 
                 return SliverMainAxisGroup(
                   slivers: [
@@ -461,29 +292,12 @@ class DashboardScreen extends ConsumerWidget {
                           return SubjectCard(
                             subject: s,
                             color: catColor,
-                            onIncrement: () => ref
-                                .read(subjectControllerProvider.notifier)
-                                .increment(s),
-                            onDecrement: () => ref
-                                .read(subjectControllerProvider.notifier)
-                                .decrement(s),
-                            onEdit: ({
-                              required completed,
-                              required total,
-                              required sourceName,
-                              required playlistLink,
-                              required isActive,
-                            }) =>
-                                ref
-                                    .read(subjectControllerProvider.notifier)
-                                    .updateSubjectDetails(
-                                      s,
-                                      completed: completed,
-                                      total: total,
-                                      sourceName: sourceName,
-                                      playlistLink: playlistLink,
-                                      isActive: isActive,
-                                    ),
+                            onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
+                            onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
+                            onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
+                                ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
+                                  s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
+                                ),
                           );
                         },
                         childCount: catSubjects.length,
@@ -492,7 +306,6 @@ class DashboardScreen extends ConsumerWidget {
                   ],
                 );
               }),
-
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
             ],
           );
@@ -507,56 +320,143 @@ class DashboardScreen extends ConsumerWidget {
 class _AppBarTitle extends StatelessWidget {
   const _AppBarTitle();
 
+  Future<void> _handleLongPress(BuildContext context) async {
+    final bool? shouldOpen = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Open GitHub Repo?'),
+        content: const Text('Would you like to visit the project repository on GitHub?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('YES'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldOpen == true) {
+      final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
+      if (!await launchUrl(url)) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open the link.')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'GATE\nPROGRESS\nTRACKER',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.8,
-            height: 1.1,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'v0.0.3 ',
-              style: TextStyle(color: Colors.grey, fontSize: 10),
+    return GestureDetector(
+      onLongPress: () => _handleLongPress(context),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'GATE\nPROGRESS\nTRACKER',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'BatmanForever',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+              height: 1.1,
             ),
-            Consumer(
-              builder: (context, ref, _) {
-                final progressColor = ref.watch(overallProgressColorProvider);
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: progressColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'Alpha',
-                    style: TextStyle(
-                      color: progressColor,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'v0.0.4 ',
+                style: TextStyle(color: Colors.grey, fontSize: 10),
+              ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final progressColor = ref.watch(overallProgressColorProvider);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: progressColor.withAlpha(51),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ),
-                );
-              },
+                    child: Text(
+                      'Alpha',
+                      style: TextStyle(color: progressColor, fontSize: 8, fontWeight: FontWeight.bold),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountdownWidget extends ConsumerWidget {
+  const _CountdownWidget();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final targetDate = ref.watch(targetDateProvider);
+    final progressColor = ref.watch(overallProgressColorProvider);
+    final now = DateTime.now();
+    final difference = targetDate.difference(now);
+    final daysLeft = difference.inDays > 0 ? difference.inDays : 0;
+
+    return GestureDetector(
+      onLongPress: () async {
+        final selected = await showDatePicker(
+          context: context,
+          initialDate: targetDate,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2100),
+        );
+        if (selected != null) {
+          ref.read(targetDateProvider.notifier).setDate(selected);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        color: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$daysLeft',
+              style: TextStyle(
+                fontFamily: 'BatmanForever',
+                fontSize: 40,
+                fontWeight: FontWeight.bold,
+                color: progressColor,
+                height: 1.0,
+                shadows: [Shadow(color: progressColor.withAlpha(204), blurRadius: 12)],
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'DAYS LEFT',
+              style: TextStyle(
+                fontSize: 10,
+                fontFamily: 'BatmanForever',
+                fontWeight: FontWeight.bold,
+                color: Colors.white70,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

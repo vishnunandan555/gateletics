@@ -93,6 +93,7 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                       Text(
                         '${(progress * 100).toStringAsFixed(2)}%',
                         style: TextStyle(
+                          fontFamily: 'BatmanForever',
                           fontSize: fontSize,
                           fontWeight: FontWeight.w900,
                           color: color,

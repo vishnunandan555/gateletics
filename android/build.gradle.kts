@@ -5,17 +5,20 @@ allprojects {
     }
 }
 
-val rootBuildDir = rootProject.layout.projectDirectory.dir("build")
+// Redirect build directory safely
+val rootBuildDir = rootProject.layout.projectDirectory.dir("../build")
 rootProject.layout.buildDirectory.set(rootBuildDir)
 
 subprojects {
-    project.layout.buildDirectory.set(rootBuildDir.dir(project.name))
-}
-
-subprojects {
-    tasks.withType<JavaCompile>().configureEach {
-        sourceCompatibility = "21"
-        targetCompatibility = "21"
+    val subprojectName = name
+    layout.buildDirectory.set(rootBuildDir.dir(subprojectName))
+    
+    // Use the afterEvaluate block to ensure compatibility is set after plugins are loaded
+    afterEvaluate {
+        tasks.withType<JavaCompile>().configureEach {
+            sourceCompatibility = JavaVersion.VERSION_21.toString()
+            targetCompatibility = JavaVersion.VERSION_21.toString()
+        }
     }
 }
 

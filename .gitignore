@@ -37,6 +37,7 @@
 **/ios/Flutter/.last_build_id
 .dart_tool/
 .flutter-plugins-dependencies
+.flutter-plugins
 .pub-cache/
 .pub/
 .packages
@@ -81,6 +82,10 @@ Podfile.lock
 /windows/flutter/generated_plugin_registrant.cc
 /windows/flutter/generated_plugin_registrant.h
 /windows/flutter/generated_plugins.cmake
+
+# Generated Flutter plugin registrants
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.kt
 
 # Symbolication and Obfuscation related
 app.*.symbols
