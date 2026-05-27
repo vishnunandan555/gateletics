@@ -97,7 +97,7 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                           fontSize: fontSize,
                           fontWeight: FontWeight.w900,
                           color: color,
-                          letterSpacing: -1,
+                          letterSpacing: 2,
                           shadows: [
                             Shadow(
                               color: color.withValues(alpha: 0.5),
