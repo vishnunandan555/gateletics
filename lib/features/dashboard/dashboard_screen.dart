@@ -351,36 +351,53 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   Widget _textFillHeader(BuildContext context, String title, Color color, double progress) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final normalized = (progress / 100).clamp(0.0, 1.0);
+    const baseStyle = TextStyle(
+      fontFamily: 'Legend',
+      fontSize: 14,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 1,
+      color: Colors.white54,
+    );
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: const TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-            Text(
-              '${progress.toStringAsFixed(1)}%',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ],
+        Expanded(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0, end: normalized),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            builder: (context, animValue, _) {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final fillWidth = constraints.maxWidth * animValue;
+                  return Stack(
+                    children: [
+                      Text(title.toUpperCase(), style: baseStyle),
+                      ClipRect(
+                        clipper: _ProgressClipper(fillWidth),
+                        child: Text(
+                          title.toUpperCase(),
+                          style: baseStyle.copyWith(color: color),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         ),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(
-          value: progress / 100,
-          backgroundColor: Colors.white10,
-          valueColor: AlwaysStoppedAnimation<Color>(color),
+        const SizedBox(width: 12),
+        Text(
+          '${progress.toStringAsFixed(1)}%',
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
         ),
       ],
     );
@@ -489,6 +506,22 @@ class DashboardScreen extends ConsumerWidget {
         error: (err, _) => Center(child: Text('Error: $err')),
       ),
     );
+  }
+}
+
+class _ProgressClipper extends CustomClipper<Rect> {
+  const _ProgressClipper(this.width);
+
+  final double width;
+
+  @override
+  Rect getClip(Size size) {
+    return Rect.fromLTWH(0, 0, width, size.height);
+  }
+
+  @override
+  bool shouldReclip(_ProgressClipper oldClipper) {
+    return oldClipper.width != width;
   }
 }
 

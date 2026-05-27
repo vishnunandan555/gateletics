@@ -100,12 +100,16 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                           letterSpacing: -1,
                           shadows: [
                             Shadow(
-                              color: color.withValues(alpha: 0.9),
-                              blurRadius: 20,
+                              color: color.withValues(alpha: 0.5),
+                              blurRadius: 16,
                             ),
                             Shadow(
-                              color: color.withValues(alpha: 0.5),
-                              blurRadius: 40,
+                              color: color.withValues(alpha: 0.28),
+                              blurRadius: 55,
+                            ),
+                            Shadow(
+                              color: color.withValues(alpha: 0.15),
+                              blurRadius: 95,
                             ),
                           ],
                         ),
