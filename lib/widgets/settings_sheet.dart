@@ -492,9 +492,10 @@ class SettingsSheet extends ConsumerWidget {
                     'Save progress to JSON',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _exportData(context, ref);
+                  onTap: () async {
+                    // Grab ref before popping
+                    await _exportData(context, ref);
+                    if (context.mounted) Navigator.pop(context);
                   },
                 ),
                 ListTile(
@@ -504,9 +505,9 @@ class SettingsSheet extends ConsumerWidget {
                     'Restore from JSON file',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _importData(context, ref);
+                  onTap: () async {
+                    await _importData(context, ref);
+                    if (context.mounted) Navigator.pop(context);
                   },
                 ),
                 ListTile(
@@ -517,7 +518,6 @@ class SettingsSheet extends ConsumerWidget {
                     style: TextStyle(color: Colors.grey),
                   ),
                   onTap: () async {
-                    Navigator.pop(context);
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
@@ -547,15 +547,18 @@ class SettingsSheet extends ConsumerWidget {
                         ],
                       ),
                     );
+
                     if (confirmed == true) {
+                      // Close the settings sheet now
+                      if (context.mounted) Navigator.pop(context);
+                      
                       await ref
                           .read(subjectControllerProvider.notifier)
                           .applyPreset();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Preset applied!')),
-                        );
-                      }
+                      
+                      // Check for mounting because the sheet is now gone
+                      // Usually ref.read(provider) works even if unmounted if grabbed early,
+                      // but using context.mounted for Snackbar is mandatory.
                     }
                   },
                 ),
@@ -652,9 +655,9 @@ class SettingsSheet extends ConsumerWidget {
                     'Set all progress counts to zero',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _performReset(context, ref, everything: false);
+                  onTap: () async {
+                    await _performReset(context, ref, everything: false);
+                    if (context.mounted) Navigator.pop(context);
                   },
                 ),
                 ListTile(
@@ -664,9 +667,9 @@ class SettingsSheet extends ConsumerWidget {
                     'Clear sources, links, and progress',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _performReset(context, ref, everything: true);
+                  onTap: () async {
+                    await _performReset(context, ref, everything: true);
+                    if (context.mounted) Navigator.pop(context);
                   },
                 ),
                 const SizedBox(height: 8),
@@ -679,8 +682,9 @@ class SettingsSheet extends ConsumerWidget {
                     style: TextStyle(color: Colors.grey),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
                     _showAboutDialog(context, ref);
+                    // We don't necessarily need to pop here, or we can pop after the dialog closed
+                    // but showAboutDialog is sync-calling showDialog.
                   },
                 ),
                 const SizedBox(height: 16),

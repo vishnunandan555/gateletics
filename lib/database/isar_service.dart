@@ -137,7 +137,8 @@ class IsarService {
 
   Future<void> applyDefaultPreset() async {
     final isar = await db;
-    final preset = {
+    // Use an explicit type for the map to ensure records are typed correctly
+    final Map<String, ({int total, String link, String source})> preset = {
       'Engineering Mathematics': (
         total: 111,
         link:
@@ -177,17 +178,46 @@ class IsarService {
     };
 
     await isar.writeTxn(() async {
-      final all = await isar.subjects.where().findAll();
-      for (final s in all) {
-        final data = preset[s.name];
-        if (data != null) {
-          s.totalVideos = data.total;
-          s.playlistLink = data.link;
-          s.sourceName = data.source;
-          s.isActive = true;
+      // Find all once to avoid indexing issues and multiple queries
+      final allExisting = await isar.subjects.where().findAll();
+      final subjectMap = {for (var s in allExisting) s.name.trim(): s};
+
+      int updatedCount = 0;
+      int createdCount = 0;
+
+      for (final entry in preset.entries) {
+        final name = entry.key;
+        final data = entry.value;
+
+        var subject = subjectMap[name.trim()];
+
+        if (subject == null) {
+          // If it doesn't exist, create it.
+          // We need to determine the category.
+          String category = Subject.categories[3]; // Default to 'Rest of the Stuff'
+          if (name.contains('Mathematics')) {
+            category = Subject.categories[0];
+          } else if (name == 'COA' || name == 'Operating Systems') {
+            category = Subject.categories[2];
+          }
+
+          subject = Subject()
+            ..name = name
+            ..category = category;
+          createdCount++;
+        } else {
+          updatedCount++;
         }
+
+        // Apply preset details
+        subject.totalVideos = data.total;
+        subject.playlistLink = data.link;
+        subject.sourceName = data.source;
+        subject.isActive = true;
+
+        await isar.subjects.put(subject);
       }
-      await isar.subjects.putAll(all);
+      debugPrint('Preset applied: Updated $updatedCount, Created $createdCount subjects.');
     });
   }
 
