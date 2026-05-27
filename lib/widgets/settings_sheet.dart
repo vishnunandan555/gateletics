@@ -1,0 +1,760 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:isar_community/isar.dart';
+import '../providers/subject_provider.dart';
+import '../providers/updater_provider.dart';
+import '../database/models/subject.dart';
+
+void showSettingsSheet(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => const SettingsSheet(),
+  );
+}
+
+class SettingsSheet extends ConsumerWidget {
+  const SettingsSheet({super.key});
+
+  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+    try {
+      final subjects = ref.read(subjectsProvider).value;
+      if (subjects == null) return;
+
+      final data = subjects.map((s) => {
+        'name': s.name,
+        'completedVideos': s.completedVideos,
+        'totalVideos': s.totalVideos,
+        'category': s.category,
+        'playlistLink': s.playlistLink,
+        'sourceName': s.sourceName,
+        'isActive': s.isActive,
+      }).toList();
+
+      final json = const JsonEncoder.withIndent('  ').convert(data);
+      final bytes = Uint8List.fromList(utf8.encode(json));
+
+      final path = await FilePicker.saveFile(
+        dialogTitle: 'Save backup to device',
+        fileName: 'subjects_export.json',
+        bytes: bytes,
+      );
+
+      if (path != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data exported successfully!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importData(BuildContext context, WidgetRef ref) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.any,
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final file = File(result.files.single.path!);
+      if (!file.path.endsWith('.json')) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please select a valid .json backup file.')),
+          );
+        }
+        return;
+      }
+
+      final raw = await file.readAsString();
+      final list = jsonDecode(raw) as List<dynamic>;
+      final isar = await ref.read(isarServiceProvider).db;
+      
+      await isar.writeTxn(() async {
+        for (final item in list) {
+          final name = item['name'] as String?;
+          if (name == null) continue;
+
+          final s = await isar.subjects.filter().nameEqualTo(name).findFirst();
+          if (s != null) {
+            s.completedVideos = (item['completedVideos'] as int?) ?? 0;
+            s.totalVideos = (item['totalVideos'] as int?) ?? s.totalVideos;
+            s.playlistLink = (item['playlistLink'] as String?) ?? s.playlistLink;
+            s.sourceName = (item['sourceName'] as String?) ?? s.sourceName;
+            s.isActive = (item['isActive'] as bool?) ?? s.isActive;
+            await isar.subjects.put(s);
+          }
+        }
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Progress imported successfully!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _performReset(BuildContext context, WidgetRef ref,
+      {required bool everything}) async {
+    final title = everything ? 'Reset Everything' : 'Reset Tracking Data';
+    final content = everything
+        ? 'This will clear ALL your sources, links, and progress. This cannot be undone.'
+        : 'This will reset all your progress counts to zero but keep your sources and links.';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(title),
+        content: Text(
+          content,
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      if (everything) {
+        await ref.read(subjectControllerProvider.notifier).resetEverything();
+      } else {
+        await ref
+            .read(subjectControllerProvider.notifier)
+            .resetTrackingData();
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(everything ? 'System reset!' : 'Progress reset!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reset failed: $e')),
+        );
+      }
+    }
+  }
+
+  void _showAboutDialog(BuildContext context, WidgetRef ref) {
+    final size = MediaQuery.of(context).size;
+    final accentColor = ref.read(overallProgressColorProvider);
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withAlpha(180),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: size.width * 0.85,
+              maxHeight: size.height * 0.65,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF131316).withAlpha(235),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: accentColor.withAlpha(64), width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withAlpha(38),
+                    blurRadius: 25,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header Section: App Logo/Icon & Title
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: accentColor.withAlpha(26),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: accentColor.withAlpha(102), width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: accentColor.withAlpha(26),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.auto_awesome,
+                              color: accentColor,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "GATE TRACKER",
+                                style: TextStyle(
+                                  fontFamily: 'BatmanForever',
+                                  fontSize: 18,
+                                  letterSpacing: 1.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      color: accentColor.withAlpha(128),
+                                      blurRadius: 8,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white10,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.white24, width: 0.5),
+                                ),
+                                child: Text(
+                                  "v0.0.5 (Alpha)",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white54,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // App Description
+                      Text(
+                        "GATE Progress Tracker is a premium tracking utility engineered to log subjects progress, monitor playlist counts, and calculate your target GATE examination countdown.",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Creator profile panel
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(10),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: accentColor.withAlpha(26),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: accentColor.withAlpha(51)),
+                              ),
+                              child: Icon(
+                                Icons.person_rounded,
+                                color: accentColor,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "DEVELOPED BY",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white38,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Vishnu Nandan",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Love / Country Badges
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildBadge(
+                            icon: "🇮🇳",
+                            label: "Made in India",
+                            color: Colors.orangeAccent,
+                          ),
+                          const SizedBox(width: 12),
+                          _buildBadge(
+                            icon: "❤️",
+                            label: "Made with Love",
+                            color: Colors.redAccent,
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () async {
+                                final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                                }
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                side: BorderSide(color: accentColor.withAlpha(102), width: 1.5),
+                              ),
+                              icon: Icon(Icons.code_rounded, size: 18, color: accentColor),
+                              label: Text(
+                                "GITHUB",
+                                style: GoogleFonts.outfit(
+                                  color: accentColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 4,
+                                shadowColor: accentColor.withAlpha(128),
+                              ),
+                              child: Text(
+                                "CLOSE",
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadge({required String icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(icon, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.outfit(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Material(
+      color: const Color(0xFF18181B),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Settings',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
+                  title: const Text('Export Data'),
+                  subtitle: const Text(
+                    'Save progress to JSON',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _exportData(context, ref);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
+                  title: const Text('Import Data'),
+                  subtitle: const Text(
+                    'Restore from JSON file',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _importData(context, ref);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                  title: const Text('Apply Preset'),
+                  subtitle: const Text(
+                    'Apply default GoClasses/YouTube sources',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: const Color(0xFF18181B),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        title: const Text('Apply Preset'),
+                        content: const Text(
+                          'This will overwrite current sources and counts for some subjects. Continue?',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel',
+                                style: TextStyle(color: Colors.grey)),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.amberAccent,
+                              foregroundColor: Colors.black,
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      await ref
+                          .read(subjectControllerProvider.notifier)
+                          .applyPreset();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Preset applied!')),
+                        );
+                      }
+                    }
+                  },
+                ),
+                const Divider(color: Colors.white12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'SYSTEM UPDATES',
+                    style: TextStyle(
+                      color: ref.watch(overallProgressColorProvider).withAlpha(178),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const LastCheckedSubtitleTile(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.settings_rounded, color: Colors.white30, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Update Check Frequency',
+                        style: TextStyle(
+                          color: Colors.white.withAlpha(128),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final currentFreq = ref.watch(updateFrequencyProvider);
+                      final accentColor = ref.watch(overallProgressColorProvider);
+
+                      return Row(
+                        children: ['Daily', 'Weekly', 'Monthly'].map((freq) {
+                          final isSelected = currentFreq == freq;
+                          return Expanded(
+                            child: GestureDetector(
+                              onTap: () => ref.read(updateFrequencyProvider.notifier).setFrequency(freq),
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? accentColor.withAlpha(51) : Colors.white10,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected ? accentColor : Colors.transparent,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    freq,
+                                    style: TextStyle(
+                                      color: isSelected ? accentColor : Colors.white70,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Divider(color: Colors.white12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    'RESET DATA',
+                    style: TextStyle(
+                      color: Colors.redAccent.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
+                  title: const Text('Reset Tracking Data'),
+                  subtitle: const Text(
+                    'Set all progress counts to zero',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _performReset(context, ref, everything: false);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                  title: const Text('Reset Everything'),
+                  subtitle: const Text(
+                    'Clear sources, links, and progress',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _performReset(context, ref, everything: true);
+                  },
+                ),
+                const SizedBox(height: 8),
+                const Divider(color: Colors.white10),
+                ListTile(
+                  leading: Icon(Icons.info_outline_rounded, color: ref.watch(overallProgressColorProvider)),
+                  title: const Text('About GATE Tracker'),
+                  subtitle: const Text(
+                    'Developer info, repository and description',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showAboutDialog(context, ref);
+                  },
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.white10),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'GATE Tracker v0.0.5',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class LastCheckedSubtitleTile extends ConsumerStatefulWidget {
+  const LastCheckedSubtitleTile({super.key});
+
+  @override
+  ConsumerState<LastCheckedSubtitleTile> createState() => _LastCheckedSubtitleTileState();
+}
+
+class _LastCheckedSubtitleTileState extends ConsumerState<LastCheckedSubtitleTile> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Invalidate immediately upon opening to ensure the timestamp is fresh
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.invalidate(lastUpdateCheckTimeProvider);
+      }
+    });
+    // Live countdown refresh timer - auto-invalidates the cached relative time provider every 10 seconds
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      if (mounted) {
+        ref.invalidate(lastUpdateCheckTimeProvider);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lastCheckedAsync = ref.watch(lastUpdateCheckTimeProvider);
+    final lastChecked = lastCheckedAsync.value ?? 'Never';
+    final accentColor = ref.watch(overallProgressColorProvider);
+
+    return ListTile(
+      leading: Icon(Icons.sync_rounded, color: accentColor),
+      title: const Text('Check For Updates Now'),
+      subtitle: Text(
+        'Last checked: $lastChecked',
+        style: const TextStyle(color: Colors.grey),
+      ),
+      onTap: () {
+        // Close the sheet immediately — DashboardScreen's ref.listen handles all results
+        Navigator.of(context).pop();
+        ref.read(updaterProvider.notifier).checkForUpdates();
+      },
+    );
+  }
+}

@@ -30,19 +30,29 @@ class IsarService {
   }
 
   Future<Isar> _initDB() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final baseDir = await getApplicationDocumentsDirectory();
+    String targetPath = baseDir.path;
+
+    if (Platform.isWindows || Platform.isLinux) {
+      final appDir = Directory('${baseDir.path}/gate_tracker');
+      if (!appDir.existsSync()) {
+        await appDir.create(recursive: true);
+      }
+      targetPath = appDir.path;
+    }
+
     if (Isar.instanceNames.isEmpty) {
       Isar isar;
       try {
         isar = await Isar.open(
           [SubjectSchema],
-          directory: dir.path,
+          directory: targetPath,
           inspector: kDebugMode,
         );
       } catch (e) {
         debugPrint('Isar initialization failed ($e). Recreating database...');
         try {
-          final dbDir = Directory(dir.path);
+          final dbDir = Directory(targetPath);
           if (dbDir.existsSync()) {
             final files = dbDir.listSync();
             for (final file in files) {
@@ -58,7 +68,7 @@ class IsarService {
         // Retry opening a fresh instance
         isar = await Isar.open(
           [SubjectSchema],
-          directory: dir.path,
+          directory: targetPath,
           inspector: kDebugMode,
         );
       }
