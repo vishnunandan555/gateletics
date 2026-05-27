@@ -15,8 +15,8 @@ import 'package:path_provider/path_provider.dart';
 // --- CONFIGURATION ---
 // FOR TESTING: Pointing to a repository with active releases (jameskokoska/Cashew)
 // To revert back to your original repository, simply comment out the Cashew variables and uncomment the gate-tracker variables.
-const String kGitHubOwner = "jameskokoska"; // Original: "vishnunandan555"
-const String kGitHubRepo = "Cashew";         // Original: "gate-tracker"
+const String kGitHubOwner = "vishnunandan555";
+const String kGitHubRepo = "gate-tracker";
 
 // Set to true to force update popup to display in dev mode
 const bool kDebugForceUpdateAvailable = false;

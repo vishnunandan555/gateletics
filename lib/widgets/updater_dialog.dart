@@ -18,6 +18,14 @@ class UpdaterDialog extends ConsumerStatefulWidget {
 
 class _UpdaterDialogState extends ConsumerState<UpdaterDialog> {
   bool _showBackupPrompt = false;
+  // Explicit controller required for Scrollbar on desktop (Linux/Windows)
+  final ScrollController _changelogScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _changelogScrollController.dispose();
+    super.dispose();
+  }
 
   // Standalone backup export inside dialog to guarantee data safety
   Future<void> _exportBackup(BuildContext context) async {
@@ -303,7 +311,9 @@ class _UpdaterDialogState extends ConsumerState<UpdaterDialog> {
               ),
               child: Scrollbar(
                 thumbVisibility: true,
+                controller: _changelogScrollController,
                 child: SingleChildScrollView(
+                  controller: _changelogScrollController,
                   physics: const BouncingScrollPhysics(),
                   child: Padding(
                     padding: const EdgeInsets.only(right: 8.0),
