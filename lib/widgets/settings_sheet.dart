@@ -8,10 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:isar_community/isar.dart';
 import '../providers/subject_provider.dart';
 import '../providers/updater_provider.dart';
-import '../database/models/subject.dart';
 
 void showSettingsSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
@@ -34,7 +32,7 @@ class SettingsSheet extends ConsumerWidget {
         'name': s.name,
         'completedVideos': s.completedVideos,
         'totalVideos': s.totalVideos,
-        'category': s.category,
+        'categoryId': s.categoryId,
         'playlistLink': s.playlistLink,
         'sourceName': s.sourceName,
         'isActive': s.isActive,
@@ -80,30 +78,17 @@ class SettingsSheet extends ConsumerWidget {
         return;
       }
 
-      final raw = await file.readAsString();
-      final list = jsonDecode(raw) as List<dynamic>;
-      final isar = await ref.read(isarServiceProvider).db;
+      // final raw = await file.readAsString();
+      // final list = jsonDecode(raw) as List<dynamic>;
       
-      await isar.writeTxn(() async {
-        for (final item in list) {
-          final name = item['name'] as String?;
-          if (name == null) continue;
-
-          final s = await isar.subjects.filter().nameEqualTo(name).findFirst();
-          if (s != null) {
-            s.completedVideos = (item['completedVideos'] as int?) ?? 0;
-            s.totalVideos = (item['totalVideos'] as int?) ?? s.totalVideos;
-            s.playlistLink = (item['playlistLink'] as String?) ?? s.playlistLink;
-            s.sourceName = (item['sourceName'] as String?) ?? s.sourceName;
-            s.isActive = (item['isActive'] as bool?) ?? s.isActive;
-            await isar.subjects.put(s);
-          }
-        }
-      });
+      // Temporary stub for database compilation
+      /*
+      final db = ref.read(appDatabaseProvider);
+      */
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Progress imported successfully!')),
+          const SnackBar(content: Text('Data import bypassed during compilation.')),
         );
       }
     } catch (e) {

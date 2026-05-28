@@ -37,7 +37,7 @@ class _UpdaterDialogState extends ConsumerState<UpdaterDialog> {
         'name': s.name,
         'completedVideos': s.completedVideos,
         'totalVideos': s.totalVideos,
-        'category': s.category,
+        'categoryId': s.categoryId,
         'playlistLink': s.playlistLink,
         'sourceName': s.sourceName,
         'isActive': s.isActive,

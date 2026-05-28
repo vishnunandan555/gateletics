@@ -116,9 +116,9 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Total Completion',
+                        'Total Syllabus Completion',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 16,
                           color: Colors.white70,
                           fontWeight: FontWeight.bold,
                         ),

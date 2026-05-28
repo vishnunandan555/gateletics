@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collection/collection.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/subject_provider.dart';
 import '../../providers/target_date_provider.dart';
 import '../../providers/updater_provider.dart';
-import '../../database/models/subject.dart';
+import 'widgets/empty_state_view.dart';
 import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
 import '../../widgets/updater_dialog.dart';
@@ -27,29 +26,6 @@ final hasCheckedForUpdatesProvider = NotifierProvider<HasCheckedForUpdates, bool
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
-
-
-
-  Color _getCategoryColor(String category) {
-    final intColor = Subject.categoryColors[category];
-    if (intColor != null) {
-      return Color(intColor);
-    }
-    switch (category.toLowerCase()) {
-      case 'engineering mathematics': return Colors.blueAccent;
-      case 'digital logic': return Colors.cyanAccent;
-      case 'computer organization': return Colors.orangeAccent;
-      case 'programming & data structures': return Colors.greenAccent;
-      case 'algorithms': return Colors.redAccent;
-      case 'theory of computation': return Colors.purpleAccent;
-      case 'compiler design': return Colors.yellowAccent;
-      case 'operating systems': return Colors.pinkAccent;
-      case 'databases': return Colors.tealAccent;
-      case 'computer networks': return Colors.indigoAccent;
-      case 'general aptitude': return Colors.amberAccent;
-      default: return Colors.cyanAccent;
-    }
-  }
 
   Widget _textFillHeader(BuildContext context, String title, Color color, double progress) {
     final normalized = (progress / 100).clamp(0.0, 1.0);
@@ -162,27 +138,25 @@ class DashboardScreen extends ConsumerWidget {
       }
     });
 
-    final subjectsAsync = ref.watch(subjectsProvider);
+    final categoriesAsync = ref.watch(categoriesWithSubjectsProvider);
 
     return Scaffold(
-      body: subjectsAsync.when(
-        data: (subjects) {
+      body: categoriesAsync.when(
+        data: (categoriesWithSubs) {
+          if (categoriesWithSubs.isEmpty) {
+            return const EmptyStateView();
+          }
+
           int totalCompleted = 0, totalVideos = 0;
-          for (final s in subjects) {
-            if (s.isActive) {
-              totalCompleted += s.completedVideos;
-              totalVideos += s.totalVideos;
+          for (final cat in categoriesWithSubs) {
+            for (final s in cat.subjects) {
+              if (s.isActive) {
+                totalCompleted += s.completedVideos;
+                totalVideos += s.totalVideos;
+              }
             }
           }
           final overallProgress = totalVideos == 0 ? 0.0 : (totalCompleted / totalVideos) * 100;
-          final grouped = groupBy(subjects, (s) => s.category);
-          final sortedCategories = grouped.keys.toList()
-            ..sort((a, b) {
-              final ai = Subject.categories.indexOf(a);
-              final bi = Subject.categories.indexOf(b);
-              if (ai != -1 && bi != -1) return ai.compareTo(bi);
-              return ai != -1 ? -1 : (bi != -1 ? 1 : a.compareTo(b));
-            });
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -214,9 +188,11 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              ...sortedCategories.map((category) {
-                final catSubjects = grouped[category]!;
-                final catColor = _getCategoryColor(category);
+              ...categoriesWithSubs.map((catWithSubs) {
+                final category = catWithSubs.category;
+                final catSubjects = catWithSubs.subjects;
+                final catColor = Color(category.color);
+                
                 int catCompleted = 0, catTotal = 0;
                 for (final s in catSubjects) {
                   if (s.isActive) {
@@ -231,7 +207,7 @@ class DashboardScreen extends ConsumerWidget {
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
-                        child: _textFillHeader(context, category, catColor, catProgress),
+                        child: _textFillHeader(context, category.name, catColor, catProgress),
                       ),
                     ),
                     SliverList(
@@ -240,7 +216,7 @@ class DashboardScreen extends ConsumerWidget {
                           final s = catSubjects[index];
                           return SubjectCard(
                             subject: s,
-                            color: catColor,
+                            color: s.color != null ? Color(s.color!) : catColor,
                             onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
                             onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
                             onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>

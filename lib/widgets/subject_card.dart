@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../database/models/subject.dart';
+import '../database/app_database.dart';
 import 'progress_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 

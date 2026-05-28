@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-import 'database/isar_service.dart';
+import 'database/app_database.dart';
 import 'providers/subject_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final isarService = IsarService();
-  await isarService.db;
+  final appDb = AppDatabase();
 
   runApp(
     ProviderScope(
-      overrides: [isarServiceProvider.overrideWithValue(isarService)],
+      overrides: [appDatabaseProvider.overrideWithValue(appDb)],
       child: const GateTrackerApp(),
     ),
   );
