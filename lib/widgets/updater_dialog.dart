@@ -30,25 +30,43 @@ class _UpdaterDialogState extends ConsumerState<UpdaterDialog> {
   // Standalone backup export inside dialog to guarantee data safety
   Future<void> _exportBackup(BuildContext context) async {
     try {
-      final subjects = ref.read(subjectsProvider).value;
-      if (subjects == null) return;
+      final db = ref.read(appDatabaseProvider);
+      
+      final categoriesList = await db.select(db.categories).get();
+      final subjectsList = await db.select(db.subjects).get();
 
-      final data = subjects.map((s) => {
+      final categoryMap = {for (var c in categoriesList) c.id: c.name};
+
+      final exportedCategories = categoriesList.map((c) => {
+        'name': c.name,
+        'color': c.color,
+        'position': c.position,
+      }).toList();
+
+      final exportedSubjects = subjectsList.map((s) => {
         'name': s.name,
+        'categoryName': categoryMap[s.categoryId] ?? 'General',
         'completedVideos': s.completedVideos,
         'totalVideos': s.totalVideos,
-        'categoryId': s.categoryId,
         'playlistLink': s.playlistLink,
         'sourceName': s.sourceName,
         'isActive': s.isActive,
+        'position': s.position,
+        'color': s.color,
       }).toList();
 
-      final json = const JsonEncoder.withIndent('  ').convert(data);
+      final exportPayload = {
+        'version': 1,
+        'categories': exportedCategories,
+        'subjects': exportedSubjects,
+      };
+
+      final json = const JsonEncoder.withIndent('  ').convert(exportPayload);
       final bytes = Uint8List.fromList(utf8.encode(json));
 
       final path = await FilePicker.saveFile(
         dialogTitle: 'Save backup before updating',
-        fileName: 'subjects_backup_pre_update.json',
+        fileName: 'gate_tracker_backup_pre_update.json',
         bytes: bytes,
       );
 

@@ -60,7 +60,7 @@ class AppBarTitle extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'v0.0.5 ',
+                'v1.0.0 ',
                 style: TextStyle(color: Colors.grey, fontSize: 10),
               ),
               Consumer(
@@ -73,7 +73,7 @@ class AppBarTitle extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'Alpha',
+                      'Stable',
                       style: TextStyle(color: progressColor, fontSize: 8, fontWeight: FontWeight.bold),
                     ),
                   );

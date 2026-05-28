@@ -20,7 +20,7 @@ class CategoryHeader extends ConsumerWidget {
     final normalized = (progress / 100).clamp(0.0, 1.0);
     const baseStyle = TextStyle(
       fontFamily: 'Legend',
-      fontSize: 18,
+      fontSize: 26,
       fontWeight: FontWeight.bold,
       letterSpacing: 1.2,
       color: Colors.white54,
@@ -78,12 +78,12 @@ class CategoryHeader extends ConsumerWidget {
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 20,
           ),
         ),
         const SizedBox(width: 6),
         IconButton(
-          icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.white54),
+          icon: const Icon(Icons.more_vert_rounded, size: 26, color: Colors.white54),
           onPressed: () => showCategoryOptionsSheet(context, category, ref),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),

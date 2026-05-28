@@ -45,7 +45,7 @@ This plan provides a first-principles breakdown of everything required to finali
 ## 4. Build & Signing Optimization
 *Properly setting up the Android artifact.*
 
-- [ ] **Update App Version (`pubspec.yaml`):** Current is `0.0.5+5`. Determine if you are launching at `1.0.0+X`.
+- [ ] **Update App Version (`pubspec.yaml`):** Current is `1.0.0+1`. Determine if you are launching at `1.0.0+X`.
 - [ ] **Produce Keystore:** Generate an upload keystore for Play App Signing.
   - *Action:* Run `keytool -genkey -v -keystore upload-keystore.jks ...`
   - *Risk:* Losing this keystore prevents you from ever updating the app again unless Play App Signing is enabled (which you must use).

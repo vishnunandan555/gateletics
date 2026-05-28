@@ -25,25 +25,43 @@ class SettingsSheet extends ConsumerWidget {
 
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     try {
-      final subjects = ref.read(subjectsProvider).value;
-      if (subjects == null) return;
+      final db = ref.read(appDatabaseProvider);
+      
+      final categoriesList = await db.select(db.categories).get();
+      final subjectsList = await db.select(db.subjects).get();
 
-      final data = subjects.map((s) => {
+      final categoryMap = {for (var c in categoriesList) c.id: c.name};
+
+      final exportedCategories = categoriesList.map((c) => {
+        'name': c.name,
+        'color': c.color,
+        'position': c.position,
+      }).toList();
+
+      final exportedSubjects = subjectsList.map((s) => {
         'name': s.name,
+        'categoryName': categoryMap[s.categoryId] ?? 'General',
         'completedVideos': s.completedVideos,
         'totalVideos': s.totalVideos,
-        'categoryId': s.categoryId,
         'playlistLink': s.playlistLink,
         'sourceName': s.sourceName,
         'isActive': s.isActive,
+        'position': s.position,
+        'color': s.color,
       }).toList();
 
-      final json = const JsonEncoder.withIndent('  ').convert(data);
+      final exportPayload = {
+        'version': 1,
+        'categories': exportedCategories,
+        'subjects': exportedSubjects,
+      };
+
+      final json = const JsonEncoder.withIndent('  ').convert(exportPayload);
       final bytes = Uint8List.fromList(utf8.encode(json));
 
       final path = await FilePicker.saveFile(
         dialogTitle: 'Save backup to device',
-        fileName: 'subjects_export.json',
+        fileName: 'gate_tracker_backup.json',
         bytes: bytes,
       );
 
@@ -79,40 +97,89 @@ class SettingsSheet extends ConsumerWidget {
       }
 
       final raw = await file.readAsString();
-      final list = jsonDecode(raw) as List<dynamic>;
+      final payload = jsonDecode(raw);
       final db = ref.read(appDatabaseProvider);
 
-      int importedCount = 0;
-      final existingSubjects = await db.select(db.subjects).get();
-      final subjectMap = {for (var s in existingSubjects) s.name.trim(): s};
+      if (payload is List || (payload is Map && !payload.containsKey('categories'))) {
+        // Fallback: old style progress restoration by subject name
+        final list = (payload is List ? payload : payload['subjects'] as List<dynamic>);
+        final existingSubjects = await db.select(db.subjects).get();
+        final subjectMap = {for (var s in existingSubjects) s.name.trim(): s};
 
-      await db.transaction(() async {
-        for (final item in list) {
-          final name = item['name'] as String?;
-          if (name == null) continue;
+        int importedCount = 0;
+        await db.transaction(() async {
+          for (final item in list) {
+            final name = item['name'] as String?;
+            if (name == null) continue;
 
-          final s = subjectMap[name.trim()];
-          if (s != null) {
-            await db.updateSubjectDetails(
-              id: s.id,
-              name: s.name,
-              completed: (item['completedVideos'] as int?) ?? s.completedVideos,
-              total: (item['totalVideos'] as int?) ?? s.totalVideos,
-              sourceName: (item['sourceName'] as String?) ?? s.sourceName,
-              playlistLink: (item['playlistLink'] as String?) ?? s.playlistLink,
-              isActive: (item['isActive'] as bool?) ?? s.isActive,
-              color: item['color'] as int?,
-              categoryId: s.categoryId,
-            );
-            importedCount++;
+            final s = subjectMap[name.trim()];
+            if (s != null) {
+              await db.updateSubjectDetails(
+                id: s.id,
+                name: s.name,
+                completed: (item['completedVideos'] as int?) ?? s.completedVideos,
+                total: (item['totalVideos'] as int?) ?? s.totalVideos,
+                sourceName: (item['sourceName'] as String?) ?? s.sourceName,
+                playlistLink: (item['playlistLink'] as String?) ?? s.playlistLink,
+                isActive: (item['isActive'] as bool?) ?? s.isActive,
+                color: item['color'] as int?,
+                categoryId: s.categoryId,
+              );
+              importedCount++;
+            }
           }
-        }
-      });
+        });
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✓ Imported progress for $importedCount subjects!')),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('✓ Restored progress for $importedCount matching subjects!')),
+          );
+        }
+      } else {
+        // Premium new style: complete restore
+        final categoriesData = payload['categories'] as List<dynamic>;
+        final subjectsData = payload['subjects'] as List<dynamic>;
+
+        await db.transaction(() async {
+          // 1. Wipe database first to guarantee fresh clean restore
+          await db.delete(db.subjects).go();
+          await db.delete(db.categories).go();
+
+          // 2. Insert all categories and keep map of name -> new ID
+          final categoryNameToNewId = <String, int>{};
+          for (final c in categoriesData) {
+            final name = c['name'] as String;
+            final color = c['color'] as int;
+            final position = c['position'] as int;
+            
+            final id = await db.addCategory(name, color, position: position);
+            categoryNameToNewId[name] = id;
+          }
+
+          // 3. Insert all subjects
+          for (final s in subjectsData) {
+            final categoryName = s['categoryName'] as String;
+            final catId = categoryNameToNewId[categoryName];
+            if (catId == null) continue; // Skip if category is missing
+
+            await db.addSubject(
+              name: s['name'] as String,
+              categoryId: catId,
+              totalVideos: s['totalVideos'] as int,
+              sourceName: s['sourceName'] as String,
+              playlistLink: s['playlistLink'] as String,
+              isActive: s['isActive'] as bool,
+              color: s['color'] as int?,
+              position: s['position'] as int? ?? 0,
+            );
+          }
+        });
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✓ Full syllabus and progress successfully restored!')),
+          );
+        }
       }
     } catch (e) {
       if (context.mounted) {
@@ -199,16 +266,9 @@ class SettingsSheet extends ConsumerWidget {
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF0F0F12).withAlpha(240),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: accentColor.withAlpha(80), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: accentColor.withAlpha(45),
-                    blurRadius: 35,
-                    spreadRadius: 2,
-                  ),
-                ],
+                color: const Color(0xFF131316),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withAlpha(12), width: 1.5),
               ),
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -218,51 +278,35 @@ class SettingsSheet extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // App Icon with glowing premium squircle
+                      // App Icon squircle (professional, no glow)
                       Center(
                         child: Container(
-                          width: 72,
-                          height: 72,
+                          width: 64,
+                          height: 64,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [accentColor, accentColor.withAlpha(100)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(22),
-                            boxShadow: [
-                              BoxShadow(
-                                color: accentColor.withAlpha(100),
-                                blurRadius: 18,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                            color: accentColor.withAlpha(15),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: accentColor.withAlpha(50), width: 1.5),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.track_changes_rounded,
-                            color: Colors.black,
-                            size: 38,
+                            color: accentColor,
+                            size: 32,
                           ),
                         ),
                       ),
                       const SizedBox(height: 18),
 
-                      // App Title
-                      Center(
+                      // App Title (no shadows)
+                      const Center(
                         child: Text(
                           "GATE TRACKER",
                           style: TextStyle(
                             fontFamily: 'BatmanForever',
-                            fontSize: 20,
-                            letterSpacing: 2.0,
+                            fontSize: 18,
+                            letterSpacing: 1.5,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                color: accentColor.withAlpha(180),
-                                blurRadius: 12,
-                              ),
-                            ],
                           ),
                         ),
                       ),
@@ -273,14 +317,14 @@ class SettingsSheet extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: accentColor.withAlpha(20),
+                            color: Colors.white.withAlpha(6),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: accentColor.withAlpha(60), width: 1),
+                            border: Border.all(color: Colors.white12, width: 1),
                           ),
                           child: Text(
-                            "v0.0.5 (Alpha)",
+                            "v1.0.0 (Stable)",
                             style: GoogleFonts.outfit(
-                              color: accentColor,
+                              color: Colors.white70,
                               fontWeight: FontWeight.bold,
                               fontSize: 11,
                               letterSpacing: 0.5,
@@ -288,22 +332,10 @@ class SettingsSheet extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
-                      // Sleek linear-gradient line separator
-                      Container(
-                        height: 1.5,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              accentColor.withAlpha(128),
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      // Clean subtle divider
+                      const Divider(color: Colors.white10, height: 32),
 
                       // App Description
                       Text(
@@ -317,49 +349,36 @@ class SettingsSheet extends ConsumerWidget {
                       ),
                       const SizedBox(height: 28),
 
-                      // Creator Profile Card (ID-card style)
+                      // Creator Profile Card
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withAlpha(12),
-                              Colors.white.withAlpha(4),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withAlpha(15)),
+                          color: Colors.white.withAlpha(5),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withAlpha(8)),
                         ),
                         child: Row(
                           children: [
-                            // Initial / Badge avatar with glowing border
+                            // Initial avatar (clean, no glow)
                             Container(
-                              width: 44,
-                              height: 44,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1C1C21),
+                                color: Colors.white.withAlpha(8),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: accentColor.withAlpha(120), width: 1.5),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: accentColor.withAlpha(40),
-                                    blurRadius: 8,
-                                  ),
-                                ],
+                                border: Border.all(color: Colors.white12, width: 1),
                               ),
                               alignment: Alignment.center,
                               child: Text(
                                 "VN",
                                 style: GoogleFonts.outfit(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: accentColor,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,10 +386,10 @@ class SettingsSheet extends ConsumerWidget {
                                   Text(
                                     "DEVELOPED BY",
                                     style: GoogleFonts.outfit(
-                                      color: Colors.white38,
-                                      fontSize: 9,
+                                      color: Colors.white30,
+                                      fontSize: 8.5,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
+                                      letterSpacing: 1.0,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -378,9 +397,8 @@ class SettingsSheet extends ConsumerWidget {
                                     "Vishnu Nandan",
                                     style: GoogleFonts.outfit(
                                       color: Colors.white,
-                                      fontSize: 15,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -389,9 +407,9 @@ class SettingsSheet extends ConsumerWidget {
                                   Text(
                                     "Lead Architect & Developer",
                                     style: GoogleFonts.outfit(
-                                      color: accentColor.withAlpha(200),
+                                      color: Colors.white54,
                                       fontSize: 10,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: FontWeight.w400,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -404,14 +422,14 @@ class SettingsSheet extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Love / Country Badges combined in a single tag
+                      // Love / Country Badge (flat)
                       Center(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(8),
+                            color: Colors.white.withAlpha(6),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white12),
+                            border: Border.all(color: Colors.white10),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -448,15 +466,15 @@ class SettingsSheet extends ConsumerWidget {
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                side: BorderSide(color: accentColor.withAlpha(102), width: 1.5),
+                                side: const BorderSide(color: Colors.white24, width: 1),
+                                foregroundColor: Colors.white,
                               ),
-                              icon: Icon(Icons.code_rounded, size: 18, color: accentColor),
+                              icon: const Icon(Icons.code_rounded, size: 18, color: Colors.white70),
                               label: Text(
                                 "GITHUB",
                                 style: GoogleFonts.outfit(
-                                  color: accentColor,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                   letterSpacing: 0.5,
@@ -473,10 +491,8 @@ class SettingsSheet extends ConsumerWidget {
                                 foregroundColor: Colors.black,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 4,
-                                shadowColor: accentColor.withAlpha(128),
                               ),
                               child: Text(
                                 "CLOSE",
@@ -741,7 +757,7 @@ class SettingsSheet extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    'GATE Tracker v0.0.5',
+                    'GATE Tracker v1.0.0',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.3),
                       fontSize: 10,
