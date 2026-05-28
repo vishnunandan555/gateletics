@@ -96,3 +96,4 @@ app.*.map.json
 *.freezed.dart
 
 PLAN.md
+.vercel

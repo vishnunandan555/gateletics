@@ -1,8 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -84,10 +83,11 @@ class SettingsSheet extends ConsumerWidget {
       final result = await FilePicker.pickFiles(
         type: FileType.any,
       );
-      if (result == null || result.files.single.path == null) return;
+      if (result == null || result.files.isEmpty) return;
 
-      final file = File(result.files.single.path!);
-      if (!file.path.endsWith('.json')) {
+      final singleFile = result.files.single;
+      final isJson = singleFile.name.toLowerCase().endsWith('.json');
+      if (!isJson) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Please select a valid .json backup file.')),
@@ -96,7 +96,9 @@ class SettingsSheet extends ConsumerWidget {
         return;
       }
 
-      final raw = await file.readAsString();
+      final bytes = await singleFile.readAsBytes();
+      final raw = utf8.decode(bytes);
+
       final payload = jsonDecode(raw);
       final db = ref.read(appDatabaseProvider);
 

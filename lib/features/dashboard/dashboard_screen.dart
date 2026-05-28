@@ -127,12 +127,25 @@ class DashboardScreen extends ConsumerWidget {
         });
       }
 
+      if (next.status == UpdaterStatus.noReleasesAtAll &&
+          previous?.status != UpdaterStatus.noReleasesAtAll) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No updates available at the moment.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(updaterProvider.notifier).resetToIdle();
+        });
+      }
+
       if (next.status == UpdaterStatus.error &&
           previous?.status != UpdaterStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Update check failed — check your connection and try again.'),
-            duration: Duration(seconds: 4),
+          SnackBar(
+            content: Text(next.errorMessage ?? 'Update check failed — check your connection and try again.'),
+            duration: const Duration(seconds: 4),
           ),
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {

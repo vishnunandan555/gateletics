@@ -34,6 +34,7 @@ enum UpdaterStatus {
   checking,
   updateAvailable,
   noUpdateAvailable,
+  noReleasesAtAll,
   downloading,
   downloadSuccess,
   downloadError,
@@ -208,8 +209,20 @@ class UpdaterNotifier extends Notifier<UpdaterState> {
         headers: {'Accept': 'application/vnd.github.v3+json'},
       );
 
+      if (response.statusCode == 404) {
+        // A 404 means no releases exist on the repository yet.
+        // For the end user, this just means there's no update to download.
+        state = state.copyWith(
+          status: UpdaterStatus.noReleasesAtAll,
+          currentVersion: currentVer,
+          latestVersion: currentVer, // No remote version, so current is latest
+        );
+        ref.invalidate(lastUpdateCheckTimeProvider);
+        return;
+      }
+
       if (response.statusCode != 200) {
-        throw Exception("GitHub API returned status ${response.statusCode}");
+        throw HttpException("GitHub API returned status ${response.statusCode}");
       }
 
       final json = jsonDecode(response.body);
@@ -265,9 +278,17 @@ class UpdaterNotifier extends Notifier<UpdaterState> {
       ref.invalidate(lastUpdateCheckTimeProvider);
     } catch (e) {
       debugPrint("Updater failed checking updates: $e");
+      
+      String userMessage = "Update check failed. Please try again later.";
+      if (e is SocketException || e.toString().contains("SocketException") || e.toString().contains("ClientException")) {
+        userMessage = "Network issue: Check your connection and try again.";
+      } else if (e is HttpException || e.toString().contains("HttpException")) {
+        userMessage = "Failed to connect to the update server. Try again later.";
+      }
+      
       state = state.copyWith(
         status: UpdaterStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: userMessage,
       );
       ref.invalidate(lastUpdateCheckTimeProvider);
     }

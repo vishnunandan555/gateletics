@@ -48,6 +48,7 @@ class TelemetryService {
   /// Triggers a fire-and-forget daily active user telemetry ping
   static Future<void> triggerLaunchPing() async {
     try {
+      debugPrint("[Telemetry] Checking daily active user ping status...");
       final prefs = await SharedPreferences.getInstance();
       
       // 1. Get current date string (UTC)
@@ -56,7 +57,8 @@ class TelemetryService {
       // 2. Cooldown check: ping at most once per UTC calendar day
       final String? lastPing = prefs.getString(_kLastPingDateKey);
       if (lastPing == today) {
-        return; // Already registered ping for today, skip to save bandwidth/quota
+        debugPrint("[Telemetry] Daily active user ping already sent today (skipped).");
+        return;
       }
 
       // 3. Resolve client identifier and package version
@@ -74,6 +76,8 @@ class TelemetryService {
       // 4. Compute hashed daily token
       final String dailyToken = _computeDailyToken(clientId, today);
 
+      debugPrint("[Telemetry] Attempting daily active user ping (Platform: $platform, Version: $version)...");
+
       // 5. Fire post ping
       final response = await http.post(
         Uri.parse(_kTelemetryUrl),
@@ -86,15 +90,14 @@ class TelemetryService {
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
+        debugPrint("[Telemetry] Daily active user ping sent successfully! (Response: 200)");
         // Record successful daily ping date in cache
         await prefs.setString(_kLastPingDateKey, today);
+      } else {
+        debugPrint("[Telemetry] Daily active user ping failed: Server returned status ${response.statusCode} (${response.reasonPhrase}).");
       }
     } catch (e) {
-      // Telemetry is fail-silent to protect the app experience from connectivity glitches
-      assert(() {
-        debugPrint("Silent telemetry debug failure: $e");
-        return true;
-      }());
+      debugPrint("[Telemetry] Daily active user ping failed due to network error: $e");
     }
   }
 }

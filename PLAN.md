@@ -1,5 +1,25 @@
 # Consolidated Feature Plan: Self-Updater & Privacy-First Developer Telemetry
 
+## 🚨 Vercel Telemetry Backend - Post-Mortem & Restart Plan 🚨
+
+### What Went Fatally Wrong
+1. **Workspace Pollution (The 2.7GB Upload Issue):** We mixed the Node.js/Vercel backend files (`package.json`, `api/`, `.vercel`) directly into the Flutter project's main repository folder. This caused the Vercel CLI to attempt to deploy the entire Flutter project (including massive `/build/`, `/.dart_tool/`, and Android/Linux compiled binaries). This resulted in massive uploads, freezing, and corrupted deployments.
+2. **500 Server Errors:** The Vercel serverless functions (`api/ping.js`, `api/dashboard.js`) were crashing due to missing environment variables (`REDIS_URL`) and dependency mismatches (ESM vs CommonJS, Upstash vs ioredis) in the production environment.
+
+### Next Time: Fresh Telemetry Web Server Setup
+- **Complete Separation:** Create a completely separate folder/repository (e.g., `gate-tracker-telemetry-backend`) exclusively for the Vercel project. NEVER mix the Flutter project files with the Vercel deployment files.
+- **Dependencies Setup:** Initialize a clean Node project, install `ioredis` properly, and link it via the Vercel CLI.
+- **Environment Targeting:** Ensure `REDIS_URL` and `STATS_API_KEY` are securely defined in the Vercel dashboard prior to running the deployment.
+
+### Current In-App Telemetry (Flutter Client)
+- **What it does:** Generates a GDPR-compliant anonymous token by hashing a secure device ID and the current date (SHA-256). It executes a fire-and-forget POST request to a defined telemetry endpoint upon app launch containing the `dailyToken`, `version`, and `platform`.
+- **What it needs:** A valid, active production Web URL to ping. (Currently, the app might throw silent failures since the backend is destroyed).
+
+### Storage Web Server (How it Functions/Should Work)
+- **The Flow:** The serverless functions (like `api/ping.js`) receive the POST request, extract the token, and interact with a Redis database instance.
+- **Deduplication:** By storing the token in a Redis Set (e.g., `dau:2026-05-28`), duplicate pings from the same user opening the app multiple times a day are automatically ignored.
+- **Dashboard:** A secure edge function (`api/dashboard.js`) queries the Redis Set's size (`scard`) to render a fast HTML analytical dashboard for admin use.
+
 ---
 
 ## 🔴 Current Active Tasks (pre-v1.0.0 release)

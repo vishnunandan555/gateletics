@@ -1,46 +1,238 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="A premium syllabus tracker for tracking GATE Exam preparation.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="gate_tracker">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GATE Tracker">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>gate_tracker</title>
+  <title>GATE Syllabus Tracker</title>
   <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #09090b;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Outfit', sans-serif;
+    }
+    #loading-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #09090b;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 99999;
+      transition: opacity 0.5s ease-out;
+      opacity: 1;
+    }
+    .loader-box {
+      text-align: center;
+      padding: 40px;
+      border-radius: 24px;
+      background: rgba(24, 24, 27, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+    .logo-text {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: linear-gradient(to right, #10b981, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .subtitle-text {
+      color: #71717a;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 32px;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    #progress-bar-fill {
+      height: 100%;
+      width: 5%;
+      background: linear-gradient(to right, #10b981, #3b82f6);
+      border-radius: 2px;
+      transition: width 0.4s cubic-bezier(0.1, 0.8, 0.25, 1);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+    .log-text {
+      color: #a1a1aa;
+      font-size: 13px;
+      min-height: 20px;
+      transition: opacity 0.2s;
+    }
+    .error-card {
+      display: none;
+      margin-top: 24px;
+      padding: 16px 20px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      text-align: left;
+    }
+    .error-header {
+      color: #ef4444;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .error-body {
+      color: #fca5a5;
+      font-size: 12px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+
+  <!-- sql.js Configuration: Instruct initSqlJs to resolve the Wasm file correctly from CDNjs -->
+  <script>
+    var Module = {
+      locateFile: function(file) {
+        return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/' + file;
+      }
+    };
+  </script>
+  
+  <!-- Import sql-wasm.js from CDNjs (Uses Module.locateFile under the hood to safely fetch sql-wasm.wasm) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <!-- Premium Glowing Loading Screen -->
+  <div id="loading-container">
+    <div class="loader-box">
+      <div class="logo-text">GATE TRACKER</div>
+      <div class="subtitle-text">Syllabus Progress Tracker</div>
+      
+      <div class="progress-bar-bg">
+        <div id="progress-bar-fill"></div>
+      </div>
+      
+      <div id="loading-log" class="log-text">Initializing boot systems...</div>
+      
+      <!-- Hidden Error Diagnostics Panel -->
+      <div id="error-panel" class="error-card">
+        <div class="error-header">
+          <span>⚠️ Startup Initialization Failure</span>
+        </div>
+        <div id="error-details" class="error-body"></div>
+      </div>
+    </div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <script>
+    // 1. Error boundary: Capture startup crashes and display clean diagnostic cards
+    window.addEventListener('error', function(e) {
+      const errorMsg = e.message || 'Unknown compilation error';
+      const errorDetails = e.error ? (e.error.stack || e.error.toString()) : errorMsg;
+      
+      const logEl = document.getElementById('loading-log');
+      if (logEl) logEl.innerText = "An error occurred during startup.";
+      
+      const fillEl = document.getElementById('progress-bar-fill');
+      if (fillEl) {
+        fillEl.style.background = '#ef4444';
+        fillEl.style.width = '100%';
+      }
+      
+      const panel = document.getElementById('error-panel');
+      const details = document.getElementById('error-details');
+      if (panel && details) {
+        details.innerText = errorDetails;
+        panel.style.display = 'block';
+      }
+    });
+
+    // 2. Request and check for browser persistent storage permissions on startup
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then(function(persistent) {
+        if (persistent) {
+          console.log("[Storage] Secure persistent storage permission active.");
+        } else {
+          console.log("[Storage] Operating in best-effort storage mode.");
+        }
+      });
+    }
+
+    // 3. Sequentially update logs to show progress
+    const steps = [
+      { t: 0, w: "15%", l: "Securing persistent web storage..." },
+      { t: 600, w: "35%", l: "Loading SQLite WebAssembly binary..." },
+      { t: 1500, w: "60%", l: "Configuring relational Drift bindings..." },
+      { t: 2400, w: "80%", l: "Starting main Flutter engine..." }
+    ];
+    
+    steps.forEach(function(step) {
+      setTimeout(function() {
+        const fill = document.getElementById('progress-bar-fill');
+        const log = document.getElementById('loading-log');
+        const errPanel = document.getElementById('error-panel');
+        if (fill && log && (!errPanel || errPanel.style.display !== 'block')) {
+          fill.style.width = step.w;
+          log.innerText = step.l;
+        }
+      }, step.t);
+    });
+
+    // 4. MutationObserver to automatically fade out the loading overlay once the Flutter canvas mounts
+    const observer = new MutationObserver(function(mutations, obs) {
+      const view = document.querySelector('canvas') || document.querySelector('flutter-view');
+      if (view) {
+        setTimeout(function() {
+          const fill = document.getElementById('progress-bar-fill');
+          const log = document.getElementById('loading-log');
+          if (fill) fill.style.width = "100%";
+          if (log) log.innerText = "Ready! Booting app...";
+          
+          setTimeout(function() {
+            const loader = document.getElementById('loading-container');
+            if (loader) {
+              loader.style.opacity = '0';
+              setTimeout(function() { loader.remove(); }, 500);
+            }
+          }, 300);
+        }, 200);
+        obs.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
