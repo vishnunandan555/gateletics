@@ -78,17 +78,40 @@ class SettingsSheet extends ConsumerWidget {
         return;
       }
 
-      // final raw = await file.readAsString();
-      // final list = jsonDecode(raw) as List<dynamic>;
-      
-      // Temporary stub for database compilation
-      /*
+      final raw = await file.readAsString();
+      final list = jsonDecode(raw) as List<dynamic>;
       final db = ref.read(appDatabaseProvider);
-      */
+
+      int importedCount = 0;
+      final existingSubjects = await db.select(db.subjects).get();
+      final subjectMap = {for (var s in existingSubjects) s.name.trim(): s};
+
+      await db.transaction(() async {
+        for (final item in list) {
+          final name = item['name'] as String?;
+          if (name == null) continue;
+
+          final s = subjectMap[name.trim()];
+          if (s != null) {
+            await db.updateSubjectDetails(
+              id: s.id,
+              name: s.name,
+              completed: (item['completedVideos'] as int?) ?? s.completedVideos,
+              total: (item['totalVideos'] as int?) ?? s.totalVideos,
+              sourceName: (item['sourceName'] as String?) ?? s.sourceName,
+              playlistLink: (item['playlistLink'] as String?) ?? s.playlistLink,
+              isActive: (item['isActive'] as bool?) ?? s.isActive,
+              color: item['color'] as int?,
+              categoryId: s.categoryId,
+            );
+            importedCount++;
+          }
+        }
+      });
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data import bypassed during compilation.')),
+          SnackBar(content: Text('✓ Imported progress for $importedCount subjects!')),
         );
       }
     } catch (e) {
@@ -162,188 +185,254 @@ class SettingsSheet extends ConsumerWidget {
 
     showDialog(
       context: context,
-      barrierColor: Colors.black.withAlpha(180),
+      barrierColor: Colors.black.withAlpha(200),
       builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
           insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: size.width * 0.85,
-              maxHeight: size.height * 0.65,
+              maxWidth: (size.width * 0.85).clamp(280.0, 420.0),
+              maxHeight: size.height * 0.8,
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF131316).withAlpha(235),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: accentColor.withAlpha(64), width: 1.5),
+                color: const Color(0xFF0F0F12).withAlpha(240),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: accentColor.withAlpha(80), width: 1.5),
                 boxShadow: [
                   BoxShadow(
-                    color: accentColor.withAlpha(38),
-                    blurRadius: 25,
+                    color: accentColor.withAlpha(45),
+                    blurRadius: 35,
                     spreadRadius: 2,
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Header Section: App Logo/Icon & Title
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: accentColor.withAlpha(26),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: accentColor.withAlpha(102), width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: accentColor.withAlpha(26),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                ),
-                              ],
+                      // App Icon with glowing premium squircle
+                      Center(
+                        child: Container(
+                          width: 72,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [accentColor, accentColor.withAlpha(100)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            child: Icon(
-                              Icons.auto_awesome,
-                              color: accentColor,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "GATE TRACKER",
-                                style: TextStyle(
-                                  fontFamily: 'BatmanForever',
-                                  fontSize: 18,
-                                  letterSpacing: 1.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      color: accentColor.withAlpha(128),
-                                      blurRadius: 8,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white10,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.white24, width: 0.5),
-                                ),
-                                child: Text(
-                                  "v0.0.5 (Alpha)",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white54,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10,
-                                  ),
-                                ),
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: [
+                              BoxShadow(
+                                color: accentColor.withAlpha(100),
+                                blurRadius: 18,
+                                spreadRadius: 1,
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // App Description
-                      Text(
-                        "GATE Progress Tracker is a premium tracking utility engineered to log subjects progress, monitor playlist counts, and calculate your target GATE examination countdown.",
-                        style: GoogleFonts.outfit(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          height: 1.5,
+                          child: const Icon(
+                            Icons.track_changes_rounded,
+                            color: Colors.black,
+                            size: 38,
+                          ),
                         ),
-                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 18),
+
+                      // App Title
+                      Center(
+                        child: Text(
+                          "GATE TRACKER",
+                          style: TextStyle(
+                            fontFamily: 'BatmanForever',
+                            fontSize: 20,
+                            letterSpacing: 2.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                color: accentColor.withAlpha(180),
+                                blurRadius: 12,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Version Badge
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: accentColor.withAlpha(20),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: accentColor.withAlpha(60), width: 1),
+                          ),
+                          child: Text(
+                            "v0.0.5 (Alpha)",
+                            style: GoogleFonts.outfit(
+                              color: accentColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Creator profile panel
+                      // Sleek linear-gradient line separator
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        height: 1.5,
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(10),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: accentColor.withAlpha(26),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: accentColor.withAlpha(51)),
-                              ),
-                              child: Icon(
-                                Icons.person_rounded,
-                                color: accentColor,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "DEVELOPED BY",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white38,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  "Vishnu Nandan",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              accentColor.withAlpha(128),
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      // Love / Country Badges
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildBadge(
-                            icon: "🇮🇳",
-                            label: "Made in India",
-                            color: Colors.orangeAccent,
-                          ),
-                          const SizedBox(width: 12),
-                          _buildBadge(
-                            icon: "❤️",
-                            label: "Made with Love",
-                            color: Colors.redAccent,
-                          ),
-                        ],
+                      // App Description
+                      Text(
+                        "A syllabus tracker for tracking syllabus completion of GATE Exam.",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white70,
+                          fontSize: 13.5,
+                          height: 1.55,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 28),
+
+                      // Creator Profile Card (ID-card style)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withAlpha(12),
+                              Colors.white.withAlpha(4),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withAlpha(15)),
+                        ),
+                        child: Row(
+                          children: [
+                            // Initial / Badge avatar with glowing border
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1C1C21),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: accentColor.withAlpha(120), width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: accentColor.withAlpha(40),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                "VN",
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: accentColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "DEVELOPED BY",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white38,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "Vishnu Nandan",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    "Lead Architect & Developer",
+                                    style: GoogleFonts.outfit(
+                                      color: accentColor.withAlpha(200),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Love / Country Badges combined in a single tag
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(8),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text("🇮🇳", style: TextStyle(fontSize: 14)),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Made in India with Love",
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text("❤️", style: TextStyle(fontSize: 14)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 36),
 
                       // Action Buttons
                       Row(
@@ -412,31 +501,6 @@ class SettingsSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildBadge({required String icon, required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(icon, style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
-              color: Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

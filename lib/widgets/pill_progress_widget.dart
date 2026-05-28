@@ -91,7 +91,7 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${(progress * 100).toStringAsFixed(2)}%',
+                        widget.totalVideos == 0 ? '?' : '${(progress * 100).toStringAsFixed(2)}%',
                         style: TextStyle(
                           fontFamily: 'BatmanForever',
                           fontSize: fontSize,

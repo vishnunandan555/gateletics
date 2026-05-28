@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
+import '../providers/subject_provider.dart';
 import 'progress_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SubjectCard extends StatelessWidget {
+class SubjectCard extends ConsumerWidget {
   final Subject subject;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
@@ -50,7 +52,7 @@ class SubjectCard extends StatelessWidget {
     }
   }
 
-  void _showEditDialog(BuildContext context) {
+  void _showEditDialog(BuildContext context, WidgetRef ref) {
     final completedController = TextEditingController(
       text: subject.completedVideos.toString(),
     );
@@ -152,6 +154,13 @@ class SubjectCard extends StatelessWidget {
           ),
           actions: [
             TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _confirmDeleteSubject(context, ref);
+              },
+              child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            ),
+            TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             ),
@@ -176,6 +185,48 @@ class SubjectCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteSubject(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text(
+          'DELETE SUBJECT?',
+          style: TextStyle(
+            fontFamily: 'BatmanForever',
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.redAccent,
+            letterSpacing: 0.8,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete "${subject.name}"? This cannot be undone.',
+          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(subjectControllerProvider.notifier).deleteSubject(subject.id);
+              Navigator.of(context).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -239,7 +290,7 @@ class SubjectCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bool isNotReady = !subject.isActive;
     final percentage = isNotReady
         ? 0.0
@@ -253,7 +304,7 @@ class SubjectCard extends StatelessWidget {
     final cardContent = Material(
       color: Colors.transparent,
       child: InkWell(
-        onLongPress: () => _showEditDialog(context),
+        onLongPress: () => _showEditDialog(context, ref),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(14.0),
@@ -309,15 +360,22 @@ class SubjectCard extends StatelessWidget {
                       // Row 3: source label (left) + counter buttons (right)
                       Row(
                         children: [
-                          if (subject.isActive)
-                            _PillButton(
-                              label: _getSourceLabel(),
-                              color: color,
-                              onTap: subject.playlistLink.trim().isEmpty
-                                  ? null
-                                  : _launchUrl,
+                          if (subject.isActive) ...[
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: _PillButton(
+                                  label: _getSourceLabel(),
+                                  color: color,
+                                  onTap: subject.playlistLink.trim().isEmpty
+                                      ? null
+                                      : _launchUrl,
+                                ),
+                              ),
                             ),
-                          const Spacer(),
+                            const SizedBox(width: 8),
+                          ] else
+                            const Spacer(),
                           _CircleButton(
                             icon: Icons.remove_rounded,
                             onTap: isNotReady ? null : onDecrement,
@@ -522,20 +580,30 @@ class _PillButton extends StatelessWidget {
       child: Container(
         height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(19),
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: color.withValues(alpha: 0.9),
-            letterSpacing: 0.5,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: color.withValues(alpha: 0.9),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

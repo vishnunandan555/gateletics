@@ -1,11 +1,12 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../providers/subject_provider.dart';
-import '../../providers/target_date_provider.dart';
 import '../../providers/updater_provider.dart';
-import 'widgets/empty_state_view.dart';
+import 'widgets/customization_sheets.dart';
+import 'widgets/app_bar_title.dart';
+import 'widgets/countdown_widget.dart';
+import 'widgets/category_header.dart';
 import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
 import '../../widgets/updater_dialog.dart';
@@ -27,64 +28,69 @@ final hasCheckedForUpdatesProvider = NotifierProvider<HasCheckedForUpdates, bool
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
-  Widget _textFillHeader(BuildContext context, String title, Color color, double progress) {
-    final normalized = (progress / 100).clamp(0.0, 1.0);
-    const baseStyle = TextStyle(
-      fontFamily: 'Legend',
-      fontSize: 14,
-      fontWeight: FontWeight.bold,
-      letterSpacing: 1,
-      color: Colors.white54,
-    );
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: normalized),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOutCubic,
-            builder: (context, animValue, _) {
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  // Measure the actual rendered text width so the fill
-                  // is proportional to the text, not the container.
-                  final textPainter = TextPainter(
-                    text: TextSpan(text: title.toUpperCase(), style: baseStyle),
-                    textDirection: TextDirection.ltr,
-                  )..layout(maxWidth: constraints.maxWidth);
-
-                  final fillWidth = textPainter.width * animValue;
-
-                  return Stack(
-                    children: [
-                      Text(title.toUpperCase(), style: baseStyle),
-                      ClipRect(
-                        clipper: _ProgressClipper(fillWidth),
-                        child: Text(
-                          title.toUpperCase(),
-                          style: baseStyle.copyWith(color: color),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+  void _showInstructionsThenCreateCategoryDialog(BuildContext context, WidgetRef ref) {
+    final progressColor = ref.read(overallProgressColorProvider);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: progressColor.withValues(alpha: 0.2), width: 1),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: progressColor),
+            const SizedBox(width: 10),
+            Text(
+              'QUICK GUIDE',
+              style: GoogleFonts.outfit(
+                textStyle: TextStyle(
+                  fontFamily: 'BatmanForever',
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: progressColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'To Create New Category, Long Press on any Category Name and to Create New Subjects (inside category) Tap on three vertical dots beside Category % to its right',
+          style: GoogleFonts.outfit(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.6,
           ),
         ),
-        const SizedBox(width: 12),
-        Text(
-          '${progress.toStringAsFixed(1)}%',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close guide dialog
+                showCreateCategoryDialog(context, ref); // Open category creation dialog
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: progressColor,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(
+                'Understood',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -99,7 +105,6 @@ class DashboardScreen extends ConsumerWidget {
     }
 
     ref.listen<UpdaterState>(updaterProvider, (previous, next) {
-      // Update available → show the update dialog
       if (next.status == UpdaterStatus.updateAvailable &&
           previous?.status != UpdaterStatus.updateAvailable) {
         showDialog(
@@ -109,7 +114,6 @@ class DashboardScreen extends ConsumerWidget {
         );
       }
 
-      // Already on latest version → snackbar feedback then reset
       if (next.status == UpdaterStatus.noUpdateAvailable &&
           previous?.status != UpdaterStatus.noUpdateAvailable) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,7 +127,6 @@ class DashboardScreen extends ConsumerWidget {
         });
       }
 
-      // Check failed (not a download error — those are shown inside the dialog)
       if (next.status == UpdaterStatus.error &&
           previous?.status != UpdaterStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,20 +142,21 @@ class DashboardScreen extends ConsumerWidget {
     });
 
     final categoriesAsync = ref.watch(categoriesWithSubjectsProvider);
+    final progressColor = ref.watch(overallProgressColorProvider);
 
     return Scaffold(
       body: categoriesAsync.when(
         data: (categoriesWithSubs) {
-          if (categoriesWithSubs.isEmpty) {
-            return const EmptyStateView();
-          }
+          final isEmpty = categoriesWithSubs.isEmpty;
 
           int totalCompleted = 0, totalVideos = 0;
-          for (final cat in categoriesWithSubs) {
-            for (final s in cat.subjects) {
-              if (s.isActive) {
-                totalCompleted += s.completedVideos;
-                totalVideos += s.totalVideos;
+          if (!isEmpty) {
+            for (final cat in categoriesWithSubs) {
+              for (final s in cat.subjects) {
+                if (s.isActive) {
+                  totalCompleted += s.completedVideos;
+                  totalVideos += s.totalVideos;
+                }
               }
             }
           }
@@ -173,9 +177,9 @@ class DashboardScreen extends ConsumerWidget {
                   onPressed: () => showSettingsSheet(context, ref),
                   tooltip: 'Settings',
                 ),
-                title: const _AppBarTitle(),
+                title: const AppBarTitle(),
                 actions: const [
-                  _CountdownWidget(),
+                  CountdownWidget(),
                 ],
               ),
               SliverToBoxAdapter(
@@ -188,50 +192,134 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              ...categoriesWithSubs.map((catWithSubs) {
-                final category = catWithSubs.category;
-                final catSubjects = catWithSubs.subjects;
-                final catColor = Color(category.color);
-                
-                int catCompleted = 0, catTotal = 0;
-                for (final s in catSubjects) {
-                  if (s.isActive) {
-                    catCompleted += s.completedVideos;
-                    catTotal += s.totalVideos;
-                  }
-                }
-                final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
-
-                return SliverMainAxisGroup(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
-                        child: _textFillHeader(context, category.name, catColor, catProgress),
-                      ),
-                    ),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final s = catSubjects[index];
-                          return SubjectCard(
-                            subject: s,
-                            color: s.color != null ? Color(s.color!) : catColor,
-                            onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
-                            onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
-                            onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
-                                ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
-                                  s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
+              if (isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          'To Begin, either load our Pre-built Preset or Start Making your own custom syllabus.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white70,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 220,
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  ref.read(subjectControllerProvider.notifier).applyPreset();
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: progressColor,
+                                  foregroundColor: Colors.black,
+                                  elevation: 8,
+                                  shadowColor: progressColor.withValues(alpha: 0.4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
-                          );
-                        },
-                        childCount: catSubjects.length,
-                      ),
+                                child: Text(
+                                  'Load Preset',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: 220,
+                              height: 48,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  _showInstructionsThenCreateCategoryDialog(context, ref);
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: progressColor.withValues(alpha: 0.5), width: 1.5),
+                                  foregroundColor: progressColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Create Category',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 48),
+                      ],
                     ),
-                  ],
-                );
-              }),
-              const SliverToBoxAdapter(child: SizedBox(height: 48)),
+                  ),
+                )
+              else
+                ...categoriesWithSubs.map((catWithSubs) {
+                  final category = catWithSubs.category;
+                  final catSubjects = catWithSubs.subjects;
+                  final catColor = Color(category.color);
+                  
+                  int catCompleted = 0, catTotal = 0;
+                  for (final s in catSubjects) {
+                    if (s.isActive) {
+                      catCompleted += s.completedVideos;
+                      catTotal += s.totalVideos;
+                    }
+                  }
+                  final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
+
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
+                          child: CategoryHeader(
+                            category: category,
+                            progress: catProgress,
+                          ),
+                        ),
+                      ),
+                      SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final s = catSubjects[index];
+                            return SubjectCard(
+                              subject: s,
+                              color: s.color != null ? Color(s.color!) : catColor,
+                              onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
+                              onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
+                              onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
+                                  ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
+                                    s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
+                                  ),
+                            );
+                          },
+                          childCount: catSubjects.length,
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              if (!isEmpty)
+                const SliverToBoxAdapter(child: SizedBox(height: 48)),
             ],
           );
         },
@@ -241,164 +329,3 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 }
-
-class _ProgressClipper extends CustomClipper<Rect> {
-  const _ProgressClipper(this.width);
-
-  final double width;
-
-  @override
-  Rect getClip(Size size) {
-    return Rect.fromLTWH(0, 0, width, size.height);
-  }
-
-  @override
-  bool shouldReclip(_ProgressClipper oldClipper) {
-    return oldClipper.width != width;
-  }
-}
-
-class _AppBarTitle extends StatelessWidget {
-  const _AppBarTitle();
-
-  Future<void> _handleLongPress(BuildContext context) async {
-    final bool? shouldOpen = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Open GitHub Repo?'),
-        content: const Text('Would you like to visit the project repository on GitHub?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('YES'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldOpen == true) {
-      final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
-      if (!await launchUrl(url)) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open the link.')),
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: () => _handleLongPress(context),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'GATE\nPROGRESS\nTRACKER',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'v0.0.5 ',
-                style: TextStyle(color: Colors.grey, fontSize: 10),
-              ),
-              Consumer(
-                builder: (context, ref, _) {
-                  final progressColor = ref.watch(overallProgressColorProvider);
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: progressColor.withAlpha(51),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'Alpha',
-                      style: TextStyle(color: progressColor, fontSize: 8, fontWeight: FontWeight.bold),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CountdownWidget extends ConsumerWidget {
-  const _CountdownWidget();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final targetDate = ref.watch(targetDateProvider);
-    final progressColor = ref.watch(overallProgressColorProvider);
-    final now = DateTime.now();
-    final difference = targetDate.difference(now);
-    final daysLeft = difference.inDays > 0 ? difference.inDays : 0;
-
-    return GestureDetector(
-      onLongPress: () async {
-        final selected = await showDatePicker(
-          context: context,
-          initialDate: targetDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2100),
-        );
-        if (selected != null) {
-          ref.read(targetDateProvider.notifier).setDate(selected);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$daysLeft',
-              style: TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: progressColor,
-                height: 1.0,
-                shadows: [Shadow(color: progressColor.withAlpha(204), blurRadius: 10)],
-              ),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'DAYS LEFT',
-              style: TextStyle(
-                fontSize: 8,
-                fontFamily: 'BatmanForever',
-                fontWeight: FontWeight.bold,
-                color: Colors.white70,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

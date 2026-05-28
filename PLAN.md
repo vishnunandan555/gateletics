@@ -26,8 +26,9 @@
   - Stream categories with their nested subjects ordered by positions
   - Expose controllers for all creation, reordering, and customization actions
 - [x] Implement Premium Dashboard Empty State:
-  - Query DB count; if 0 categories, show an empty state screen with neon elements
-  - Offer two options: **"Load GATE Syllabus Preset"** (seeds complete data) or **"Start Fresh (Add Manually)"**
+  - Keep main dashboard layout shell, show "?" as main progress percentage
+  - Offer inline options: **"Load Preset"** and **"Create Category"**
+  - Show Quick Guide instructions ("To Create New Category, Long Press...") with an "Understood" button before launching the dialog.
 - [x] Verify functionality and platforms:
   - Test seeding presets, manual additions, moving, drag-and-drop reordering, and color picking
   - Ensure all database state syncs instantly across Android, Linux, and Windows desktop targets

@@ -95,3 +95,4 @@ app.*.map.json
 # *.g.dart is often committed in Flutter projects for Isar/Riverpod
 *.freezed.dart
 
+PLAN.md
