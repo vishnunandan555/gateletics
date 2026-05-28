@@ -37,6 +37,18 @@ GATE Progress Tracker is fully offline-first, requiring no network connection to
 
 ---
 
+## 🔒 Privacy-First Developer Telemetry
+
+To help the developer track platform metrics and version adoption, a completely anonymous telemetry ping is sent at most once per day on app launch.
+
+- **Zero PII Collected:** No emails, usernames, dynamic database contents, or network details are tracked.
+- **Dynamic Daily Hashing:** Pings use a rotating SHA256 daily active user token:
+  $$\text{Daily active token} = \text{SHA256}(\text{client\_id} + \text{current\_date\_string})$$
+  This token changes automatically every calendar day, preventing longitudinal user tracking or identity linking.
+- **Fail-Silent & Ephemeral:** The ping runs in the background silently. It is stored on a serverless Vercel KV cache with a strict 30-day auto-expiry policy.
+
+---
+
 ## ✨ Features
 
 - **Progress Analytics:** overall exam completion index visualized using a high-fidelity animated progress ring.

@@ -143,6 +143,10 @@ class UpdaterNotifier extends Notifier<UpdaterState> {
 
   // Checks GitHub for updates
   Future<void> checkForUpdates({bool isAutomatic = false}) async {
+    if (kIsWeb) {
+      state = state.copyWith(status: UpdaterStatus.idle, currentVersion: "1.0.0");
+      return;
+    }
     if (state.status == UpdaterStatus.checking || state.status == UpdaterStatus.downloading) return;
 
     state = state.copyWith(status: UpdaterStatus.checking);

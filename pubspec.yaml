@@ -50,6 +50,7 @@ dependencies:
   package_info_plus: any
   open_file: ^3.5.10
   http: ^1.2.1
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

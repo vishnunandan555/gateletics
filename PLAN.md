@@ -34,12 +34,12 @@
   - Ensure all database state syncs instantly across Android, Linux, and Windows desktop targets
 
 ### 3. Implement Developer Telemetry (Privacy-First DAU)
-- [ ] Set up Vercel KV (Redis) project + deploy `api/ping.js` and `api/stats.js`
-- [ ] Add `telemetry_service.dart` — SHA256 daily token, fire-and-forget POST on app launch
-- [ ] Update README and Privacy Policy note (data is fully anonymous)
+- [x] Set up Vercel KV (Redis) project + deploy `api/ping.js` and `api/stats.js`
+- [x] Add `telemetry_service.dart` — SHA256 daily token, fire-and-forget POST on app launch
+- [x] Update README and Privacy Policy note (data is fully anonymous)
 
 ### 4. Bump to v1.0.0 + GitHub Release
-- [ ] Update version in `pubspec.yaml`, `dashboard_screen.dart`, `settings_sheet.dart` (×2)
+- [x] Update version in `pubspec.yaml`, `dashboard_screen.dart`, `settings_sheet.dart` (×2)
 - [ ] Push to `main`, create GitHub Release tag `v1.0.0` with APK attached
 - [ ] Self-updater will then work end-to-end for all future users
 
