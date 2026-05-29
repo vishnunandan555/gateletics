@@ -20,6 +20,13 @@ class _TelemetryLifecycleObserverState extends State<TelemetryLifecycleObserver>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Defer the initial launch ping until after the first frame has successfully rendered.
+    // This frees up native platform channels during critical startup phases, ensuring
+    // a faster and more responsive initial app launch experience.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      TelemetryService.triggerLaunchPing();
+    });
   }
 
   @override

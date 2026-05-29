@@ -4,14 +4,10 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'database/app_database.dart';
 import 'providers/subject_provider.dart';
-import 'providers/telemetry_service.dart';
 import 'widgets/telemetry_lifecycle_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Fire privacy-preserving daily active user telemetry check
-  TelemetryService.triggerLaunchPing();
 
   final appDb = AppDatabase();
 
