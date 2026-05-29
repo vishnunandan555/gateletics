@@ -197,6 +197,15 @@ jobs:
       - name: Build Web App
         run: flutter build web --release
 
+      - name: Deploy Static Web Assets to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./build/web
+
       - name: Compress Web Release Bundle (Zip)
         run: |
           cd build/web
