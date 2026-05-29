@@ -64,6 +64,12 @@ To help the developer track platform metrics and version adoption, an anonymous 
   - **Advanced Settings Section:** Grouped advanced diagnostic and telemetry details inside an elegant, borderless `ExpansionTile`.
 - **Automatic Self-Updater:** Fully integrated GitHub Releases check that notifies you of newer versions and facilitates direct asset downloads on supported native targets.
 
+## 🌐 Web Deployment (Vercel)
+
+The web target of GATE Progress Tracker is designed for hosting on Vercel:
+- **Automated CI/CD Pipeline:** The application uses GitHub Actions to compile Dart code and deploy the pre-built web assets (`/build/web`) to Vercel instantly.
+- **Offline PWA Support:** On first load, the browser registers a service worker that caches all application resources—including local SQLite WebAssembly and style binaries—enabling the web app to run 100% offline subsequently.
+
 ---
 
 ## 🚀 Developer Setup
