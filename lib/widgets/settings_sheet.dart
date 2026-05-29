@@ -9,12 +9,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/subject_provider.dart';
 import '../providers/updater_provider.dart';
+import '../providers/telemetry_service.dart';
 
 void showSettingsSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withAlpha(180),
     builder: (context) => const SettingsSheet(),
   );
 }
@@ -522,255 +524,280 @@ class SettingsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Material(
-      color: const Color(0xFF18181B),
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.25,
+      maxChildSize: 0.95,
+      expand: false,
+      snap: true,
+      builder: (context, scrollController) {
+        return Material(
+          color: const Color(0xFF18181B),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ListView(
+                controller: scrollController,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Settings',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ListTile(
-                  leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
-                  title: const Text('Export Data'),
-                  subtitle: const Text(
-                    'Save progress to JSON',
-                    style: TextStyle(color: Colors.grey),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Settings',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                  onTap: () async {
-                    // Grab ref before popping
-                    await _exportData(context, ref);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
-                  title: const Text('Import Data'),
-                  subtitle: const Text(
-                    'Restore from JSON file',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () async {
-                    await _importData(context, ref);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                  title: const Text('Apply Preset'),
-                  subtitle: const Text(
-                    'Apply default GoClasses/YouTube sources',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: const Color(0xFF18181B),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        title: const Text('Apply Preset'),
-                        content: const Text(
-                          'This will overwrite current sources and counts for some subjects. Continue?',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel',
-                                style: TextStyle(color: Colors.grey)),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.amberAccent,
-                              foregroundColor: Colors.black,
-                            ),
-                            child: const Text('Apply'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirmed == true) {
-                      // Close the settings sheet now
+                  const SizedBox(height: 8),
+                  ListTile(
+                    leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
+                    title: const Text('Export Data'),
+                    subtitle: const Text(
+                      'Save progress to JSON',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () async {
+                      // Grab ref before popping
+                      await _exportData(context, ref);
                       if (context.mounted) Navigator.pop(context);
-                      
-                      await ref
-                          .read(subjectControllerProvider.notifier)
-                          .applyPreset();
-                      
-                      // Check for mounting because the sheet is now gone
-                      // Usually ref.read(provider) works even if unmounted if grabbed early,
-                      // but using context.mounted for Snackbar is mandatory.
-                    }
-                  },
-                ),
-                const Divider(color: Colors.white12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'SYSTEM UPDATES',
-                    style: TextStyle(
-                      color: ref.watch(overallProgressColorProvider).withAlpha(178),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      letterSpacing: 1.2,
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
+                    title: const Text('Import Data'),
+                    subtitle: const Text(
+                      'Restore from JSON file',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () async {
+                      await _importData(context, ref);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                    title: const Text('Apply Preset'),
+                    subtitle: const Text(
+                      'Apply default GoClasses/YouTube sources',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF18181B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          title: const Text('Apply Preset'),
+                          content: const Text(
+                            'This will overwrite current sources and counts for some subjects. Continue?',
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel',
+                                  style: TextStyle(color: Colors.grey)),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.amberAccent,
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Apply'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed == true) {
+                        // Close the settings sheet now
+                        if (context.mounted) Navigator.pop(context);
+                        
+                        await ref
+                            .read(subjectControllerProvider.notifier)
+                            .applyPreset();
+                      }
+                    },
+                  ),
+                  const Divider(color: Colors.white12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'SYSTEM UPDATES',
+                      style: TextStyle(
+                        color: ref.watch(overallProgressColorProvider).withAlpha(178),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
                     ),
                   ),
-                ),
-                const LastCheckedSubtitleTile(),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.settings_rounded, color: Colors.white30, size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Update Check Frequency',
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(128),
-                          fontSize: 12,
+                  const LastCheckedSubtitleTile(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings_rounded, color: Colors.white30, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Update Check Frequency',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(128),
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final currentFreq = ref.watch(updateFrequencyProvider);
-                      final accentColor = ref.watch(overallProgressColorProvider);
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final currentFreq = ref.watch(updateFrequencyProvider);
+                        final accentColor = ref.watch(overallProgressColorProvider);
 
-                      return Row(
-                        children: ['Daily', 'Weekly', 'Monthly'].map((freq) {
-                          final isSelected = currentFreq == freq;
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () => ref.read(updateFrequencyProvider.notifier).setFrequency(freq),
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? accentColor.withAlpha(51) : Colors.white10,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: isSelected ? accentColor : Colors.transparent,
-                                    width: 1.5,
+                        return Row(
+                          children: ['Daily', 'Weekly', 'Monthly'].map((freq) {
+                            final isSelected = currentFreq == freq;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () => ref.read(updateFrequencyProvider.notifier).setFrequency(freq),
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? accentColor.withAlpha(51) : Colors.white10,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isSelected ? accentColor : Colors.transparent,
+                                      width: 1.5,
+                                    ),
                                   ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    freq,
-                                    style: TextStyle(
-                                      color: isSelected ? accentColor : Colors.white70,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                                  child: Center(
+                                    child: Text(
+                                      freq,
+                                      style: TextStyle(
+                                        color: isSelected ? accentColor : Colors.white70,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        }).toList(),
-                      );
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.white12),
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      dividerColor: Colors.transparent,
+                    ),
+                    child: ExpansionTile(
+                      leading: const Icon(Icons.tune_rounded, color: Colors.amberAccent),
+                      title: const Text('Advanced Settings'),
+                      subtitle: const Text(
+                        'Telemetry, custom endpoints, diagnostics',
+                        style: TextStyle(color: Colors.grey, fontSize: 11),
+                      ),
+                      iconColor: Colors.amberAccent,
+                      collapsedIconColor: Colors.white70,
+                      childrenPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      children: const [
+                        TelemetrySettingsSection(),
+                        SizedBox(height: 12),
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.white12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'RESET DATA',
+                      style: TextStyle(
+                        color: Colors.redAccent.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
+                    title: const Text('Reset Tracking Data'),
+                    subtitle: const Text(
+                      'Set all progress counts to zero',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () async {
+                      await _performReset(context, ref, everything: false);
+                      if (context.mounted) Navigator.pop(context);
                     },
                   ),
-                ),
-                const SizedBox(height: 12),
-                const Divider(color: Colors.white12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Text(
-                    'RESET DATA',
-                    style: TextStyle(
-                      color: Colors.redAccent.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                      letterSpacing: 1.2,
+                  ListTile(
+                    leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+                    title: const Text('Reset Everything'),
+                    subtitle: const Text(
+                      'Clear sources, links, and progress',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () async {
+                      await _performReset(context, ref, everything: true);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white10),
+                  ListTile(
+                    leading: Icon(Icons.info_outline_rounded, color: ref.watch(overallProgressColorProvider)),
+                    title: const Text('About GATE Tracker'),
+                    subtitle: const Text(
+                      'Developer info, repository and description',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    onTap: () {
+                      _showAboutDialog(context, ref);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'GATE Tracker v1.0.0',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontSize: 10,
+                      ),
                     ),
                   ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
-                  title: const Text('Reset Tracking Data'),
-                  subtitle: const Text(
-                    'Set all progress counts to zero',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () async {
-                    await _performReset(context, ref, everything: false);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                  title: const Text('Reset Everything'),
-                  subtitle: const Text(
-                    'Clear sources, links, and progress',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () async {
-                    await _performReset(context, ref, everything: true);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                ),
-                const SizedBox(height: 8),
-                const Divider(color: Colors.white10),
-                ListTile(
-                  leading: Icon(Icons.info_outline_rounded, color: ref.watch(overallProgressColorProvider)),
-                  title: const Text('About GATE Tracker'),
-                  subtitle: const Text(
-                    'Developer info, repository and description',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () {
-                    _showAboutDialog(context, ref);
-                    // We don't necessarily need to pop here, or we can pop after the dialog closed
-                    // but showAboutDialog is sync-calling showDialog.
-                  },
-                ),
-                const SizedBox(height: 16),
-                const Divider(color: Colors.white10),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'GATE Tracker v1.0.0',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -826,6 +853,221 @@ class _LastCheckedSubtitleTileState extends ConsumerState<LastCheckedSubtitleTil
         Navigator.of(context).pop();
         ref.read(updaterProvider.notifier).checkForUpdates();
       },
+    );
+  }
+}
+
+class TelemetrySettingsSection extends StatefulWidget {
+  const TelemetrySettingsSection({super.key});
+
+  @override
+  State<TelemetrySettingsSection> createState() => _TelemetrySettingsSectionState();
+}
+
+class _TelemetrySettingsSectionState extends State<TelemetrySettingsSection> {
+  bool _isEnabled = true;
+  final TextEditingController _urlController = TextEditingController();
+  bool _isTesting = false;
+  String? _testMessage;
+  bool? _testSuccess;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final enabled = await TelemetryService.isTelemetryEnabled();
+    final customUrl = await TelemetryService.getCustomUrl();
+    if (mounted) {
+      setState(() {
+        _isEnabled = enabled;
+        _urlController.text = customUrl;
+      });
+    }
+  }
+
+  Future<void> _toggleTelemetry(bool value) async {
+    await TelemetryService.setTelemetryEnabled(value);
+    setState(() {
+      _isEnabled = value;
+    });
+  }
+
+  Future<void> _saveCustomUrl(String value) async {
+    await TelemetryService.setCustomUrl(value);
+  }
+
+  Future<void> _testConnection() async {
+    setState(() {
+      _isTesting = true;
+      _testMessage = null;
+      _testSuccess = null;
+    });
+
+    final result = await TelemetryService.sendTestPing(_urlController.text);
+    
+    if (mounted) {
+      setState(() {
+        _isTesting = false;
+        _testSuccess = result['success'] as bool;
+        _testMessage = result['message'] as String;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        const Divider(color: Colors.white12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'TELEMETRY & DIAGNOSTICS',
+            style: TextStyle(
+              color: Colors.amberAccent.withAlpha(178),
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        SwitchListTile(
+          value: _isEnabled,
+          onChanged: _toggleTelemetry,
+          activeThumbColor: Colors.amberAccent,
+          secondary: const Icon(Icons.analytics_outlined, color: Colors.amberAccent),
+          title: const Text('Anonymous Daily Telemetry'),
+          subtitle: const Text(
+            'Ping server securely with SHA256 tokens upon app launch. GDPR-compliant. No personal data collected.',
+            style: TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+        ),
+        if (_isEnabled) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Custom Telemetry Endpoint URL',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(128),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(6),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: TextField(
+                          controller: _urlController,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          decoration: const InputDecoration(
+                            hintText: 'https://gate-tracker-telemetry.vercel.app/api/ping',
+                            hintStyle: TextStyle(color: Colors.white24, fontSize: 13),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          onChanged: _saveCustomUrl,
+                          onSubmitted: _saveCustomUrl,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isTesting ? null : _testConnection,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withAlpha(12),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: const BorderSide(color: Colors.white24),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          elevation: 0,
+                        ),
+                        child: _isTesting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.bolt, color: Colors.amberAccent, size: 20),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Leave blank to use the default production telemetry server.',
+                  style: TextStyle(color: Colors.grey, fontSize: 10),
+                ),
+                if (_testMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _testSuccess == true
+                          ? Colors.green.withAlpha(20)
+                          : Colors.redAccent.withAlpha(20),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _testSuccess == true
+                            ? Colors.green.withAlpha(80)
+                            : Colors.redAccent.withAlpha(80),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          _testSuccess == true
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.error_outline_rounded,
+                          color: _testSuccess == true ? Colors.greenAccent : Colors.redAccent,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _testMessage!,
+                            style: TextStyle(
+                              color: _testSuccess == true ? Colors.greenAccent : Colors.redAccent,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

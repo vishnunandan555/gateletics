@@ -5,6 +5,7 @@ import 'core/router/app_router.dart';
 import 'database/app_database.dart';
 import 'providers/subject_provider.dart';
 import 'providers/telemetry_service.dart';
+import 'widgets/telemetry_lifecycle_observer.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,11 +28,14 @@ class GateTrackerApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
-      title: 'GATE Tracker',
-      theme: AppTheme.darkTheme,
-      routerConfig: appRouter,
-      debugShowCheckedModeBanner: false,
+    return TelemetryLifecycleObserver(
+      child: MaterialApp.router(
+        title: 'GATE Tracker',
+        theme: AppTheme.darkTheme,
+        routerConfig: appRouter,
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }
+
