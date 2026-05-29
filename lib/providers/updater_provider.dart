@@ -286,10 +286,15 @@ class UpdaterNotifier extends Notifier<UpdaterState> {
         userMessage = "Failed to connect to the update server. Try again later.";
       }
       
-      state = state.copyWith(
-        status: UpdaterStatus.error,
-        errorMessage: userMessage,
-      );
+      if (isAutomatic) {
+        // Silently reset to idle during automatic checks to support seamless offline startup
+        state = state.copyWith(status: UpdaterStatus.idle);
+      } else {
+        state = state.copyWith(
+          status: UpdaterStatus.error,
+          errorMessage: userMessage,
+        );
+      }
       ref.invalidate(lastUpdateCheckTimeProvider);
     }
   }

@@ -18,6 +18,8 @@
 
   <title>GATE Syllabus Tracker</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preload" href="sql-wasm.wasm" as="fetch" type="application/wasm" crossorigin="anonymous">
+  <link rel="preload" href="sql-wasm.js" as="script">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
 
   <style>
@@ -47,7 +49,7 @@
       text-align: center;
       padding: 40px;
       border-radius: 24px;
-      background: rgba(24, 24, 27, 0.4);
+      background: #18181b; /* Solid dark card, no gradients */
       border: 1px solid rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(12px);
       max-width: 440px;
@@ -58,9 +60,7 @@
       font-size: 26px;
       font-weight: 700;
       letter-spacing: 1.5px;
-      background: linear-gradient(to right, #10b981, #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #10b981; /* Solid emerald green, no gradients */
       margin-bottom: 8px;
     }
     .subtitle-text {
@@ -82,10 +82,10 @@
     #progress-bar-fill {
       height: 100%;
       width: 5%;
-      background: linear-gradient(to right, #10b981, #3b82f6);
+      background: #10b981; /* Solid emerald green, no gradients */
       border-radius: 2px;
       transition: width 0.4s cubic-bezier(0.1, 0.8, 0.25, 1);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
     }
     .log-text {
       color: #a1a1aa;
@@ -120,20 +120,17 @@
     }
   </style>
 
-  <!-- sql.js Configuration: Instruct initSqlJs to resolve the Wasm file correctly from CDNjs -->
+  <!-- sql.js Configuration: Instruct initSqlJs to resolve the Wasm file correctly from local resources -->
   <script>
     var Module = {
       locateFile: function(file) {
-        return 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/' + file;
+        return file;
       }
     };
   </script>
-  
-  <!-- Import sql-wasm.js from CDNjs (Uses Module.locateFile under the hood to safely fetch sql-wasm.wasm) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 </head>
 <body>
-  <!-- Premium Glowing Loading Screen -->
+  <!-- Premium Flat Loading Screen -->
   <div id="loading-container">
     <div class="loader-box">
       <div class="logo-text">GATE TRACKER</div>
@@ -178,38 +175,80 @@
       }
     });
 
-    // 2. Request and check for browser persistent storage permissions on startup
-    if (navigator.storage && navigator.storage.persist) {
-      navigator.storage.persist().then(function(persistent) {
-        if (persistent) {
-          console.log("[Storage] Secure persistent storage permission active.");
-        } else {
-          console.log("[Storage] Operating in best-effort storage mode.");
-        }
-      });
+    // 2. Helper to log messages in real-time
+    function logMessage(text, progressWidth) {
+      console.log(text);
+      const logEl = document.getElementById('loading-log');
+      const fillEl = document.getElementById('progress-bar-fill');
+      const errPanel = document.getElementById('error-panel');
+      if (logEl && (!errPanel || errPanel.style.display !== 'block')) {
+        logEl.innerText = text;
+      }
+      if (fillEl && (!errPanel || errPanel.style.display !== 'block')) {
+        fillEl.style.width = progressWidth;
+      }
     }
 
-    // 3. Sequentially update logs to show progress
-    const steps = [
-      { t: 0, w: "15%", l: "Securing persistent web storage..." },
-      { t: 600, w: "35%", l: "Loading SQLite WebAssembly binary..." },
-      { t: 1500, w: "60%", l: "Configuring relational Drift bindings..." },
-      { t: 2400, w: "80%", l: "Starting main Flutter engine..." }
-    ];
-    
-    steps.forEach(function(step) {
-      setTimeout(function() {
-        const fill = document.getElementById('progress-bar-fill');
-        const log = document.getElementById('loading-log');
-        const errPanel = document.getElementById('error-panel');
-        if (fill && log && (!errPanel || errPanel.style.display !== 'block')) {
-          fill.style.width = step.w;
-          log.innerText = step.l;
+    // 3. Dynamic Real-Time Boot Sequence
+    async function startBootSequence() {
+      try {
+        logMessage("[System] Booting GATE Syllabus Tracker...", "15%");
+        
+        // Step A: Request and Check Persistent Storage
+        if (navigator.storage && navigator.storage.persist) {
+          logMessage("[Storage] Requesting database persistence...", "30%");
+          const persisted = await navigator.storage.persisted();
+          if (persisted) {
+            logMessage("[Storage] Persistent storage verified! ✓", "45%");
+          } else {
+            const granted = await navigator.storage.persist();
+            if (granted) {
+              logMessage("[Storage] Persistence granted by browser! ✓", "45%");
+            } else {
+              logMessage("[Storage] Operating in sandboxed browser storage.", "45%");
+            }
+          }
+        } else {
+          logMessage("[Storage] Browser sandbox storage active.", "45%");
         }
-      }, step.t);
-    });
 
-    // 4. MutationObserver to automatically fade out the loading overlay once the Flutter canvas mounts
+        // Step B: Load SQLite JS script dynamically
+        logMessage("[Database] Loading SQLite engine wrapper...", "60%");
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'sql-wasm.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("Failed to load sql-wasm.js. Verify database assets are complete."));
+          document.head.appendChild(script);
+        });
+
+        // Step C: Compile SQLite WebAssembly Binary
+        logMessage("[Database] Compiling SQLite WebAssembly module...", "80%");
+        if (typeof initSqlJs !== 'undefined') {
+          await initSqlJs({
+            locateFile: function(file) {
+              return file;
+            }
+          });
+          logMessage("[Database] WebAssembly compiled successfully! ✓", "90%");
+        } else {
+          throw new Error("initSqlJs is not defined. SQLite loader corrupted.");
+        }
+
+        // Step D: Boot Flutter
+        logMessage("[Engine] Starting main Flutter instance...", "95%");
+      } catch (err) {
+        window.dispatchEvent(new ErrorEvent('error', {
+          error: err,
+          message: err.message
+        }));
+      }
+    }
+
+    // Execute the sequence
+    startBootSequence();
+
+    // 4. MutationObserver to fade out loader once the Flutter canvas mounts
     const observer = new MutationObserver(function(mutations, obs) {
       const view = document.querySelector('canvas') || document.querySelector('flutter-view');
       if (view) {

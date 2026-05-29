@@ -15,6 +15,7 @@ A minimalist, high-performance, offline-first syllabus tracker designed specific
 - **State Management:** [Riverpod](https://riverpod.dev) (Modern, type-safe reactive state tracking)
 - **Database Engine:** [Drift](https://drift.simonbinder.eu) (Robust, compile-safe relational SQLite wrapper)
 - **Navigation:** [GoRouter](https://pub.dev/packages/go_router) (Declarative routing)
+- **Lifecycle Tracking:** Global `WidgetsBindingObserver` monitoring transitions to automatically trigger daily telemetry date check on app start, resume, and browser tab focus.
 
 ---
 
@@ -27,35 +28,40 @@ GATE Progress Tracker is fully offline-first, requiring no network connection to
 | **Android** | SQLite | `/data/data/com.example.gate_tracker/app_flutter/gate_tracker.db` | None (App-private storage) |
 | **Linux** | SQLite | `~/Documents/gate_tracker/gate_tracker.db` | None (User directory) |
 | **Windows** | SQLite | `C:\Users\<username>\Documents\gate_tracker\gate_tracker.db` | None (User directory) |
-| **Web** | IndexedDB | Browser-managed client-side database storage | None (Standard HTML5 storage) |
+| **Web** | IndexedDB | Browser-managed client-side database storage via local WebAssembly | None (Standard HTML5 storage) |
 
-### Note on Web Storage (IndexedDB)
-* In modern web browsers, IndexedDB operates silently out-of-the-box.
+### Note on Web Storage (IndexedDB + WebAssembly)
+* **100% Self-Contained Web Target:** To support zero-dependency SQLite connections on Web without slow external CDN dependencies, both `sql-wasm.js` and `sql-wasm.wasm` are stored locally in the `/web` static root.
+* **Concurrent Boot Performance:** Preload directives (`<link rel="preload">`) are embedded in the `<head>` of `index.html` to instruct the browser to download WebAssembly assets concurrently, ensuring a super-fast, lag-free boot phase.
 * **No explicit permission prompt** is requested or required, making the user experience frictionless.
 * Data is persisted per website origin (Same-Origin Policy).
-* *Caveat:* If the host system runs critically low on disk space, or if the user is in certain restrictive Private/Incognito browser sessions, the browser may treat the storage as temporary or clear it upon closing the tab.
 
 ---
 
-## 🔒 Privacy-First Developer Telemetry
+## 🔒 Privacy-First Developer Telemetry & Opt-Out
 
-To help the developer track platform metrics and version adoption, a completely anonymous telemetry ping is sent at most once per day on app launch.
+To help the developer track platform metrics and version adoption, an anonymous telemetry ping is evaluated at most once per day on app launch, resume, or tab focus.
 
 - **Zero PII Collected:** No emails, usernames, dynamic database contents, or network details are tracked.
 - **Dynamic Daily Hashing:** Pings use a rotating SHA256 daily active user token:
   $$\text{Daily active token} = \text{SHA256}(\text{client\_id} + \text{current\_date\_string})$$
   This token changes automatically every calendar day, preventing longitudinal user tracking or identity linking.
-- **Fail-Silent & Ephemeral:** The ping runs in the background silently. It is stored on a serverless Vercel KV cache with a strict 30-day auto-expiry policy.
+- **Background Deferral Optimization:** The startup telemetry check is deferred until **after the first frame is rendered** (`addPostFrameCallback`), freeing up all CPU and platform-channel bandwidth to paint the UI instantly.
+- **Developer Opt-Out Toggle:** A clean, GDPR-compliant toggle along with custom endpoints and connection diagnostics are located under the **Advanced Settings** section in the settings sheet, allowing full user privacy control.
 
 ---
 
 ## ✨ Features
 
-- **Progress Analytics:** overall exam completion index visualized using a high-fidelity animated progress ring.
+- **Progress Analytics:** Overall exam completion index visualized using a high-fidelity animated progress ring.
 - **Relational Structure:** Subjects are dynamically assigned to parent Categories (Syllabus Areas) with progress rolling up automatically.
 - **Customizable Subjects:** Tap-to-edit video syllabus counts, customized source channels, and direct course/playlist URLs.
 - **Pre-configured Presets:** Instantly bootstrap your tracking with complete syllabus and video count presets (e.g., GoClasses/YouTube).
 - **JSON Import/Export:** Secure backup utility that lets you export or import your progress as a relational JSON schema, facilitating backup portability.
+- **Premium Snapping Settings Panel:** A restructured settings bottom sheet using a custom `DraggableScrollableSheet` with:
+  - **Height Locking:** Covers exactly 75% of the screen height upon opening, scrollable up to 95%, or drag-to-dismiss.
+  - **Optimized Lazy Scrolling:** Built using a lazy `ListView` coordinated with the sheet's controller to eliminate drag stuttering and maximize frame rates.
+  - **Advanced Settings Section:** Grouped advanced diagnostic and telemetry details inside an elegant, borderless `ExpansionTile`.
 - **Automatic Self-Updater:** Fully integrated GitHub Releases check that notifies you of newer versions and facilitates direct asset downloads on supported native targets.
 
 ---
@@ -85,6 +91,11 @@ Run the app locally in debug mode:
 flutter run
 ```
 
+To run specifically on Web (Chrome):
+```bash
+flutter run -d chrome
+```
+
 To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
@@ -103,9 +114,10 @@ flutter build linux
 │   ├── database/     # Drift SQL schema definitions and generated tables
 │   ├── features/     # Feature-focused modules (Dashboard, Subject Detail, Presets)
 │   ├── providers/    # Riverpod controllers, notifier providers, update checks
-│   └── widgets/      # Reusable components (Backup & settings sheets, about card)
+│   └── widgets/      # Reusable components (Backup, settings sheet, about card)
 ├── linux/            # Linux platform builds and shell targets
 ├── test/             # Comprehensive unit testing suite (updater, DB operations)
+├── web/              # Web platform support assets (includes local WebAssembly sql-wasm files)
 └── windows/          # Windows platform runner targets and window setups
 ```
 

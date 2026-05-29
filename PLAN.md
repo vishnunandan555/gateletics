@@ -53,10 +53,14 @@
   - Test seeding presets, manual additions, moving, drag-and-drop reordering, and color picking
   - Ensure all database state syncs instantly across Android, Linux, and Windows desktop targets
 
-### 3. Implement Developer Telemetry (Privacy-First DAU)
+### 3. Implement Developer Telemetry & Interface Optimizations (Privacy-First DAU)
 - [x] Set up Vercel KV (Redis) project + deploy `api/ping.js` and `api/stats.js`
 - [x] Add `telemetry_service.dart` — SHA256 daily token, fire-and-forget POST on app launch
 - [x] Update README and Privacy Policy note (data is fully anonymous)
+- [x] Implement `TelemetryLifecycleObserver` to monitor global app resume and tab focus events cross-platform
+- [x] Defer telemetry triggers until after the first frame (`addPostFrameCallback`) to maximize startup rendering speed
+- [x] Redesign `SettingsSheet` to open at exactly 75% height initially using `DraggableScrollableSheet` with smooth snap physics and lazy list scrolling
+- [x] Move telemetry diagnostics inside a premium, borderless "Advanced Settings" expansion tile to keep the panel uncluttered
 
 ### 4. Bump to v1.0.0 + GitHub Release
 - [x] Update version in `pubspec.yaml`, `dashboard_screen.dart`, `settings_sheet.dart` (×2)
