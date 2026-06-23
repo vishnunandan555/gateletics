@@ -398,6 +398,99 @@ class WelcomeWidget extends ConsumerWidget {
     );
   }
 
+  void _showSyllabusConfirmationThenCreateCategoryDialog(BuildContext context, WidgetRef ref) {
+    final progressColor = ref.read(overallProgressColorProvider);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: progressColor.withValues(alpha: 0.2), width: 1),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: progressColor),
+            const SizedBox(width: 10),
+            Text(
+              'CUSTOM SYLLABUS',
+              style: GoogleFonts.outfit(
+                textStyle: TextStyle(
+                  fontFamily: 'BatmanForever',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: progressColor,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Building a custom syllabus requires you to manually add all categories, subjects, and topics. This can be quite time-consuming.\n\nIt is highly recommended to load the preset instead. Are you sure you want to proceed manually?',
+          style: GoogleFonts.outfit(
+            color: Colors.white70,
+            fontSize: 14,
+            height: 1.6,
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: progressColor.withValues(alpha: 0.5),
+                      width: 1.5,
+                    ),
+                    foregroundColor: progressColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    'Go Back',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close confirmation dialog
+                    showCreateSyllabusCategoryDialog(context, ref); // Open category creation dialog
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: progressColor,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(
+                    'Proceed',
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completionType = ref.watch(completionTypeProvider);
@@ -543,7 +636,7 @@ class WelcomeWidget extends ConsumerWidget {
                   if (completionType == CompletionType.resource) {
                     _showInstructionsThenCreateCategoryDialog(context, ref);
                   } else {
-                    showCreateSyllabusCategoryDialog(context, ref);
+                    _showSyllabusConfirmationThenCreateCategoryDialog(context, ref);
                   }
                 },
                 style: OutlinedButton.styleFrom(
