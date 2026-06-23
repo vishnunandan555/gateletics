@@ -12,6 +12,10 @@ import '../../widgets/pill_progress_widget.dart';
 import '../../widgets/updater_dialog.dart';
 import '../../widgets/settings_sheet.dart';
 import '../../providers/completion_type_provider.dart';
+import '../../providers/syllabus_provider.dart';
+import 'widgets/syllabus_category_header.dart';
+import 'widgets/syllabus_topic_card.dart';
+import 'widgets/syllabus_customization_sheets.dart';
 
 class HasCheckedForUpdates extends Notifier<bool> {
   @override
@@ -161,6 +165,184 @@ class DashboardScreen extends ConsumerWidget {
     final progressColor = ref.watch(overallProgressColorProvider);
     final completionType = ref.watch(completionTypeProvider);
 
+    if (completionType == CompletionType.syllabus) {
+      final syllabusAsync = ref.watch(syllabusProvider);
+      return Scaffold(
+        body: syllabusAsync.when(
+          data: (syllabusData) {
+            final isSyllabusEmpty = syllabusData.isEmpty;
+
+            int totalCompleted = 0, totalTasks = 0;
+            if (!isSyllabusEmpty) {
+              for (final cat in syllabusData) {
+                for (final topic in cat.topics) {
+                  totalCompleted += topic.tasks.where((t) => t.isCompleted).length;
+                  totalTasks += topic.tasks.length;
+                }
+              }
+            }
+            final overallProgress = totalTasks == 0 ? 0.0 : (totalCompleted / totalTasks) * 100;
+
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  toolbarHeight: 112,
+                  floating: true,
+                  pinned: true,
+                  elevation: 0,
+                  scrolledUnderElevation: 2,
+                  centerTitle: true,
+                  leading: IconButton(
+                    icon: const Icon(Icons.settings_rounded),
+                    onPressed: () => showSettingsSheet(context, ref),
+                    tooltip: 'Settings',
+                  ),
+                  title: const AppBarTitle(),
+                  actions: const [
+                    CountdownWidget(),
+                  ],
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                    child: PillProgressWidget(
+                      percentage: overallProgress,
+                      totalCompleted: totalCompleted,
+                      totalVideos: totalTasks,
+                    ),
+                  ),
+                ),
+                if (isSyllabusEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'To Begin, either load our Pre-built Preset or Start Making your own custom syllabus.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 220,
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    ref.read(syllabusControllerProvider.notifier).applyPreset();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: progressColor,
+                                    foregroundColor: Colors.black,
+                                    elevation: 8,
+                                    shadowColor: progressColor.withValues(alpha: 0.4),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Load Preset',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: 220,
+                                height: 48,
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    showCreateSyllabusCategoryDialog(context, ref);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: progressColor.withValues(alpha: 0.5), width: 1.5),
+                                    foregroundColor: progressColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Create Category',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 48),
+                        ],
+                      ),
+                    ),
+                  )
+                else ...[
+                  ...syllabusData.map((catWithTopics) {
+                    final category = catWithTopics.category;
+                    final topics = catWithTopics.topics;
+
+                    int catCompleted = 0, catTotal = 0;
+                    for (final topic in topics) {
+                      catCompleted += topic.tasks.where((t) => t.isCompleted).length;
+                      catTotal += topic.tasks.length;
+                    }
+                    final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
+                    final rawTopics = topics.map((e) => e.topic).toList();
+
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                            child: SyllabusCategoryHeader(
+                              category: category,
+                              progress: catProgress,
+                              topics: rawTopics,
+                            ),
+                          ),
+                        ),
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final topicWithTasks = topics[index];
+                              return SyllabusTopicCard(
+                                topicWithTasks: topicWithTasks,
+                                categoryColor: Color(category.color),
+                              );
+                            },
+                            childCount: topics.length,
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                  const SliverToBoxAdapter(child: SizedBox(height: 48)),
+                ],
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error: $err')),
+        ),
+      );
+    }
+
     return Scaffold(
       body: categoriesAsync.when(
         data: (categoriesWithSubs) {
@@ -209,21 +391,15 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (completionType == CompletionType.syllabus)
-                const SliverFillRemaining(
+              if (isEmpty)
+                SliverFillRemaining(
                   hasScrollBody: false,
-                  child: SizedBox.shrink(),
-                )
-              else ...[
-                if (isEmpty)
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
                           Text(
                             'To Begin, either load our Pre-built Preset or Start Making your own custom syllabus.',
                             textAlign: TextAlign.center,
@@ -343,7 +519,6 @@ class DashboardScreen extends ConsumerWidget {
                   }),
                 if (!isEmpty)
                   const SliverToBoxAdapter(child: SizedBox(height: 48)),
-              ],
             ],
           );
         },

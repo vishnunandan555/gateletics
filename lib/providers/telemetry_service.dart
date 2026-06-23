@@ -113,7 +113,7 @@ class TelemetryService {
       final String clientId = await _getOrCreateClientId(prefs);
       final String platform = _getPlatformTag();
       
-      String version = '1.0.0';
+      String version = '1.1.0';
       try {
         final packageInfo = await PackageInfo.fromPlatform();
         version = packageInfo.version;
@@ -182,7 +182,7 @@ class TelemetryService {
       final String clientId = await _getOrCreateClientId(prefs);
       final String platform = _getPlatformTag();
       
-      String version = '1.0.0-test';
+      String version = '1.1.0-test';
       try {
         final packageInfo = await PackageInfo.fromPlatform();
         version = '${packageInfo.version}-test';

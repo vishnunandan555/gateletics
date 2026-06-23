@@ -1,7 +1,7 @@
 import 'package:drift/drift.dart';
 import 'connection/connection.dart' as conn;
 import 'schema_version.dart';
-
+import 'syllabus_preset.dart';
 
 part 'app_database.g.dart';
 
@@ -35,7 +35,49 @@ class CategoryWithSubjects {
   });
 }
 
-@DriftDatabase(tables: [Categories, Subjects])
+class SyllabusCategories extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 100)();
+  IntColumn get position => integer()();
+  IntColumn get color => integer()();
+}
+
+class SyllabusTopics extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get categoryId => integer().references(SyllabusCategories, #id, onDelete: KeyAction.cascade)();
+  TextColumn get name => text().withLength(min: 1, max: 150)();
+  IntColumn get position => integer()();
+}
+
+class SyllabusTasks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get topicId => integer().references(SyllabusTopics, #id, onDelete: KeyAction.cascade)();
+  TextColumn get name => text().withLength(min: 1, max: 200)();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  IntColumn get position => integer()();
+}
+
+class SyllabusTopicWithTasks {
+  final SyllabusTopic topic;
+  final List<SyllabusTask> tasks;
+
+  SyllabusTopicWithTasks({
+    required this.topic,
+    required this.tasks,
+  });
+}
+
+class SyllabusCategoryWithTopics {
+  final SyllabusCategory category;
+  final List<SyllabusTopicWithTasks> topics;
+
+  SyllabusCategoryWithTopics({
+    required this.category,
+    required this.topics,
+  });
+}
+
+@DriftDatabase(tables: [Categories, Subjects, SyllabusCategories, SyllabusTopics, SyllabusTasks])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
 
@@ -387,5 +429,225 @@ class AppDatabase extends _$AppDatabase {
       ));
     });
   }
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+          await applyDefaultPreset();
+          await seedSyllabus();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(syllabusCategories);
+            await m.createTable(syllabusTopics);
+            await m.createTable(syllabusTasks);
+            await seedSyllabus();
+          }
+        },
+      );
+
+  // ----------------------------------------------------
+  // Syllabus Streams
+  // ----------------------------------------------------
+
+  Stream<List<SyllabusCategory>> watchSyllabusCategories() {
+    return (select(syllabusCategories)..orderBy([(t) => OrderingTerm(expression: t.position)])).watch();
+  }
+
+  Stream<List<SyllabusTopic>> watchSyllabusTopics() {
+    return (select(syllabusTopics)..orderBy([(t) => OrderingTerm(expression: t.position)])).watch();
+  }
+
+  Stream<List<SyllabusTask>> watchSyllabusTasks() {
+    return (select(syllabusTasks)..orderBy([(t) => OrderingTerm(expression: t.position)])).watch();
+  }
+
+  // ----------------------------------------------------
+  // Syllabus Seeding
+  // ----------------------------------------------------
+
+  Future<void> seedSyllabus() async {
+    await transaction(() async {
+      await delete(syllabusTasks).go();
+      await delete(syllabusTopics).go();
+      await delete(syllabusCategories).go();
+
+      for (int i = 0; i < defaultSyllabusPreset.length; i++) {
+        final presetCat = defaultSyllabusPreset[i];
+        final catId = await into(syllabusCategories).insert(
+          SyllabusCategoriesCompanion.insert(
+            name: presetCat.name,
+            position: i,
+            color: presetCat.color,
+          ),
+        );
+
+        for (int j = 0; j < presetCat.topics.length; j++) {
+          final presetTopic = presetCat.topics[j];
+          final topicId = await into(syllabusTopics).insert(
+            SyllabusTopicsCompanion.insert(
+              categoryId: catId,
+              name: presetTopic.name,
+              position: j,
+            ),
+          );
+
+          for (int k = 0; k < presetTopic.tasks.length; k++) {
+            final taskName = presetTopic.tasks[k];
+            await into(syllabusTasks).insert(
+              SyllabusTasksCompanion.insert(
+                topicId: topicId,
+                name: taskName,
+                position: k,
+                isCompleted: const Value(false),
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  // ----------------------------------------------------
+  // Syllabus Category Operations
+  // ----------------------------------------------------
+
+  Future<int> addSyllabusCategory(String name, int color, {int? position}) async {
+    int pos = position ?? 0;
+    if (position == null) {
+      final existing = await select(syllabusCategories).get();
+      pos = existing.length;
+    }
+    return into(syllabusCategories).insert(SyllabusCategoriesCompanion.insert(
+      name: name,
+      color: color,
+      position: pos,
+    ));
+  }
+
+  Future<void> updateSyllabusCategoryDetails(int id, String name, int color) async {
+    await (update(syllabusCategories)..where((t) => t.id.equals(id))).write(
+      SyllabusCategoriesCompanion(
+        name: Value(name),
+        color: Value(color),
+      ),
+    );
+  }
+
+  Future<void> deleteSyllabusCategory(int id) async {
+    await transaction(() async {
+      final topicsInCat = await (select(syllabusTopics)..where((t) => t.categoryId.equals(id))).get();
+      for (final topic in topicsInCat) {
+        await (delete(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).go();
+      }
+      await (delete(syllabusTopics)..where((t) => t.categoryId.equals(id))).go();
+      await (delete(syllabusCategories)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
+  Future<void> updateSyllabusCategoryPositions(List<int> orderedCategoryIds) async {
+    await transaction(() async {
+      for (int i = 0; i < orderedCategoryIds.length; i++) {
+        await (update(syllabusCategories)..where((t) => t.id.equals(orderedCategoryIds[i]))).write(
+          SyllabusCategoriesCompanion(position: Value(i)),
+        );
+      }
+    });
+  }
+
+  // ----------------------------------------------------
+  // Syllabus Topic Operations
+  // ----------------------------------------------------
+
+  Future<int> addSyllabusTopic(int categoryId, String name, {int? position}) async {
+    int pos = position ?? 0;
+    if (position == null) {
+      final existing = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
+      pos = existing.length;
+    }
+    return into(syllabusTopics).insert(SyllabusTopicsCompanion.insert(
+      categoryId: categoryId,
+      name: name,
+      position: pos,
+    ));
+  }
+
+  Future<void> updateSyllabusTopicDetails(int id, String name) async {
+    await (update(syllabusTopics)..where((t) => t.id.equals(id))).write(
+      SyllabusTopicsCompanion(name: Value(name)),
+    );
+  }
+
+  Future<void> deleteSyllabusTopic(int id) async {
+    await transaction(() async {
+      await (delete(syllabusTasks)..where((t) => t.topicId.equals(id))).go();
+      await (delete(syllabusTopics)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
+  Future<void> updateSyllabusTopicPositions(int categoryId, List<int> orderedTopicIds) async {
+    await transaction(() async {
+      for (int i = 0; i < orderedTopicIds.length; i++) {
+        await (update(syllabusTopics)..where((t) => t.id.equals(orderedTopicIds[i]))).write(
+          SyllabusTopicsCompanion(
+            position: Value(i),
+            categoryId: Value(categoryId),
+          ),
+        );
+      }
+    });
+  }
+
+  // ----------------------------------------------------
+  // Syllabus Task Operations
+  // ----------------------------------------------------
+
+  Future<int> addSyllabusTask(int topicId, String name, {int? position}) async {
+    int pos = position ?? 0;
+    if (position == null) {
+      final existing = await (select(syllabusTasks)..where((t) => t.topicId.equals(topicId))).get();
+      pos = existing.length;
+    }
+    return into(syllabusTasks).insert(SyllabusTasksCompanion.insert(
+      topicId: topicId,
+      name: name,
+      position: pos,
+      isCompleted: const Value(false),
+    ));
+  }
+
+  Future<void> updateSyllabusTaskDetails(int id, String name, bool isCompleted) async {
+    await (update(syllabusTasks)..where((t) => t.id.equals(id))).write(
+      SyllabusTasksCompanion(
+        name: Value(name),
+        isCompleted: Value(isCompleted),
+      ),
+    );
+  }
+
+  Future<void> updateSyllabusTaskCompletion(int id, bool isCompleted) async {
+    await (update(syllabusTasks)..where((t) => t.id.equals(id))).write(
+      SyllabusTasksCompanion(isCompleted: Value(isCompleted)),
+    );
+  }
+
+  Future<void> deleteSyllabusTask(int id) async {
+    await (delete(syllabusTasks)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> updateSyllabusTaskPositions(int topicId, List<int> orderedTaskIds) async {
+    await transaction(() async {
+      for (int i = 0; i < orderedTaskIds.length; i++) {
+        await (update(syllabusTasks)..where((t) => t.id.equals(orderedTaskIds[i]))).write(
+          SyllabusTasksCompanion(
+            position: Value(i),
+            topicId: Value(topicId),
+          ),
+        );
+      }
+    });
+  }
 }
+
 

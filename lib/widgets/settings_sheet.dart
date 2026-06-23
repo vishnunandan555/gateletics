@@ -1,12 +1,16 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io' show File;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import '../providers/subject_provider.dart';
 import '../providers/updater_provider.dart';
 import '../providers/completion_type_provider.dart';
+import '../providers/syllabus_provider.dart';
 import 'settings/telemetry_settings.dart';
 import 'settings/about_dialog.dart';
 
@@ -29,6 +33,9 @@ class SettingsSheet extends ConsumerWidget {
       
       final categoriesList = await db.select(db.categories).get();
       final subjectsList = await db.select(db.subjects).get();
+      final syllabusCats = await db.select(db.syllabusCategories).get();
+      final syllabusTops = await db.select(db.syllabusTopics).get();
+      final syllabusTsks = await db.select(db.syllabusTasks).get();
 
       final categoryMap = {for (var c in categoriesList) c.id: c.name};
 
@@ -50,20 +57,74 @@ class SettingsSheet extends ConsumerWidget {
         'color': s.color,
       }).toList();
 
+      final exportedSyllabusCats = syllabusCats.map((c) => {
+        'id': c.id,
+        'name': c.name,
+        'position': c.position,
+        'color': c.color,
+      }).toList();
+
+      final exportedSyllabusTops = syllabusTops.map((t) => {
+        'id': t.id,
+        'categoryId': t.categoryId,
+        'name': t.name,
+        'position': t.position,
+      }).toList();
+
+      final exportedSyllabusTsks = syllabusTsks.map((k) => {
+        'id': k.id,
+        'topicId': k.topicId,
+        'name': k.name,
+        'isCompleted': k.isCompleted,
+        'position': k.position,
+      }).toList();
+
       final exportPayload = {
-        'version': 1,
+        'version': 2,
         'categories': exportedCategories,
         'subjects': exportedSubjects,
+        'syllabusCategories': exportedSyllabusCats,
+        'syllabusTopics': exportedSyllabusTops,
+        'syllabusTasks': exportedSyllabusTsks,
       };
 
       final json = const JsonEncoder.withIndent('  ').convert(exportPayload);
-      final bytes = Uint8List.fromList(utf8.encode(json));
 
-      final path = await FilePicker.saveFile(
-        dialogTitle: 'Save backup to device',
-        fileName: 'gate_tracker_backup.json',
-        bytes: bytes,
-      );
+      String? path;
+      if (kIsWeb) {
+        final bytes = Uint8List.fromList(utf8.encode(json));
+        path = await FilePicker.saveFile(
+          dialogTitle: 'Save backup to device',
+          fileName: 'gate_tracker_backup.json',
+          bytes: bytes,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+      } else if (defaultTargetPlatform == TargetPlatform.android ||
+                 defaultTargetPlatform == TargetPlatform.iOS) {
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/gate_tracker_backup.json');
+        await tempFile.writeAsString(json);
+
+        final params = SaveFileDialogParams(
+          sourceFilePath: tempFile.path,
+          fileName: 'gate_tracker_backup.json',
+        );
+        path = await FlutterFileDialog.saveFile(params: params);
+      } else {
+        final bytes = Uint8List.fromList(utf8.encode(json));
+        path = await FilePicker.saveFile(
+          dialogTitle: 'Save backup to device',
+          fileName: 'gate_tracker_backup.json',
+          bytes: bytes,
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (path != null) {
+          final file = File(path);
+          await file.writeAsBytes(bytes);
+        }
+      }
 
       if (path != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,23 +142,26 @@ class SettingsSheet extends ConsumerWidget {
 
   Future<void> _importData(BuildContext context, WidgetRef ref) async {
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.any,
-      );
-      if (result == null || result.files.isEmpty) return;
-
-      final singleFile = result.files.single;
-      final isJson = singleFile.name.toLowerCase().endsWith('.json');
-      if (!isJson) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Please select a valid .json backup file.')),
-          );
-        }
-        return;
+      Uint8List? bytes;
+      if (kIsWeb ||
+          (defaultTargetPlatform != TargetPlatform.android &&
+           defaultTargetPlatform != TargetPlatform.iOS)) {
+        final result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+        if (result == null || result.files.isEmpty) return;
+        bytes = await result.files.single.readAsBytes();
+      } else {
+        final params = OpenFileDialogParams(
+          dialogType: OpenFileDialogType.document,
+          fileExtensionsFilter: ['json'],
+        );
+        final filePath = await FlutterFileDialog.pickFile(params: params);
+        if (filePath == null) return;
+        bytes = await File(filePath).readAsBytes();
       }
 
-      final bytes = await singleFile.readAsBytes();
       final raw = utf8.decode(bytes);
 
       final payload = jsonDecode(raw);
@@ -142,13 +206,15 @@ class SettingsSheet extends ConsumerWidget {
         // Premium new style: complete restore
         final categoriesData = payload['categories'] as List<dynamic>;
         final subjectsData = payload['subjects'] as List<dynamic>;
+        final syllabusCategoriesData = payload['syllabusCategories'] as List<dynamic>?;
+        final syllabusTopicsData = payload['syllabusTopics'] as List<dynamic>?;
+        final syllabusTasksData = payload['syllabusTasks'] as List<dynamic>?;
 
         await db.transaction(() async {
-          // 1. Wipe database first to guarantee fresh clean restore
+          // 1. Restore resource-based tables
           await db.delete(db.subjects).go();
           await db.delete(db.categories).go();
 
-          // 2. Insert all categories and keep map of name -> new ID
           final categoryNameToNewId = <String, int>{};
           for (final c in categoriesData) {
             final name = c['name'] as String;
@@ -159,7 +225,6 @@ class SettingsSheet extends ConsumerWidget {
             categoryNameToNewId[name] = id;
           }
 
-          // 3. Insert all subjects
           for (final s in subjectsData) {
             final categoryName = s['categoryName'] as String;
             final catId = categoryNameToNewId[categoryName];
@@ -176,11 +241,56 @@ class SettingsSheet extends ConsumerWidget {
               position: s['position'] as int? ?? 0,
             );
           }
+
+          // 2. Restore syllabus-based tables if present in backup
+          if (syllabusCategoriesData != null && syllabusTopicsData != null && syllabusTasksData != null) {
+            await db.delete(db.syllabusTasks).go();
+            await db.delete(db.syllabusTopics).go();
+            await db.delete(db.syllabusCategories).go();
+
+            final oldCatIdToNewId = <int, int>{};
+            for (final c in syllabusCategoriesData) {
+              final oldId = c['id'] as int;
+              final name = c['name'] as String;
+              final color = c['color'] as int;
+              final position = c['position'] as int;
+
+              final newId = await db.addSyllabusCategory(name, color, position: position);
+              oldCatIdToNewId[oldId] = newId;
+            }
+
+            final oldTopicIdToNewId = <int, int>{};
+            for (final t in syllabusTopicsData) {
+              final oldId = t['id'] as int;
+              final oldCatId = t['categoryId'] as int;
+              final name = t['name'] as String;
+              final position = t['position'] as int;
+
+              final newCatId = oldCatIdToNewId[oldCatId];
+              if (newCatId != null) {
+                final newId = await db.addSyllabusTopic(newCatId, name, position: position);
+                oldTopicIdToNewId[oldId] = newId;
+              }
+            }
+
+            for (final k in syllabusTasksData) {
+              final oldTopicId = k['topicId'] as int;
+              final name = k['name'] as String;
+              final isCompleted = k['isCompleted'] as bool;
+              final position = k['position'] as int;
+
+              final newTopicId = oldTopicIdToNewId[oldTopicId];
+              if (newTopicId != null) {
+                final taskId = await db.addSyllabusTask(newTopicId, name, position: position);
+                await db.updateSyllabusTaskCompletion(taskId, isCompleted);
+              }
+            }
+          }
         });
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('✓ Full syllabus and progress successfully restored!')),
+            const SnackBar(content: Text('✓ Backup data successfully restored!')),
           );
         }
       }
@@ -227,12 +337,21 @@ class SettingsSheet extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      if (everything) {
-        await ref.read(subjectControllerProvider.notifier).resetEverything();
+      final currentType = ref.read(completionTypeProvider);
+      if (currentType == CompletionType.syllabus) {
+        if (everything) {
+          await ref.read(syllabusControllerProvider.notifier).applyPreset();
+        } else {
+          await ref.read(syllabusControllerProvider.notifier).resetTrackingData();
+        }
       } else {
-        await ref
-            .read(subjectControllerProvider.notifier)
-            .resetTrackingData();
+        if (everything) {
+          await ref.read(subjectControllerProvider.notifier).resetEverything();
+        } else {
+          await ref
+              .read(subjectControllerProvider.notifier)
+              .resetTrackingData();
+        }
       }
 
       if (context.mounted) {
@@ -409,57 +528,68 @@ class SettingsSheet extends ConsumerWidget {
                                 ),
                               ],
                             ),
-                            if (currentType == CompletionType.resource) ...[
-                              const SizedBox(height: 12),
-                              ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                                title: const Text('Apply Preset'),
-                                subtitle: const Text(
-                                  'Apply default GoClasses/YouTube sources',
-                                  style: TextStyle(color: Colors.grey, fontSize: 11),
-                                ),
-                                onTap: () async {
-                                  final confirmed = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      backgroundColor: const Color(0xFF18181B),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(24),
-                                      ),
-                                      title: const Text('Apply Preset'),
-                                      content: const Text(
-                                        'This will overwrite current sources and counts for some subjects. Continue?',
-                                        style: TextStyle(color: Colors.white70),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx, false),
-                                          child: const Text('Cancel',
-                                              style: TextStyle(color: Colors.grey)),
-                                        ),
-                                        FilledButton(
-                                          onPressed: () => Navigator.pop(ctx, true),
-                                          style: FilledButton.styleFrom(
-                                            backgroundColor: Colors.amberAccent,
-                                            foregroundColor: Colors.black,
-                                          ),
-                                          child: const Text('Apply'),
-                                        ),
-                                      ],
+                            const SizedBox(height: 12),
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                              title: Text(currentType == CompletionType.resource
+                                  ? 'Apply Resource Preset'
+                                  : 'Apply Syllabus Preset'),
+                              subtitle: Text(
+                                currentType == CompletionType.resource
+                                    ? 'Apply default GoClasses/YouTube sources'
+                                    : 'Restore the default GATE CSE checklist',
+                                style: const TextStyle(color: Colors.grey, fontSize: 11),
+                              ),
+                              onTap: () async {
+                                final confirmed = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    backgroundColor: const Color(0xFF18181B),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
                                     ),
-                                  );
+                                    title: Text(currentType == CompletionType.resource
+                                        ? 'Apply Resource Preset'
+                                        : 'Apply Syllabus Preset'),
+                                    content: Text(
+                                      currentType == CompletionType.resource
+                                          ? 'This will overwrite current sources and counts for some subjects. Continue?'
+                                          : 'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
+                                      style: const TextStyle(color: Colors.white70),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, false),
+                                        child: const Text('Cancel',
+                                            style: TextStyle(color: Colors.grey)),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.amberAccent,
+                                          foregroundColor: Colors.black,
+                                        ),
+                                        child: const Text('Apply'),
+                                      ),
+                                    ],
+                                  ),
+                                );
 
-                                  if (confirmed == true) {
-                                    // Close settings sheet
-                                    if (context.mounted) Navigator.pop(context);
+                                if (confirmed == true) {
+                                  if (context.mounted) Navigator.pop(context);
+                                  if (currentType == CompletionType.resource) {
                                     await ref
                                         .read(subjectControllerProvider.notifier)
                                         .applyPreset();
+                                  } else {
+                                    await ref
+                                        .read(syllabusControllerProvider.notifier)
+                                        .applyPreset();
                                   }
-                                },
-                              ),
-                            ],
+                                }
+                              },
+                            ),
                           ],
                         );
                       },
@@ -615,7 +745,7 @@ class SettingsSheet extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'GATE Tracker v1.0.0',
+                      'GATE Tracker v1.1.0',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 10,

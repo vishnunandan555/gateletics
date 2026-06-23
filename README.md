@@ -1,7 +1,7 @@
 # GATE Progress Tracker
 
 [![Build & Release](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.0.0--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -106,6 +106,15 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+---
+
+## 🌟 Version 1.1.0 Highlights
+
+- **Syllabus-Based Tracking Mode:** Toggle between video/resource-based tracking and a curriculum-focused syllabus checklist tracking model. Add, rename, delete, and reorder categories, topics, and subtasks.
+- **Robust Hybrid Backup Engine:** Modern platform-specific routing using native Kotlin/Swift Storage Access Framework on Android/iOS to bypass Scoped Storage limits, standard web anchor triggers on Web, and native filesystem writes on Desktop.
+- **Reordering Scrollbar Fixes:** Added visual scrollbars to all reorder dialogs and fixed touch gesture interferences so that dragging list scrollbars scrolls the view instead of hijacking the item reorder listeners.
+- **Cleaned Dashboard UI:** Removed unnecessary long-press logo repository popup menus for a cleaner experience.
 
 ---
 

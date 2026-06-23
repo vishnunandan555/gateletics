@@ -383,6 +383,7 @@ void showAddSubjectDialog(BuildContext context, Category category, WidgetRef ref
 }
 
 void showReorderCategoriesDialog(BuildContext context, List<Category> categories, WidgetRef ref) {
+  final scrollController = ScrollController();
   showDialog(
     context: context,
     builder: (context) => StatefulBuilder(
@@ -405,16 +406,21 @@ void showReorderCategoriesDialog(BuildContext context, List<Category> categories
           content: SizedBox(
             width: double.maxFinite,
             height: 300,
-            child: ReorderableListView.builder(
-              buildDefaultDragHandles: false,
-              itemCount: categories.length,
-              itemBuilder: (context, index) {
-                final cat = categories[index];
-                return ReorderableDragStartListener(
-                  key: ValueKey(cat.id),
-                  index: index,
-                  child: ListTile(
-                    leading: const Icon(Icons.drag_handle_rounded, color: Colors.white54),
+            child: Scrollbar(
+              controller: scrollController,
+              thumbVisibility: true,
+              child: ReorderableListView.builder(
+                scrollController: scrollController,
+                buildDefaultDragHandles: false,
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  return ListTile(
+                    key: ValueKey(cat.id),
+                    leading: ReorderableDragStartListener(
+                      index: index,
+                      child: const Icon(Icons.drag_handle_rounded, color: Colors.white54),
+                    ),
                     title: Text(
                       cat.name,
                       style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w500),
@@ -424,18 +430,18 @@ void showReorderCategoriesDialog(BuildContext context, List<Category> categories
                       height: 16,
                       decoration: BoxDecoration(color: Color(cat.color), shape: BoxShape.circle),
                     ),
-                  ),
-                );
-              },
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (newIndex > oldIndex) {
-                    newIndex -= 1;
-                  }
-                  final item = categories.removeAt(oldIndex);
-                  categories.insert(newIndex, item);
-                });
-              },
+                  );
+                },
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) {
+                      newIndex -= 1;
+                    }
+                    final item = categories.removeAt(oldIndex);
+                    categories.insert(newIndex, item);
+                  });
+                },
+              ),
             ),
           ),
           actions: [
