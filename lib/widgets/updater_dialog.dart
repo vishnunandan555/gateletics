@@ -6,6 +6,7 @@ import '../providers/updater_provider.dart';
 import '../providers/subject_provider.dart';
 import '../core/theme/colors.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -542,7 +543,34 @@ class _UpdaterDialogState extends ConsumerState<UpdaterDialog> {
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          // Android-only: open download link in browser as fallback
+          if (Platform.isAndroid && state.downloadUrl.isNotEmpty) ...[
+            OutlinedButton.icon(
+              onPressed: () async {
+                final uri = Uri.parse(state.downloadUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                side: BorderSide(color: accentColor.withAlpha(80)),
+              ),
+              icon: Icon(Icons.open_in_browser_rounded, size: 16, color: accentColor),
+              label: Text(
+                "DOWNLOAD IN BROWSER INSTEAD",
+                style: GoogleFonts.outfit(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Abort Cancel button
           OutlinedButton(

@@ -113,8 +113,11 @@ flutter build linux
 
 - **Unified Welcome Screen:** Replaced duplicate onboarding flows with a single, modern welcome screen that offers immediate toggle switching between Resource-Based and Syllabus-Based completion modes.
 - **Smart Custom Syllabus Warning:** Added a confirmation dialog when creating a custom category in Syllabus-Based mode, warning users about the tedious manual setup process and highly recommending the predefined presets instead.
-- **Complete Reset Everything:** Wipes tracking data across both databases completely to restore the app to the pristine welcome state.
-- **Version Bumps:** Bumped the overall application version to v1.1.1 across all native targets and the web updater.
+- **Complete Reset Everything:** The "Reset Everything" option in Settings now wipes tracking data across both databases completely, restoring the app to the initial welcome state regardless of the current mode.
+- **Dynamic Motivational Quotes:** Tap the app title logo in the dashboard to reveal a random motivational quote in a beautiful animated dialog. Quotes are fetched from a live `quotes.json` file in the repository and cached locally for offline access — no app update needed to add new ones.
+- **Community Quote Contributions:** Users can contribute motivational quotes by submitting a Pull Request to update `quotes.json`. See [CONTRIBUTING.md](CONTRIBUTING.md) for a step-by-step guide.
+- **Refreshed App Icon:** New neon cyan-to-blue gradient G logo across all platforms — Android (all densities), Web (favicon + PWA icons), Windows (.ico), and Linux (AppImage).
+- **Slow Download Fallback:** During an in-app update download on Android, a new "Download in Browser Instead" button lets users open the direct APK download link in their browser as a reliable fallback if the in-app download is slow.
 
 ---
 
