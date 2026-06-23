@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'connection/connection.dart' as conn;
+import 'schema_version.dart';
 
 
 part 'app_database.g.dart';
@@ -36,10 +37,10 @@ class CategoryWithSubjects {
 
 @DriftDatabase(tables: [Categories, Subjects])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(conn.connect());
+  AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => appSchemaVersion;
 
   // Streams all categories along with their matching subjects sorted by their respective position
   Stream<List<CategoryWithSubjects>> watchCategoriesWithSubjects() {

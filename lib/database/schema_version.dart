@@ -1,0 +1,1 @@
+const appSchemaVersion = 1;

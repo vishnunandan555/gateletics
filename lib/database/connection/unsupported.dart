@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
 
-QueryExecutor connect() {
+QueryExecutor connect({required int schemaVersion}) {
   throw UnsupportedError('Platform not supported');
 }
