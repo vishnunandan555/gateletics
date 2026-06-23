@@ -159,6 +159,11 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _db.seedSyllabus());
   }
+
+  Future<void> resetEverything() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _db.resetSyllabusEverything());
+  }
 }
 
 extension SyllabusReset on AppDatabase {
@@ -169,6 +174,10 @@ extension SyllabusReset on AppDatabase {
   }
 
   Future<void> resetSyllabusEverything() async {
-    await seedSyllabus();
+    await transaction(() async {
+      await delete(syllabusTasks).go();
+      await delete(syllabusTopics).go();
+      await delete(syllabusCategories).go();
+    });
   }
 }

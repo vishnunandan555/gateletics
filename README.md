@@ -1,7 +1,7 @@
 # GATE Progress Tracker
 
 [![Build & Release](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.0--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
+[![Version](https://img.shields.io/badge/version-1.1.1--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 

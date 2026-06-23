@@ -81,7 +81,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                           border: Border.all(color: Colors.white12, width: 1),
                         ),
                         child: Text(
-                          "v1.1.0 (Stable)",
+                          "v1.1.1 (Stable)",
                           style: GoogleFonts.outfit(
                             color: Colors.white70,
                             fontWeight: FontWeight.bold,

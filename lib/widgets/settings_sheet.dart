@@ -337,16 +337,13 @@ class SettingsSheet extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      final currentType = ref.read(completionTypeProvider);
-      if (currentType == CompletionType.syllabus) {
-        if (everything) {
-          await ref.read(syllabusControllerProvider.notifier).applyPreset();
-        } else {
-          await ref.read(syllabusControllerProvider.notifier).resetTrackingData();
-        }
+      if (everything) {
+        await ref.read(subjectControllerProvider.notifier).resetEverything();
+        await ref.read(syllabusControllerProvider.notifier).resetEverything();
       } else {
-        if (everything) {
-          await ref.read(subjectControllerProvider.notifier).resetEverything();
+        final currentType = ref.read(completionTypeProvider);
+        if (currentType == CompletionType.syllabus) {
+          await ref.read(syllabusControllerProvider.notifier).resetTrackingData();
         } else {
           await ref
               .read(subjectControllerProvider.notifier)
@@ -745,7 +742,7 @@ class SettingsSheet extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'GATE Tracker v1.1.0',
+                      'GATE Tracker v1.1.1',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 10,

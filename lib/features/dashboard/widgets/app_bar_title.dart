@@ -26,7 +26,7 @@ class AppBarTitle extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'v1.1.0 ',
+              'v1.1.1 ',
               style: TextStyle(color: Colors.grey, fontSize: 10),
             ),
             Consumer(
