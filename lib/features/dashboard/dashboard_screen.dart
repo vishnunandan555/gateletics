@@ -99,6 +99,15 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildConstrainedBody(Widget child) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasChecked = ref.watch(hasCheckedForUpdatesProvider);
@@ -183,7 +192,7 @@ class DashboardScreen extends ConsumerWidget {
             }
             final overallProgress = totalTasks == 0 ? 0.0 : (totalCompleted / totalTasks) * 100;
 
-            return CustomScrollView(
+            return _buildConstrainedBody(CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverAppBar(
@@ -335,7 +344,7 @@ class DashboardScreen extends ConsumerWidget {
                   const SliverToBoxAdapter(child: SizedBox(height: 48)),
                 ],
               ],
-            );
+            ));
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Error: $err')),
@@ -361,7 +370,7 @@ class DashboardScreen extends ConsumerWidget {
           }
           final overallProgress = totalVideos == 0 ? 0.0 : (totalCompleted / totalVideos) * 100;
 
-          return CustomScrollView(
+          return _buildConstrainedBody(CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverAppBar(
@@ -520,7 +529,7 @@ class DashboardScreen extends ConsumerWidget {
                 if (!isEmpty)
                   const SliverToBoxAdapter(child: SizedBox(height: 48)),
             ],
-          );
+          ));
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
