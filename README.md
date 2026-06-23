@@ -109,12 +109,12 @@ flutter build linux
 
 ---
 
-## 🌟 Version 1.1.0 Highlights
+## 🌟 Version 1.1.1 Highlights
 
-- **Syllabus-Based Tracking Mode:** Toggle between video/resource-based tracking and a curriculum-focused syllabus checklist tracking model. Add, rename, delete, and reorder categories, topics, and subtasks.
-- **Robust Hybrid Backup Engine:** Modern platform-specific routing using native Kotlin/Swift Storage Access Framework on Android/iOS to bypass Scoped Storage limits, standard web anchor triggers on Web, and native filesystem writes on Desktop.
-- **Reordering Scrollbar Fixes:** Added visual scrollbars to all reorder dialogs and fixed touch gesture interferences so that dragging list scrollbars scrolls the view instead of hijacking the item reorder listeners.
-- **Cleaned Dashboard UI:** Removed unnecessary long-press logo repository popup menus for a cleaner experience.
+- **Unified Welcome Screen:** Replaced duplicate onboarding flows with a single, modern welcome screen that offers immediate toggle switching between Resource-Based and Syllabus-Based completion modes.
+- **Smart Custom Syllabus Warning:** Added a confirmation dialog when creating a custom category in Syllabus-Based mode, warning users about the tedious manual setup process and highly recommending the predefined presets instead.
+- **Complete Reset Everything:** Wipes tracking data across both databases completely to restore the app to the pristine welcome state.
+- **Version Bumps:** Bumped the overall application version to v1.1.1 across all native targets and the web updater.
 
 ---
 
