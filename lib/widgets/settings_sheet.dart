@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../providers/subject_provider.dart';
 import '../providers/updater_provider.dart';
-import '../providers/telemetry_service.dart';
+import '../providers/completion_type_provider.dart';
+import 'settings/telemetry_settings.dart';
+import 'settings/about_dialog.dart';
 
 void showSettingsSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
@@ -250,278 +249,6 @@ class SettingsSheet extends ConsumerWidget {
     }
   }
 
-  void _showAboutDialog(BuildContext context, WidgetRef ref) {
-    final size = MediaQuery.of(context).size;
-    final accentColor = ref.read(overallProgressColorProvider);
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withAlpha(200),
-      builder: (context) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: (size.width * 0.85).clamp(280.0, 420.0),
-              maxHeight: size.height * 0.8,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF131316),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withAlpha(12), width: 1.5),
-              ),
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // App Icon squircle (professional, no glow)
-                      Center(
-                        child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: accentColor.withAlpha(15),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: accentColor.withAlpha(50), width: 1.5),
-                          ),
-                          child: Icon(
-                            Icons.track_changes_rounded,
-                            color: accentColor,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // App Title (no shadows)
-                      const Center(
-                        child: Text(
-                          "GATE TRACKER",
-                          style: TextStyle(
-                            fontFamily: 'BatmanForever',
-                            fontSize: 18,
-                            letterSpacing: 1.5,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Version Badge
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(6),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white12, width: 1),
-                          ),
-                          child: Text(
-                            "v1.0.0 (Stable)",
-                            style: GoogleFonts.outfit(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Clean subtle divider
-                      const Divider(color: Colors.white10, height: 32),
-
-                      // App Description
-                      Text(
-                        "A syllabus tracker for tracking syllabus completion of GATE Exam.",
-                        style: GoogleFonts.outfit(
-                          color: Colors.white70,
-                          fontSize: 13.5,
-                          height: 1.55,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Creator Profile Card
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(5),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withAlpha(8)),
-                        ),
-                        child: Row(
-                          children: [
-                            // Initial avatar (clean, no glow)
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(8),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white12, width: 1),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                "VN",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "DEVELOPED BY",
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white30,
-                                      fontSize: 8.5,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    "Vishnu Nandan",
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    "Lead Architect & Developer",
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white54,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Love / Country Badge (flat)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(6),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white10),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text("🇮🇳", style: TextStyle(fontSize: 14)),
-                              const SizedBox(width: 8),
-                              Text(
-                                "Made in India with Love",
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Text("❤️", style: TextStyle(fontSize: 14)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 36),
-
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
-                                if (await canLaunchUrl(url)) {
-                                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                                }
-                              },
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                side: const BorderSide(color: Colors.white24, width: 1),
-                                foregroundColor: Colors.white,
-                              ),
-                              icon: const Icon(Icons.code_rounded, size: 18, color: Colors.white70),
-                              label: Text(
-                                "GITHUB",
-                                style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: accentColor,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                "CLOSE",
-                                style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DraggableScrollableSheet(
@@ -570,7 +297,6 @@ class SettingsSheet extends ConsumerWidget {
                       style: TextStyle(color: Colors.grey),
                     ),
                     onTap: () async {
-                      // Grab ref before popping
                       await _exportData(context, ref);
                       if (context.mounted) Navigator.pop(context);
                     },
@@ -587,54 +313,159 @@ class SettingsSheet extends ConsumerWidget {
                       if (context.mounted) Navigator.pop(context);
                     },
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                    title: const Text('Apply Preset'),
-                    subtitle: const Text(
-                      'Apply default GoClasses/YouTube sources',
-                      style: TextStyle(color: Colors.grey),
+                  const Divider(color: Colors.white12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'COMPLETION TYPE',
+                      style: TextStyle(
+                        color: ref.watch(overallProgressColorProvider).withAlpha(178),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                    onTap: () async {
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          backgroundColor: const Color(0xFF18181B),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          title: const Text('Apply Preset'),
-                          content: const Text(
-                            'This will overwrite current sources and counts for some subjects. Continue?',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel',
-                                  style: TextStyle(color: Colors.grey)),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Colors.amberAccent,
-                                foregroundColor: Colors.black,
-                              ),
-                              child: const Text('Apply'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      if (confirmed == true) {
-                        // Close the settings sheet now
-                        if (context.mounted) Navigator.pop(context);
-                        
-                        await ref
-                            .read(subjectControllerProvider.notifier)
-                            .applyPreset();
-                      }
-                    },
                   ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final currentType = ref.watch(completionTypeProvider);
+                        final accentColor = ref.watch(overallProgressColorProvider);
+
+                        return Column(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => ref
+                                        .read(completionTypeProvider.notifier)
+                                        .setCompletionType(CompletionType.resource),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: currentType == CompletionType.resource
+                                            ? accentColor.withAlpha(51)
+                                            : Colors.white10,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: currentType == CompletionType.resource
+                                              ? accentColor
+                                              : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          'Resource Based',
+                                          style: TextStyle(
+                                            color: currentType == CompletionType.resource
+                                                ? accentColor
+                                                : Colors.white70,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () => ref
+                                        .read(completionTypeProvider.notifier)
+                                        .setCompletionType(CompletionType.syllabus),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: currentType == CompletionType.syllabus
+                                            ? accentColor.withAlpha(51)
+                                            : Colors.white10,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: currentType == CompletionType.syllabus
+                                              ? accentColor
+                                              : Colors.transparent,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          'Syllabus Based',
+                                          style: TextStyle(
+                                            color: currentType == CompletionType.syllabus
+                                                ? accentColor
+                                                : Colors.white70,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (currentType == CompletionType.resource) ...[
+                              const SizedBox(height: 12),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                                title: const Text('Apply Preset'),
+                                subtitle: const Text(
+                                  'Apply default GoClasses/YouTube sources',
+                                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                                ),
+                                onTap: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      backgroundColor: const Color(0xFF18181B),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      title: const Text('Apply Preset'),
+                                      content: const Text(
+                                        'This will overwrite current sources and counts for some subjects. Continue?',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('Cancel',
+                                              style: TextStyle(color: Colors.grey)),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: Colors.amberAccent,
+                                            foregroundColor: Colors.black,
+                                          ),
+                                          child: const Text('Apply'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+
+                                  if (confirmed == true) {
+                                    // Close settings sheet
+                                    if (context.mounted) Navigator.pop(context);
+                                    await ref
+                                        .read(subjectControllerProvider.notifier)
+                                        .applyPreset();
+                                  }
+                                },
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const Divider(color: Colors.white12),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -776,7 +607,7 @@ class SettingsSheet extends ConsumerWidget {
                       style: TextStyle(color: Colors.grey),
                     ),
                     onTap: () {
-                      _showAboutDialog(context, ref);
+                      showAboutTrackerDialog(context, ref);
                     },
                   ),
                   const SizedBox(height: 16),
@@ -815,13 +646,11 @@ class _LastCheckedSubtitleTileState extends ConsumerState<LastCheckedSubtitleTil
   @override
   void initState() {
     super.initState();
-    // Invalidate immediately upon opening to ensure the timestamp is fresh
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ref.invalidate(lastUpdateCheckTimeProvider);
       }
     });
-    // Live countdown refresh timer - auto-invalidates the cached relative time provider every 10 seconds
     _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       if (mounted) {
         ref.invalidate(lastUpdateCheckTimeProvider);
@@ -849,225 +678,9 @@ class _LastCheckedSubtitleTileState extends ConsumerState<LastCheckedSubtitleTil
         style: const TextStyle(color: Colors.grey),
       ),
       onTap: () {
-        // Close the sheet immediately — DashboardScreen's ref.listen handles all results
         Navigator.of(context).pop();
         ref.read(updaterProvider.notifier).checkForUpdates();
       },
-    );
-  }
-}
-
-class TelemetrySettingsSection extends StatefulWidget {
-  const TelemetrySettingsSection({super.key});
-
-  @override
-  State<TelemetrySettingsSection> createState() => _TelemetrySettingsSectionState();
-}
-
-class _TelemetrySettingsSectionState extends State<TelemetrySettingsSection> {
-  bool _isEnabled = true;
-  final TextEditingController _urlController = TextEditingController();
-  bool _isTesting = false;
-  String? _testMessage;
-  bool? _testSuccess;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSettings();
-  }
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadSettings() async {
-    final enabled = await TelemetryService.isTelemetryEnabled();
-    final customUrl = await TelemetryService.getCustomUrl();
-    if (mounted) {
-      setState(() {
-        _isEnabled = enabled;
-        _urlController.text = customUrl;
-      });
-    }
-  }
-
-  Future<void> _toggleTelemetry(bool value) async {
-    await TelemetryService.setTelemetryEnabled(value);
-    setState(() {
-      _isEnabled = value;
-    });
-  }
-
-  Future<void> _saveCustomUrl(String value) async {
-    await TelemetryService.setCustomUrl(value);
-  }
-
-  Future<void> _testConnection() async {
-    setState(() {
-      _isTesting = true;
-      _testMessage = null;
-      _testSuccess = null;
-    });
-
-    final result = await TelemetryService.sendTestPing(_urlController.text);
-    
-    if (mounted) {
-      setState(() {
-        _isTesting = false;
-        _testSuccess = result['success'] as bool;
-        _testMessage = result['message'] as String;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        const Divider(color: Colors.white12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'TELEMETRY & DIAGNOSTICS',
-            style: TextStyle(
-              color: Colors.amberAccent.withAlpha(178),
-              fontWeight: FontWeight.bold,
-              fontSize: 11,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ),
-        SwitchListTile(
-          value: _isEnabled,
-          onChanged: _toggleTelemetry,
-          activeThumbColor: Colors.amberAccent,
-          secondary: const Icon(Icons.analytics_outlined, color: Colors.amberAccent),
-          title: const Text('Anonymous Daily Telemetry'),
-          subtitle: const Text(
-            'Ping server securely with SHA256 tokens upon app launch. GDPR-compliant. No personal data collected.',
-            style: TextStyle(color: Colors.grey, fontSize: 11),
-          ),
-        ),
-        if (_isEnabled) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Custom Telemetry Endpoint URL',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(128),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(6),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white12),
-                        ),
-                        child: TextField(
-                          controller: _urlController,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                          decoration: const InputDecoration(
-                            hintText: 'https://gate-tracker-telemetry.vercel.app/api/ping',
-                            hintStyle: TextStyle(color: Colors.white24, fontSize: 13),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                          ),
-                          onChanged: _saveCustomUrl,
-                          onSubmitted: _saveCustomUrl,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isTesting ? null : _testConnection,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withAlpha(12),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(color: Colors.white24),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          elevation: 0,
-                        ),
-                        child: _isTesting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Icon(Icons.bolt, color: Colors.amberAccent, size: 20),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Leave blank to use the default production telemetry server.',
-                  style: TextStyle(color: Colors.grey, fontSize: 10),
-                ),
-                if (_testMessage != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: _testSuccess == true
-                          ? Colors.green.withAlpha(20)
-                          : Colors.redAccent.withAlpha(20),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _testSuccess == true
-                            ? Colors.green.withAlpha(80)
-                            : Colors.redAccent.withAlpha(80),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          _testSuccess == true
-                              ? Icons.check_circle_outline_rounded
-                              : Icons.error_outline_rounded,
-                          color: _testSuccess == true ? Colors.greenAccent : Colors.redAccent,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _testMessage!,
-                            style: TextStyle(
-                              color: _testSuccess == true ? Colors.greenAccent : Colors.redAccent,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ],
     );
   }
 }

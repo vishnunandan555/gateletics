@@ -11,6 +11,7 @@ import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
 import '../../widgets/updater_dialog.dart';
 import '../../widgets/settings_sheet.dart';
+import '../../providers/completion_type_provider.dart';
 
 class HasCheckedForUpdates extends Notifier<bool> {
   @override
@@ -144,7 +145,9 @@ class DashboardScreen extends ConsumerWidget {
           previous?.status != UpdaterStatus.error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage ?? 'Update check failed — check your connection and try again.'),
+            content: Text(next.errorMessage.isEmpty
+                ? 'Update check failed — check your connection and try again.'
+                : next.errorMessage),
             duration: const Duration(seconds: 4),
           ),
         );
@@ -156,6 +159,7 @@ class DashboardScreen extends ConsumerWidget {
 
     final categoriesAsync = ref.watch(categoriesWithSubjectsProvider);
     final progressColor = ref.watch(overallProgressColorProvider);
+    final completionType = ref.watch(completionTypeProvider);
 
     return Scaffold(
       body: categoriesAsync.when(
@@ -205,134 +209,141 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (isEmpty)
-                SliverFillRemaining(
+              if (completionType == CompletionType.syllabus)
+                const SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'To Begin, either load our Pre-built Preset or Start Making your own custom syllabus.',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white70,
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 220,
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  ref.read(subjectControllerProvider.notifier).applyPreset();
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: progressColor,
-                                  foregroundColor: Colors.black,
-                                  elevation: 8,
-                                  shadowColor: progressColor.withValues(alpha: 0.4),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Load Preset',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: 220,
-                              height: 48,
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  _showInstructionsThenCreateCategoryDialog(context, ref);
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: progressColor.withValues(alpha: 0.5), width: 1.5),
-                                  foregroundColor: progressColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Create Category',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 48),
-                      ],
-                    ),
-                  ),
+                  child: SizedBox.shrink(),
                 )
-              else
-                ...categoriesWithSubs.map((catWithSubs) {
-                  final category = catWithSubs.category;
-                  final catSubjects = catWithSubs.subjects;
-                  final catColor = Color(category.color);
-                  
-                  int catCompleted = 0, catTotal = 0;
-                  for (final s in catSubjects) {
-                    if (s.isActive) {
-                      catCompleted += s.completedVideos;
-                      catTotal += s.totalVideos;
-                    }
-                  }
-                  final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
+              else ...[
+                if (isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            'To Begin, either load our Pre-built Preset or Start Making your own custom syllabus.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 220,
+                                height: 48,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    ref.read(subjectControllerProvider.notifier).applyPreset();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: progressColor,
+                                    foregroundColor: Colors.black,
+                                    elevation: 8,
+                                    shadowColor: progressColor.withValues(alpha: 0.4),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Load Preset',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: 220,
+                                height: 48,
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    _showInstructionsThenCreateCategoryDialog(context, ref);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: progressColor.withValues(alpha: 0.5), width: 1.5),
+                                    foregroundColor: progressColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Create Category',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 48),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...categoriesWithSubs.map((catWithSubs) {
+                    final category = catWithSubs.category;
+                    final catSubjects = catWithSubs.subjects;
+                    final catColor = Color(category.color);
 
-                  return SliverMainAxisGroup(
-                    slivers: [
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
-                          child: CategoryHeader(
-                            category: category,
-                            progress: catProgress,
+                    int catCompleted = 0, catTotal = 0;
+                    for (final s in catSubjects) {
+                      if (s.isActive) {
+                        catCompleted += s.completedVideos;
+                        catTotal += s.totalVideos;
+                      }
+                    }
+                    final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
+
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
+                            child: CategoryHeader(
+                              category: category,
+                              progress: catProgress,
+                            ),
                           ),
                         ),
-                      ),
-                      SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final s = catSubjects[index];
-                            return SubjectCard(
-                              subject: s,
-                              color: s.color != null ? Color(s.color!) : catColor,
-                              onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
-                              onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
-                              onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
-                                  ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
-                                    s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
-                                  ),
-                            );
-                          },
-                          childCount: catSubjects.length,
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final s = catSubjects[index];
+                              return SubjectCard(
+                                subject: s,
+                                color: s.color != null ? Color(s.color!) : catColor,
+                                onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
+                                onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
+                                onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
+                                    ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
+                                      s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
+                                    ),
+                              );
+                            },
+                            childCount: catSubjects.length,
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                }),
-              if (!isEmpty)
-                const SliverToBoxAdapter(child: SizedBox(height: 48)),
+                      ],
+                    );
+                  }),
+                if (!isEmpty)
+                  const SliverToBoxAdapter(child: SizedBox(height: 48)),
+              ],
             ],
           );
         },

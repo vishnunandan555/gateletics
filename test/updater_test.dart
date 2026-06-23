@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gate_tracker/providers/updater_provider.dart';
 
 void main() {
@@ -92,7 +93,10 @@ void main() {
 
   group('Updater State - resetToIdle', () {
     test('resetToIdle sets status to idle without clearing other fields', () {
-      final notifier = UpdaterNotifier();
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(updaterProvider.notifier);
 
       // Simulate a state where check completed
       notifier.state = notifier.state.copyWith(
@@ -103,9 +107,10 @@ void main() {
 
       notifier.resetToIdle();
 
-      expect(notifier.state.status, equals(UpdaterStatus.idle));
+      final state = container.read(updaterProvider);
+      expect(state.status, equals(UpdaterStatus.idle));
       // Other fields should remain intact
-      expect(notifier.state.currentVersion, equals('0.0.4'));
+      expect(state.currentVersion, equals('0.0.4'));
     });
   });
 }
