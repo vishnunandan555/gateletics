@@ -9,6 +9,7 @@ import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import '../providers/subject_provider.dart';
 import '../providers/completion_type_provider.dart';
 import '../providers/syllabus_provider.dart';
+import '../providers/package_info_provider.dart';
 
 import 'settings/about_dialog.dart';
 
@@ -365,6 +366,7 @@ class SettingsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final packageInfo = ref.watch(packageInfoProvider);
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.25,
@@ -646,7 +648,7 @@ class SettingsSheet extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'GATE Tracker v1.1.1',
+                      'GATE Tracker v${packageInfo.version}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 10,

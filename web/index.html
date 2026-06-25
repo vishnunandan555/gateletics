@@ -81,11 +81,18 @@
     }
     #progress-bar-fill {
       height: 100%;
-      width: 5%;
+      width: 30%;
       background: #10b981; /* Solid emerald green, no gradients */
       border-radius: 2px;
-      transition: width 0.4s cubic-bezier(0.1, 0.8, 0.25, 1);
+      position: absolute;
+      left: -30%;
+      animation: loading-anim 1.5s infinite linear;
       box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+    }
+    @keyframes loading-anim {
+      0% { left: -30%; }
+      50% { left: 40%; width: 40%; }
+      100% { left: 100%; }
     }
     .log-text {
       color: #a1a1aa;
@@ -140,7 +147,7 @@
         <div id="progress-bar-fill"></div>
       </div>
       
-      <div id="loading-log" class="log-text">Initializing boot systems...</div>
+      <div id="loading-log" class="log-text">Loading database & resources...</div>
       
       <!-- Hidden Error Diagnostics Panel -->
       <div id="error-panel" class="error-card">
@@ -163,7 +170,9 @@
       
       const fillEl = document.getElementById('progress-bar-fill');
       if (fillEl) {
+        fillEl.style.animation = 'none';
         fillEl.style.background = '#ef4444';
+        fillEl.style.left = '0';
         fillEl.style.width = '100%';
       }
       
@@ -178,15 +187,6 @@
     // 2. Helper to log messages in real-time
     function logMessage(text, progressWidth) {
       console.log(text);
-      const logEl = document.getElementById('loading-log');
-      const fillEl = document.getElementById('progress-bar-fill');
-      const errPanel = document.getElementById('error-panel');
-      if (logEl && (!errPanel || errPanel.style.display !== 'block')) {
-        logEl.innerText = text;
-      }
-      if (fillEl && (!errPanel || errPanel.style.display !== 'block')) {
-        fillEl.style.width = progressWidth;
-      }
     }
 
     // 3. Dynamic Real-Time Boot Sequence
@@ -254,9 +254,11 @@
       if (view) {
         setTimeout(function() {
           const fill = document.getElementById('progress-bar-fill');
-          const log = document.getElementById('loading-log');
-          if (fill) fill.style.width = "100%";
-          if (log) log.innerText = "Ready! Booting app...";
+          if (fill) {
+            fill.style.animation = 'none';
+            fill.style.left = '0';
+            fill.style.width = "100%";
+          }
           
           setTimeout(function() {
             const loader = document.getElementById('loading-container');

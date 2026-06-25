@@ -9,14 +9,21 @@ import 'providers/setup_provider.dart';
 import 'features/dashboard/widgets/agreement_screen.dart';
 import 'features/dashboard/widgets/setup_screen.dart';
 
+import 'package:package_info_plus/package_info_plus.dart';
+import 'providers/package_info_provider.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  final packageInfo = await PackageInfo.fromPlatform();
   final appDb = AppDatabase();
 
   runApp(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(appDb)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(appDb),
+        packageInfoProvider.overrideWithValue(packageInfo),
+      ],
       child: const GateTrackerApp(),
     ),
   );

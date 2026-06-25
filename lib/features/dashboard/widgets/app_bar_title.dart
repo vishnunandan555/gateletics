@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../providers/subject_provider.dart';
 import '../../../providers/quotes_provider.dart';
+import '../../../providers/package_info_provider.dart';
 
 class AppBarTitle extends ConsumerWidget {
   const AppBarTitle({super.key});
@@ -31,6 +32,7 @@ class AppBarTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progressColor = ref.watch(overallProgressColorProvider);
+    final packageInfo = ref.watch(packageInfoProvider);
     // Watch to ensure the provider is initialized and fetching in background.
     ref.watch(quotesProvider);
 
@@ -56,9 +58,9 @@ class AppBarTitle extends ConsumerWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'v1.1.1 ',
-              style: TextStyle(color: Colors.grey, fontSize: 10),
+            Text(
+              'v${packageInfo.version} ',
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),

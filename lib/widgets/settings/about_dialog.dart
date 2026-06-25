@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/subject_provider.dart';
+import '../../providers/package_info_provider.dart';
 
 void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
   final size = MediaQuery.of(context).size;
   final accentColor = ref.read(overallProgressColorProvider);
+  final packageInfo = ref.read(packageInfoProvider);
 
   showDialog(
     context: context,
@@ -82,7 +84,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                           border: Border.all(color: Colors.white12, width: 1),
                         ),
                         child: Text(
-                          "v1.1.1 (Stable)",
+                          "v${packageInfo.version} (Stable)",
                           style: GoogleFonts.outfit(
                             color: Colors.white70,
                             fontWeight: FontWeight.bold,

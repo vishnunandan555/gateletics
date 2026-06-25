@@ -1,7 +1,7 @@
 # GATE Progress Tracker
 
 [![Build & Release](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.1--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
+[![Version](https://img.shields.io/badge/version-1.1.2--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -15,7 +15,6 @@ A minimalist, high-performance, offline-first syllabus tracker designed specific
 - **State Management:** [Riverpod](https://riverpod.dev) (Modern, type-safe reactive state tracking)
 - **Database Engine:** [Drift](https://drift.simonbinder.eu) (Robust, compile-safe relational SQLite wrapper)
 - **Navigation:** [GoRouter](https://pub.dev/packages/go_router) (Declarative routing)
-- **Lifecycle Tracking:** Global `WidgetsBindingObserver` monitoring transitions to automatically trigger daily telemetry date check on app start, resume, and browser tab focus.
 
 ---
 
@@ -38,18 +37,6 @@ GATE Progress Tracker is fully offline-first, requiring no network connection to
 
 ---
 
-## 🔒 Privacy-First Developer Telemetry & Opt-Out
-
-To help the developer track platform metrics and version adoption, an anonymous telemetry ping is evaluated at most once per day on app launch, resume, or tab focus.
-
-- **Zero PII Collected:** No emails, usernames, dynamic database contents, or network details are tracked.
-- **Dynamic Daily Hashing:** Pings use a rotating SHA256 daily active user token:
-  $$\text{Daily active token} = \text{SHA256}(\text{client\_id} + \text{current\_date\_string})$$
-  This token changes automatically every calendar day, preventing longitudinal user tracking or identity linking.
-- **Background Deferral Optimization:** The startup telemetry check is deferred until **after the first frame is rendered** (`addPostFrameCallback`), freeing up all CPU and platform-channel bandwidth to paint the UI instantly.
-- **Developer Opt-Out Toggle:** A clean, GDPR-compliant toggle along with custom endpoints and connection diagnostics are located under the **Advanced Settings** section in the settings sheet, allowing full user privacy control.
-
----
 
 ## ✨ Features
 
@@ -61,8 +48,6 @@ To help the developer track platform metrics and version adoption, an anonymous 
 - **Premium Snapping Settings Panel:** A restructured settings bottom sheet using a custom `DraggableScrollableSheet` with:
   - **Height Locking:** Covers exactly 75% of the screen height upon opening, scrollable up to 95%, or drag-to-dismiss.
   - **Optimized Lazy Scrolling:** Built using a lazy `ListView` coordinated with the sheet's controller to eliminate drag stuttering and maximize frame rates.
-  - **Advanced Settings Section:** Grouped advanced diagnostic and telemetry details inside an elegant, borderless `ExpansionTile`.
-- **Automatic Self-Updater:** Fully integrated GitHub Releases check that notifies you of newer versions and facilitates direct asset downloads on supported native targets.
 
 ## 🌐 Web Deployment (Vercel)
 
@@ -106,6 +91,13 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+## 🌟 Version 1.1.2 Highlights
+
+- **Legal Agreement Onboarding Screen:** Added a compliance welcome screen prompting users to read and accept the Terms of Service and Privacy Policy before accessing the app.
+- **Onboarding Setup Flow:** Introduced an interactive setup flow helping users choose between Syllabus-Based and Resource-Based tracking, and whether to load our presets or build a custom setup from scratch.
+- **Simplified Empty States:** Streamlined the dashboard's empty states to display a clean, single-action button ("Create Category") after setup.
+- **Polished About Dialog:** Beautifully redesigned the About dialog, including a customized neon GitHub button matching the theme, and adjusted button scaling across standard resolutions.
 
 ---
 

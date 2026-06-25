@@ -53,6 +53,8 @@ To publish on the Google Play Store, Google **requires** a Privacy Policy URL. A
 ### Checklist & Action Items:
 - [x] Create `PRIVACY_POLICY.md` in repository root (Completed ✅)
 - [x] Create `TERMS_OF_SERVICE.md` in repository root (Completed ✅)
+- [x] Integrate first-launch Legal Agreement Screen to lock the app until agreed (Completed ✅)
+- [x] Integrate Onboarding Setup Screen for style & preset selection (Completed ✅)
 - [ ] Push changes to GitHub repository
 - [ ] Host the files on the web (e.g. enable GitHub Pages for the repository)
 - [ ] Paste the hosted Privacy Policy link into the Google Play Console
