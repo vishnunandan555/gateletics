@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Apply theme immediately to prevent flashing
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Terms of Service for GATEletics.">
+  <title>Terms of Service - GATEletics</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">GATE<span>LETICS</span></a>
+      <div class="nav-controls">
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="privacy.html">Privacy</a>
+        </div>
+        <button id="theme-toggle" class="theme-toggle">🌙 Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="content" class="doc-card">
+      <div class="loader">Loading Terms of Service...</div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="https://gateletics.vercel.app/" target="_blank">Launch Web App</a>
+      <a href="privacy.html">Privacy Policy</a>
+    </div>
+    <div class="copyright">&copy; 2026 Vishnu Nandan. All rights reserved.</div>
+  </footer>
+
+  <!-- Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <script>
+    // Theme Toggle Handler
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateToggleText(newTheme);
+    });
+
+    function updateToggleText(theme) {
+      themeToggle.innerHTML = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+    updateToggleText(document.documentElement.getAttribute('data-theme'));
+
+    // Dynamic Markdown Loader
+    const markdownUrl = 'https://raw.githubusercontent.com/vishnunandan555/gateletics/main/TERMS_OF_SERVICE.md';
+    
+    fetch(markdownUrl)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to load document');
+        return res.text();
+      })
+      .then(text => {
+        document.getElementById('content').innerHTML = marked.parse(text);
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById('content').innerHTML = `
+          <h1>Terms of Service</h1>
+          <p style="color: #ef4444; font-weight: 600; margin-top: 24px;">Failed to load the document from GitHub.</p>
+          <p>Please check your network connection or view the terms directly on 
+          <a href="https://github.com/vishnunandan555/gateletics/blob/main/TERMS_OF_SERVICE.md" target="_blank">GitHub</a>.</p>
+        `;
+      });
+  </script>
+</body>
+</html>

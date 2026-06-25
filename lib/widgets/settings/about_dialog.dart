@@ -140,7 +140,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                       children: [
                         TextButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/blob/main/TERMS_OF_SERVICE.md');
+                            final Uri url = Uri.parse('https://vishnunandan555.github.io/gateletics/terms.html');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }
@@ -168,7 +168,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                         const SizedBox(width: 12),
                         TextButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/blob/main/PRIVACY_POLICY.md');
+                            final Uri url = Uri.parse('https://vishnunandan555.github.io/gateletics/privacy.html');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }

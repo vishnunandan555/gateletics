@@ -7,6 +7,8 @@
 
 A minimalist, high-performance, offline-first syllabus tracker designed specifically for the Graduate Aptitude Test in Engineering (GATE) Exam. It enables aspirants to logically organize subjects, define syllabus weights, and track video-course or syllabus completion progress.
 
+**Live Web Version:** You can access and run the complete web application directly in your browser at **[gateletics.vercel.app](https://gateletics.vercel.app/)** (with full offline PWA capabilities).
+
 ---
 
 ## 🛠️ Architecture & Tech Stack

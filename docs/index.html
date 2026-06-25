@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Apply theme immediately to prevent flashing
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GATEletics - A minimalist, offline-first syllabus and resource tracker for GATE exam preparation.">
+  <title>GATEletics - GATE Exam Syllabus Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">GATE<span>LETICS</span></a>
+      <div class="nav-controls">
+        <div class="nav-links">
+          <a href="#downloads">Downloads</a>
+          <a href="#guide">Guide</a>
+          <a href="terms.html">Terms</a>
+          <a href="privacy.html">Privacy</a>
+        </div>
+        <button id="theme-toggle" class="theme-toggle">🌙 Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>GATEletics</h1>
+      <p>A minimalist, offline-first syllabus and resource tracker designed specifically for GATE Exam preparation. Logically organize subjects, define topic weights, and track your progress in real-time.</p>
+      <a href="https://gateletics.vercel.app/" target="_blank" class="btn-primary">
+        Open Live Web App
+      </a>
+    </section>
+
+    <h2 id="downloads">Local Installer Downloads</h2>
+    <div class="grid">
+      <!-- Windows -->
+      <div class="card">
+        <h3>Windows Desktop</h3>
+        <p>Native desktop application bundle. Simply extract the ZIP file and run gateletics.exe.</p>
+        <a href="#" id="win-download" class="btn-secondary">Download Windows (.zip)</a>
+        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link">Release notes</a>
+      </div>
+
+      <!-- Linux -->
+      <div class="card">
+        <h3>Linux Desktop</h3>
+        <p>Standalone AppImage executable (chmod +x and launch) or native tarball archive.</p>
+        <a href="#" id="linux-appimage-download" class="btn-secondary">Download AppImage</a>
+        <a href="#" id="linux-tarball-download" class="btn-secondary">Download Tarball (.tar.gz)</a>
+      </div>
+
+      <!-- Android -->
+      <div class="card">
+        <h3>Android Mobile</h3>
+        <p>Direct APK package binary. Install and run GATEletics on any Android mobile device.</p>
+        <a href="#" id="android-apk-download" class="btn-secondary">Download APK Package</a>
+        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link">View other releases</a>
+      </div>
+    </div>
+
+    <h2 id="guide">Quick Setup Guide</h2>
+    <div style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-top: 24px;">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Accept Legal Terms</h3>
+          <p>Read and accept the onboarding legal disclosures (Terms of Service and Privacy Policy) to initialize the local secure database environment.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Select Completion Model</h3>
+          <p>Choose between <strong>Syllabus-Based</strong> (topic checkboxes) and <strong>Resource-Based</strong> (playlist or video count logs) tracker modes.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Import Presets</h3>
+          <p>Instantly populate your categories and subjects by loading pre-configured presets for popular video playlists or general syllabus guidelines.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="https://gateletics.vercel.app/" target="_blank">Launch Web App</a>
+      <a href="https://github.com/vishnunandan555/gateletics" target="_blank">GitHub Source</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="privacy.html">Privacy Policy</a>
+    </div>
+    <div class="copyright">&copy; 2026 Vishnu Nandan. All rights reserved.</div>
+  </footer>
+
+  <script>
+    // Theme Toggle Handler
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateToggleText(newTheme);
+    });
+
+    function updateToggleText(theme) {
+      themeToggle.innerHTML = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+    updateToggleText(document.documentElement.getAttribute('data-theme'));
+
+    // GitHub Release Asset Auto-Linker
+    const user = 'vishnunandan555';
+    const repo = 'gateletics';
+    const releaseApiUrl = `https://api.github.com/repos/${user}/${repo}/releases/latest`;
+
+    fetch(releaseApiUrl)
+      .then(response => {
+        if (!response.ok) throw new Error('API request failed');
+        return response.json();
+      })
+      .then(data => {
+        const assets = data.assets || [];
+        
+        const winAsset = assets.find(a => a.name.endsWith('.zip'));
+        const apkAsset = assets.find(a => a.name.endsWith('.apk'));
+        const appImageAsset = assets.find(a => a.name.endsWith('.AppImage'));
+        const tarAsset = assets.find(a => a.name.endsWith('.tar.gz'));
+
+        document.getElementById('win-download').href = winAsset ? winAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics-windows.zip`;
+        document.getElementById('android-apk-download').href = apkAsset ? apkAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics.apk`;
+        document.getElementById('linux-appimage-download').href = appImageAsset ? appImageAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics-linux.AppImage`;
+        document.getElementById('linux-tarball-download').href = tarAsset ? tarAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics-linux.tar.gz`;
+      })
+      .catch(err => {
+        console.warn('GitHub API failed, falling back to release page url:', err);
+        const releasePage = `https://github.com/${user}/${repo}/releases/latest`;
+        document.getElementById('win-download').href = releasePage;
+        document.getElementById('android-apk-download').href = releasePage;
+        document.getElementById('linux-appimage-download').href = releasePage;
+        document.getElementById('linux-tarball-download').href = releasePage;
+      });
+  </script>
+</body>
+</html>
