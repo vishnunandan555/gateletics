@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.3--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.1.4--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -91,6 +91,13 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+## 🌟 Version 1.1.4 Highlights
+
+- **Dynamic Resizing on Linux & Windows**: Added window resizing capability from the corners while enforcing a strict `9:16` aspect ratio, making the desktop view match standard mobile proportions.
+- **Fixed Layout Overflow**: Wrapped AppBar components in FittedBox scaling to automatically scale down the app title and stable badge when resized to narrow resolutions.
+- **Google Fonts Integration**: Migrated typography to use free, open-source Google Fonts via the `google_fonts` package, allowing dynamic font configuration and removing local custom font assets from the bundle.
+- **Cleaned Boilerplate Residues**: Verified package identifiers across Android, Linux, Windows, and Web platforms to ensure no `com.example` or legacy names remain.
 
 ## 🌟 Version 1.1.3 Highlights
 
