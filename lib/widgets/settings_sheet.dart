@@ -632,9 +632,9 @@ class SettingsSheet extends ConsumerWidget {
                   const Divider(color: Colors.white10),
                   ListTile(
                     leading: Icon(Icons.info_outline_rounded, color: ref.watch(overallProgressColorProvider)),
-                    title: const Text('About GATE Tracker'),
+                    title: const Text('About App'),
                     subtitle: const Text(
-                      'Developer info, repository and description',
+                      'Show Info about App, Developer and Repository',
                       style: TextStyle(color: Colors.grey),
                     ),
                     onTap: () {

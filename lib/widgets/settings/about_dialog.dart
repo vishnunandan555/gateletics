@@ -43,14 +43,15 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                         width: 64,
                         height: 64,
                         decoration: BoxDecoration(
-                          color: accentColor.withAlpha(15),
                           borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: accentColor.withAlpha(50), width: 1.5),
+                          border: Border.all(color: Colors.white.withAlpha(20), width: 1.5),
                         ),
-                        child: Icon(
-                          Icons.track_changes_rounded,
-                          color: accentColor,
-                          size: 32,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'icon.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -91,14 +92,14 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
                     // Clean subtle divider
-                    const Divider(color: Colors.white10, height: 32),
+                    const Divider(color: Colors.white10, height: 16),
 
                     // App Description
                     Text(
-                      "A syllabus tracker for tracking syllabus completion of GATE Exam.",
+                      "GATE Exam Preparation and Progress Tracking App",
                       style: GoogleFonts.outfit(
                         color: Colors.white70,
                         fontSize: 13.5,
@@ -106,135 +107,101 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 16),
 
-                    // Creator Profile Card
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withAlpha(8)),
+                    Center(
+                      child: Text(
+                        "Developed by Vishnu Nandan",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white54,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          // Initial avatar (clean, no glow)
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(8),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white12, width: 1),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              "VN",
-                              style: GoogleFonts.outfit(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // External Links for ToS and Privacy Policy
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker/blob/main/TERMS_OF_SERVICE.md');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            "Terms of Service",
+                            style: GoogleFonts.outfit(
+                              color: Colors.cyanAccent,
+                              fontSize: 12,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.cyanAccent,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "DEVELOPED BY",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white30,
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  "Vishnu Nandan",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  "Lead Architect & Developer",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white54,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ],
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          "•",
+                          style: GoogleFonts.outfit(color: Colors.white24, fontSize: 12),
+                        ),
+                        const SizedBox(width: 12),
+                        TextButton(
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker/blob/main/PRIVACY_POLICY.md');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            "Privacy Policy",
+                            style: GoogleFonts.outfit(
+                              color: Colors.cyanAccent,
+                              fontSize: 12,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.cyanAccent,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
-
-                    // Love / Country Badge (flat)
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(6),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text("🇮🇳", style: TextStyle(fontSize: 14)),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Made in India with Love",
-                              style: GoogleFonts.outfit(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text("❤️", style: TextStyle(fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 36),
 
                     // Action Buttons
                     Row(
                       children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
-                              }
-                            },
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              side: const BorderSide(color: Colors.white24, width: 1),
-                              foregroundColor: Colors.white,
+                        FilledButton(
+                          onPressed: () async {
+                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: accentColor,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            icon: const Icon(Icons.code_rounded, size: 18, color: Colors.white70),
-                            label: Text(
-                              "GITHUB",
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                          ),
+                          child: Image.asset(
+                            'github.png',
+                            width: 24,
+                            height: 24,
+                            color: Colors.black,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -244,7 +211,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                             style: FilledButton.styleFrom(
                               backgroundColor: accentColor,
                               foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),

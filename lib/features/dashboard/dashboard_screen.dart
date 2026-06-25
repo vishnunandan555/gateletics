@@ -324,270 +324,80 @@ class WelcomeWidget extends ConsumerWidget {
     );
   }
 
-  void _showSyllabusConfirmationThenCreateCategoryDialog(BuildContext context, WidgetRef ref) {
-    final progressColor = ref.read(overallProgressColorProvider);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: progressColor.withValues(alpha: 0.2), width: 1),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: progressColor),
-            const SizedBox(width: 10),
-            Text(
-              'CUSTOM SYLLABUS',
-              style: GoogleFonts.outfit(
-                textStyle: TextStyle(
-                  fontFamily: 'BatmanForever',
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: progressColor,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Building a custom syllabus requires you to manually add all categories, subjects, and topics. This can be quite time-consuming.\n\nIt is highly recommended to load the preset instead. Are you sure you want to proceed manually?',
-          style: GoogleFonts.outfit(
-            color: Colors.white70,
-            fontSize: 14,
-            height: 1.6,
-          ),
-        ),
-        actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: progressColor.withValues(alpha: 0.5),
-                      width: 1.5,
-                    ),
-                    foregroundColor: progressColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Text(
-                    'Go Back',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close confirmation dialog
-                    showCreateSyllabusCategoryDialog(context, ref); // Open category creation dialog
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: progressColor,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: Text(
-                    'Proceed',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final completionType = ref.watch(completionTypeProvider);
     final progressColor = ref.watch(overallProgressColorProvider);
+    final isSyllabus = completionType == CompletionType.syllabus;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha(12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => ref
-                        .read(completionTypeProvider.notifier)
-                        .setCompletionType(CompletionType.resource),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: completionType == CompletionType.resource
-                            ? progressColor
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: completionType == CompletionType.resource
-                            ? [
-                                BoxShadow(
-                                  color: progressColor.withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Resource Based',
-                          style: GoogleFonts.outfit(
-                            color: completionType == CompletionType.resource
-                                ? Colors.black
-                                : Colors.white60,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => ref
-                        .read(completionTypeProvider.notifier)
-                        .setCompletionType(CompletionType.syllabus),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: completionType == CompletionType.syllabus
-                            ? progressColor
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: completionType == CompletionType.syllabus
-                            ? [
-                                BoxShadow(
-                                  color: progressColor.withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Syllabus Based',
-                          style: GoogleFonts.outfit(
-                            color: completionType == CompletionType.syllabus
-                                ? Colors.black
-                                : Colors.white60,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+        Icon(
+          isSyllabus ? Icons.checklist_rtl_rounded : Icons.video_library_rounded,
+          size: 64,
+          color: progressColor.withValues(alpha: 0.8),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          isSyllabus ? "EMPTY SYLLABUS TRACKER" : "EMPTY RESOURCE TRACKER",
+          style: GoogleFonts.outfit(
+            textStyle: const TextStyle(
+              fontFamily: 'BatmanForever',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1.2,
             ),
           ),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 40),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 220,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (completionType == CompletionType.resource) {
-                    ref.read(subjectControllerProvider.notifier).applyPreset();
-                  } else {
-                    ref.read(syllabusControllerProvider.notifier).applyPreset();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: progressColor,
-                  foregroundColor: Colors.black,
-                  elevation: 8,
-                  shadowColor: progressColor.withValues(alpha: 0.4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'Load Preset',
-                  style: GoogleFonts.outfit(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+        const SizedBox(height: 8),
+        Text(
+          isSyllabus
+              ? "Create your first syllabus category to start building your custom exam check-list."
+              : "Create your first resource category to start tracking study play-lists and course counts.",
+          style: GoogleFonts.outfit(
+            fontSize: 13,
+            color: Colors.white38,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: 220,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: () {
+              if (isSyllabus) {
+                showCreateSyllabusCategoryDialog(context, ref);
+              } else {
+                _showInstructionsThenCreateCategoryDialog(context, ref);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: progressColor,
+              foregroundColor: Colors.black,
+              elevation: 8,
+              shadowColor: progressColor.withValues(alpha: 0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 220,
-              height: 48,
-              child: OutlinedButton(
-                onPressed: () {
-                  if (completionType == CompletionType.resource) {
-                    _showInstructionsThenCreateCategoryDialog(context, ref);
-                  } else {
-                    _showSyllabusConfirmationThenCreateCategoryDialog(context, ref);
-                  }
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: progressColor.withValues(alpha: 0.5),
-                    width: 1.5,
-                  ),
-                  foregroundColor: progressColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'Create Category',
-                  style: GoogleFonts.outfit(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            child: Text(
+              'Create Category',
+              style: GoogleFonts.outfit(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 48),
       ],
     );
   }
 }
+
