@@ -23,3 +23,7 @@ Our App does not collect any information from children or anyone else, making it
 
 ## 4. Contact Us
 If you have any questions about this Privacy Policy, please contact us at: vishnunandan555@gmail.com
+
+## 5. Disclaimer of Affiliation
+GATEletics is an independent educational tool developed to assist student preparation. This App is not affiliated with, authorized by, sponsored by, or associated with the Graduate Aptitude Test in Engineering (GATE) or its official organizing institutes (IISc, IITs, or NCB-GATE).
+

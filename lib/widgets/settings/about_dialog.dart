@@ -121,6 +121,18 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    // Disclaimer text
+                    Text(
+                      "Disclaimer: GATEletics is an independent educational tool. This app is not affiliated with, authorized by, endorsed by, or associated with the Graduate Aptitude Test in Engineering (GATE) or its official organizing institutes (IISc, IITs, or NCB-GATE).",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white30,
+                        fontSize: 10.5,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 12),
 
                     // External Links for ToS and Privacy Policy

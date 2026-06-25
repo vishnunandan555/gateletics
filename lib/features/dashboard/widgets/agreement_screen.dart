@@ -37,6 +37,9 @@ We reserve the right to modify or replace these Terms at any time. Your continue
 
 6. Contact Us
 For questions regarding these Terms, contact: vishnunandan555@gmail.com
+
+7. Disclaimer of Affiliation
+GATEletics is an independent educational tool developed to assist student preparation. This App is not affiliated with, authorized by, sponsored by, or associated with the Graduate Aptitude Test in Engineering (GATE) or its official organizing institutes (IISc, IITs, or NCB-GATE).
 """;
 
   final String _privacyText = """
