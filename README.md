@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.2--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.1.3--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -91,6 +91,11 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+## 🌟 Version 1.1.3 Highlights
+
+- **Rebranded to GATEletics:** Complete application rename from GATE Tracker to GATEletics across all documentation, source code, build scripts, database files, and platform packaging structures.
+- **Updated Package ID:** Relocated Android packaging namespace to `com.vishnunandan.gateletics` to align with the new application branding.
 
 ## 🌟 Version 1.1.2 Highlights
 
