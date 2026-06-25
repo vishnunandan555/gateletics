@@ -1,5 +1,5 @@
 name: gate_tracker
-description: "A new Flutter project."
+description: "GATE Tracker — A syllabus and resource tracker for GATE exam preparation."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -47,11 +47,7 @@ dependencies:
   url_launcher: ^6.3.2
   collection: ^1.19.1
   file_picker: ^12.0.0-beta.4
-  share_plus: ^13.1.0
   shared_preferences: ^2.5.5
-  package_info_plus: any
-  open_file: ^3.5.10
-  crypto: ^3.0.3
   flutter_file_dialog: ^3.3.0
 
 dev_dependencies:

@@ -2,33 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/subject_provider.dart';
-import '../../providers/updater_provider.dart';
 import 'widgets/customization_sheets.dart';
 import 'widgets/app_bar_title.dart';
 import 'widgets/countdown_widget.dart';
 import 'widgets/category_header.dart';
 import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
-import '../../widgets/updater_dialog.dart';
 import '../../widgets/settings_sheet.dart';
 import '../../providers/completion_type_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import 'widgets/syllabus_category_header.dart';
 import 'widgets/syllabus_topic_card.dart';
 import 'widgets/syllabus_customization_sheets.dart';
-
-class HasCheckedForUpdates extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void setChecked(bool val) {
-    state = val;
-  }
-}
-
-final hasCheckedForUpdatesProvider = NotifierProvider<HasCheckedForUpdates, bool>(() {
-  return HasCheckedForUpdates();
-});
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -44,65 +29,6 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasChecked = ref.watch(hasCheckedForUpdatesProvider);
-    if (!hasChecked) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(hasCheckedForUpdatesProvider.notifier).setChecked(true);
-        ref.read(updaterProvider.notifier).checkForUpdates(isAutomatic: true);
-      });
-    }
-
-    ref.listen<UpdaterState>(updaterProvider, (previous, next) {
-      if (next.status == UpdaterStatus.updateAvailable &&
-          previous?.status != UpdaterStatus.updateAvailable) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const UpdaterDialog(),
-        );
-      }
-
-      if (next.status == UpdaterStatus.noUpdateAvailable &&
-          previous?.status != UpdaterStatus.noUpdateAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✓ You\'re already on the latest version!'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(updaterProvider.notifier).resetToIdle();
-        });
-      }
-
-      if (next.status == UpdaterStatus.noReleasesAtAll &&
-          previous?.status != UpdaterStatus.noReleasesAtAll) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No updates available at the moment.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(updaterProvider.notifier).resetToIdle();
-        });
-      }
-
-      if (next.status == UpdaterStatus.error &&
-          previous?.status != UpdaterStatus.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage.isEmpty
-                ? 'Update check failed — check your connection and try again.'
-                : next.errorMessage),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(updaterProvider.notifier).resetToIdle();
-        });
-      }
-    });
 
     final categoriesAsync = ref.watch(categoriesWithSubjectsProvider);
     final completionType = ref.watch(completionTypeProvider);

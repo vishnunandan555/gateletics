@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:async';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,10 +7,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import '../providers/subject_provider.dart';
-import '../providers/updater_provider.dart';
 import '../providers/completion_type_provider.dart';
 import '../providers/syllabus_provider.dart';
-import 'settings/telemetry_settings.dart';
+
 import 'settings/about_dialog.dart';
 
 void showSettingsSheet(BuildContext context, WidgetRef ref) {
@@ -597,100 +595,6 @@ class SettingsSheet extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text(
-                      'SYSTEM UPDATES',
-                      style: TextStyle(
-                        color: ref.watch(overallProgressColorProvider).withAlpha(178),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                  const LastCheckedSubtitleTile(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.settings_rounded, color: Colors.white30, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Update Check Frequency',
-                          style: TextStyle(
-                            color: Colors.white.withAlpha(128),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Consumer(
-                      builder: (context, ref, _) {
-                        final currentFreq = ref.watch(updateFrequencyProvider);
-                        final accentColor = ref.watch(overallProgressColorProvider);
-
-                        return Row(
-                          children: ['Daily', 'Weekly', 'Monthly'].map((freq) {
-                            final isSelected = currentFreq == freq;
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () => ref.read(updateFrequencyProvider.notifier).setFrequency(freq),
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? accentColor.withAlpha(51) : Colors.white10,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isSelected ? accentColor : Colors.transparent,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      freq,
-                                      style: TextStyle(
-                                        color: isSelected ? accentColor : Colors.white70,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white12),
-                  Theme(
-                    data: Theme.of(context).copyWith(
-                      dividerColor: Colors.transparent,
-                    ),
-                    child: ExpansionTile(
-                      leading: const Icon(Icons.tune_rounded, color: Colors.amberAccent),
-                      title: const Text('Advanced Settings'),
-                      subtitle: const Text(
-                        'Telemetry, custom endpoints, diagnostics',
-                        style: TextStyle(color: Colors.grey, fontSize: 11),
-                      ),
-                      iconColor: Colors.amberAccent,
-                      collapsedIconColor: Colors.white70,
-                      childrenPadding: const EdgeInsets.symmetric(horizontal: 0),
-                      children: const [
-                        TelemetrySettingsSection(),
-                        SizedBox(height: 12),
-                      ],
-                    ),
-                  ),
-                  const Divider(color: Colors.white12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Text(
                       'RESET DATA',
                       style: TextStyle(
                         color: Colors.redAccent.withValues(alpha: 0.7),
@@ -755,58 +659,6 @@ class SettingsSheet extends ConsumerWidget {
             ),
           ),
         );
-      },
-    );
-  }
-}
-
-class LastCheckedSubtitleTile extends ConsumerStatefulWidget {
-  const LastCheckedSubtitleTile({super.key});
-
-  @override
-  ConsumerState<LastCheckedSubtitleTile> createState() => _LastCheckedSubtitleTileState();
-}
-
-class _LastCheckedSubtitleTileState extends ConsumerState<LastCheckedSubtitleTile> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.invalidate(lastUpdateCheckTimeProvider);
-      }
-    });
-    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
-      if (mounted) {
-        ref.invalidate(lastUpdateCheckTimeProvider);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final lastCheckedAsync = ref.watch(lastUpdateCheckTimeProvider);
-    final lastChecked = lastCheckedAsync.value ?? 'Never';
-    final accentColor = ref.watch(overallProgressColorProvider);
-
-    return ListTile(
-      leading: Icon(Icons.sync_rounded, color: accentColor),
-      title: const Text('Check For Updates Now'),
-      subtitle: Text(
-        'Last checked: $lastChecked',
-        style: const TextStyle(color: Colors.grey),
-      ),
-      onTap: () {
-        Navigator.of(context).pop();
-        ref.read(updaterProvider.notifier).checkForUpdates();
       },
     );
   }

@@ -1,4 +1,4 @@
-package com.example.gate_tracker;
+package com.vishnunandan.gate_tracker;
 
 import io.flutter.embedding.android.FlutterActivity;
 

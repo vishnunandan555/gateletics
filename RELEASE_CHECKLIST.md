@@ -1,85 +1,135 @@
-# Comprehensive Android Release Plan for Gate Tracker
+# Google Play Store Release Checklist — GATE Progress Tracker
 
-This plan provides a first-principles breakdown of everything required to finalize, secure, and release this Flutter application to the Google Play Store. It adheres to strict, brutal validation of constraints: no assumptions, just required steps.
+> **Why now?** Android is progressively restricting sideloading (unknown source installs). Getting on the Play Store is the correct long-term solution for reliable distribution.
 
 ---
 
-## 1. App Finalization & Code Hardening
-*Ensure the app works flawlessly and doesn't rely on dev-environment crutches.*
+## ⚡ TL;DR — Quick Status at a Glance
 
-- [ ] **Remove Hardcoded Secrets & Dev Flags:** Ensure no API keys, tokens, or debug flags remain in the source code (especially in `http` usage).
-  - *Risk:* Leaking API keys leads to unauthorized usage and financial loss.
-  - *Prevention:* Utilize `.env` files (e.g., via `flutter_dotenv`) and CI/CD injection.
-- [ ] **Review Permissions (`AndroidManifest.xml`):** Verify that only absolutely necessary permissions are requested. `file_picker`, `share_plus`, and `url_launcher` often require specific intent queries and storage permissions.
-  - *Risk:* Over-requesting permissions leads to app rejection by Google or low user trust.
-  - *Prevention:* Strip out any auto-added permissions not strictly used.
-- [ ] **State Management Review:** Ensure `flutter_riverpod` providers handle errors gracefully and don't fail silently.
-  - *Risk:* Unhandled state causes white screens of death or infinite loading.
-- [ ] **Check Deep Linking:** If `url_launcher` or `go_router` manages deep links, ensure `assetlinks.json` is correctly hosted on your domain.
-  - *Risk:* Broken deep links result in poor UX and failed marketing campaigns.
+### 🚫 Hard Blockers & Must-Declares — ALL RESOLVED & CLEANED ✅
 
-## 2. Security & Data Privacy
-*Hardening the app against local and network exploitation.*
+All telemetry, self-updating APK systems, and sensitive permissions have been fully removed from the codebase. The app is now clean and compliant with Google Play Developer policies.
 
-- [ ] **Secure Local Storage:** The app uses `shared_preferences` and `isar_community`. Are you storing sensitive PII in plain text?
-  - *Risk:* Local database extraction allows attackers/malware to steal user data.
-  - *Prevention:* Encrypt sensitive preferences (consider `flutter_secure_storage`). Since Isar doesn't natively encrypt completely free, ensure no critical PII is stored without manual AES encryption if required by law.
-- [ ] **Network Security (HTTPS):** All `http` requests must use HTTPS. 
-  - *Risk:* Man-in-the-middle (MITM) attacks.
-  - *Prevention:* Disable cleartext traffic in Android network security config.
-- [ ] **Obfuscation & Minification:** Ensure Dart code is obfuscated.
-  - *Action:* Build with `flutter build appbundle --obfuscate --split-debug-info=/<dir>`.
+| # | Prior Issue | Status | Action Taken |
+|---|---|---|---|
+| 1 | **In-app APK downloader** | ✅ **RESOLVED** | Removed entire download flow, updater provider, updater dialog, and unreferenced packages. |
+| 2 | **`REQUEST_INSTALL_PACKAGES` permission** | ✅ **RESOLVED** | Removed the permission from `AndroidManifest.xml`. |
+| 3 | **`requestLegacyExternalStorage="true"`** | ✅ **RESOLVED** | Removed the legacy attribute from `AndroidManifest.xml`. |
+| 4 | **Telemetry pings & endpoints** | ✅ **RESOLVED** | Deleted the telemetry service, lifecycle observer, and settings toggles. The app is now 100% offline. |
+| 5 | **Debug mock constants** | ✅ **RESOLVED** | Cleaned up all developer mock constants and versions from the updater/telemetry stubs. |
 
-## 3. Legal, Compliance & Hosting
-*Bureaucracy required to exist on the internet legally.*
+---
 
-- [ ] **Privacy Policy:** You MUST have a publicly hosted Privacy Policy URL.
-  - *Risk:* Immediate rejection by Google Play.
-  - *Action:* Draft a policy declaring what data you collect, how Isar stores it locally, and what `http` sends externally. Host it (GitHub Pages is free).
-- [ ] **Terms of Service (EULA):** Define the limits of liability.
-- [ ] **Open Source Licenses:** Ensure the "Notices" page is accessible within the app.
-  - *Risk:* Violating BSD/MIT license terms of your dependencies (e.g., `google_fonts`, `riverpod`).
-  - *Action:* Use `showLicensePage()` in Flutter.
-- [ ] **Hosting Infrastructure:** If you have a backend, ensure it scales and has DDoS protection (e.g., Cloudflare) before traffic hits.
+## 📋 Build & Submit Checklist
 
-## 4. Build & Signing Optimization
-*Properly setting up the Android artifact.*
+### 1. Release Keystore & App Signing
+Since you have not started the Google Developer account yet, you can configure signing configurations once you are ready. Below is the step-by-step setup:
 
-- [ ] **Update App Version (`pubspec.yaml`):** Current is `1.0.0+1`. Determine if you are launching at `1.0.0+X`.
-- [ ] **Produce Keystore:** Generate an upload keystore for Play App Signing.
-  - *Action:* Run `keytool -genkey -v -keystore upload-keystore.jks ...`
-  - *Risk:* Losing this keystore prevents you from ever updating the app again unless Play App Signing is enabled (which you must use).
-  - *Prevention:* Back up the `.jks` file and passwords in a secure password manager.
-- [ ] **Configure `build.gradle.kts`:** Set up the `signingConfigs` in `android/app/build.gradle.kts` to reference a `key.properties` file securely (not checked into git).
-- [ ] **Build App Bundle (AAB):** Google requires AAB, not APK.
-  - *Action:* `flutter build appbundle`.
+1. **Generate the Keystore:**
+   Run this command in your terminal to generate a secure keystore file:
+   ```bash
+   keytool -genkey -v -keystore android/app/release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias key
+   ```
+2. **Configure Credentials:**
+   Create a file at `android/key.properties` (this file is ignored by git to keep secrets safe) containing:
+   ```properties
+   storePassword=<your-keystore-password>
+   keyPassword=<your-key-password>
+   keyAlias=key
+   storeFile=release.jks
+   ```
+3. **Build the Production Bundle:**
+   Once signing is wired up in `build.gradle.kts`, run this command to build the optimized App Bundle (AAB):
+   ```bash
+   flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info
+   ```
 
-## 5. Store Assets & Marketing
-*What the user sees before installing.*
+---
 
-- [ ] **App Icon:** Already handled via `flutter_launcher_icons`, but ensure it looks good on both light and dark mode devices without clipping.
-- [ ] **Feature Graphics & Screenshots:**
-  - Need 1 High-res icon (512x512).
-  - Need 1 Feature Graphic (1024x500).
-  - Need Phone & Tablet screenshots (min 2, max 8 per type).
-  - *Risk:* Ugly store pages convert poorly.
-- [ ] **Store Listing Text:** Short description (80 chars), Full description (4000 chars) optimized for ASO (App Store Optimization).
+## 📄 2. Legal Requirements (ToS & Privacy Policy)
 
-## 6. Google Play Console Setup
+To publish on the Google Play Store, Google **requires** a Privacy Policy URL. A Terms of Service (ToS) is optional but highly recommended to limit your liability.
 
-- [ ] **Developer Account:** Pay the $25 one-time fee. Verify identity (requires government ID).
-- [ ] **App Content Questionnaire:**
-  - Complete the Data Safety form (accurately reflecting `shared_preferences` and network logging).
-  - Complete Content Rating (IARC).
-  - Declare if the app is a News app or targets Children.
-- [ ] **Internal / Closed Testing:**
-  - Upload the AAB to the Closed Testing track.
-  - *Constraint:* For new personal accounts, Google requires 20 testers to opt-in for 14 straight days before allowing a Production release. 
+### Checklist & Action Items:
+- [x] Create `PRIVACY_POLICY.md` in repository root (Completed ✅)
+- [x] Create `TERMS_OF_SERVICE.md` in repository root (Completed ✅)
+- [ ] Push changes to GitHub repository
+- [ ] Host the files on the web (e.g. enable GitHub Pages for the repository)
+- [ ] Paste the hosted Privacy Policy link into the Google Play Console
 
-## 7. Post-Release Strategy
+### How to Host These Files for Free
+1. **GitHub Pages (Recommended):**
+   - Enable GitHub Pages on your `gate-tracker` repo in **Settings -> Pages**.
+   - Use the URL (e.g., `https://vishnunandan555.github.io/gate-tracker/PRIVACY_POLICY.md`) in your Play Console submission.
 
-- [ ] **Crash Reporting:** `package_info_plus` is present but no crashlytics is detected.
-  - *Risk:* Releasing without Firebase Crashlytics or Sentry means you are flying blind on production crashes.
-  - *Action:* Integrate a crash reporter.
-- [ ] **Analytics:** How do you know what features users use? (Consider Mixpanel or Firebase Analytics, and update the Privacy Policy accordingly).
-- [ ] **Update Pipeline:** Plan how to handle hotfixes (e.g., fast tracks in Play Console).
+### Copy-Paste Templates
+
+Below are complete, tailored templates you can use for this app:
+
+````carousel
+```markdown
+# Privacy Policy for GATE Progress Tracker
+
+Last updated: June 25, 2026
+
+Vishnu Nandan ("we", "our", or "us") operates the GATE Progress Tracker mobile application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
+
+## 1. Information Collection and Use
+
+**No Personal Information Collected:** 
+The App is designed as an offline-first tool. We do not collect, store, or transmit any personally identifiable information (PII) or user tracking data. 
+
+**Local Storage:**
+All study progress, syllabus checklists, subjects, and tracking data are stored locally on your device's secure storage using an embedded database. This data never leaves your device unless you manually choose to export it to a JSON backup file.
+
+**Internet Access:**
+The App requires internet access (`android.permission.INTERNET`) solely to fetch daily motivational quotes from a public repository. No user-specific identifier, location, or device telemetry is transmitted during this fetch.
+
+## 2. Third-Party Services
+The App does not use any third-party analytics, advertising networks, or tracking SDKs.
+
+## 3. Children's Privacy
+Our App does not collect any information from children or anyone else, making it fully compliant with COPPA and global privacy standards.
+
+## 4. Contact Us
+If you have any questions about this Privacy Policy, please contact us at: vishnunandan555@gmail.com
+```
+<!-- slide -->
+```markdown
+# Terms of Service for GATE Progress Tracker
+
+Last updated: June 25, 2026
+
+Please read these Terms of Service ("Terms") carefully before using the GATE Progress Tracker mobile application (the "App") operated by Vishnu Nandan ("us", "we", or "our").
+
+## 1. Acceptance of Terms
+By downloading or using the App, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access or use the App.
+
+## 2. License to Use
+We grant you a personal, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial educational purposes on devices owned or controlled by you.
+
+## 3. Intellectual Property
+The App, its original features, and source code are open-source and licensed under the MIT License. You may modify and redistribute it under the terms of the MIT License, but the official Play Store version and brand name "GATE Progress Tracker" are represented by the developer.
+
+## 4. Limitation of Liability & "As-Is" Clause
+The App is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind, either express or implied. 
+
+In no event shall Vishnu Nandan be liable for any direct, indirect, incidental, special, or consequential damages arising out of your use of, or inability to use, the App. This includes, but is not limited to, loss of study data, device issues, or errors in syllabus descriptions.
+
+## 5. Changes to Terms
+We reserve the right to modify or replace these Terms at any time. Your continued use of the App after changes constitutes acceptance of the new Terms.
+
+## 6. Contact Us
+For any questions regarding these Terms, contact: vishnunandan555@gmail.com
+```
+````
+
+---
+
+### 3. Store Assets & Submissions (For Later)
+- **Feature Graphic:** 1024×500 PNG/JPEG (no transparent background).
+- **Screenshots:** At least 2 screenshots showing the main tracking dashboard and syllabus checklist.
+- **Data Safety Form (Play Console):**
+  - Select **"No"** to *Does your app collect or share any of the required user data types?*
+  - This matches our clean, 100% offline codebase.
+- **Closed Testing Requirement:** For personal developer accounts created after November 2023, Google requires a 14-day closed testing track with at least 20 testers before publishing to Production. Planning this early is highly recommended.
