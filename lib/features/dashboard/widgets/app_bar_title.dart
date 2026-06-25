@@ -43,11 +43,11 @@ class AppBarTitle extends ConsumerWidget {
           onTap: () => _showRandomQuote(context, ref, progressColor),
           behavior: HitTestBehavior.translucent,
           child: const Text(
-            'GATE\nLETICS',
+            'GATELETICS',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'BatmanForever',
-              fontSize: 16,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.8,
               height: 1.1,

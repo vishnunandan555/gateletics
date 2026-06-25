@@ -55,7 +55,7 @@ class DashboardScreen extends ConsumerWidget {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverAppBar(
-                  toolbarHeight: 112,
+                  toolbarHeight: 72,
                   floating: true,
                   pinned: true,
                   elevation: 0,
@@ -162,7 +162,7 @@ class DashboardScreen extends ConsumerWidget {
             physics: const BouncingScrollPhysics(),
             slivers: [
               SliverAppBar(
-                toolbarHeight: 112,
+                toolbarHeight: 72,
                 floating: true,
                 pinned: true,
                 elevation: 0,

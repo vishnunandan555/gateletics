@@ -15,7 +15,7 @@ class FutureFeatureScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF18181B),
       appBar: AppBar(
-        toolbarHeight: 112,
+        toolbarHeight: 72,
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
