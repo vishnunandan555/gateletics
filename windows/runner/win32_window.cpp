@@ -248,12 +248,6 @@ Win32Window::MessageHandler(HWND hwnd,
       int ncH = (ncRect.bottom - ncRect.top) - 100;
 
       int clientW = (r->right - r->left) - ncW;
-      int clientH = (r->bottom - r->top) - ncH;
-
-      // Decide which dimension is the anchor based on which edge is dragged.
-      bool anchorWidth = (wparam == WMSZ_LEFT || wparam == WMSZ_RIGHT ||
-                          wparam == WMSZ_TOPLEFT || wparam == WMSZ_BOTTOMLEFT ||
-                          wparam == WMSZ_TOPRIGHT || wparam == WMSZ_BOTTOMRIGHT);
 
       // Always derive height from width to maintain ratio.
       int newClientW = clientW;
