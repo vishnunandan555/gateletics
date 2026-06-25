@@ -205,6 +205,7 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
           working-directory: ./build/web
+          vercel-version: 54.17.1
 
       - name: Compress Web Release Bundle (Zip)
         run: |
