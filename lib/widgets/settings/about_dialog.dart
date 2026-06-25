@@ -59,19 +59,34 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                     ),
                     const SizedBox(height: 18),
 
-                    // App Title (no shadows)
-                     Center(
-                      child: Text(
-                        "GATELETICS",
-                        style: GoogleFonts.jersey15(
-                          fontSize: 22,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                    // App Title
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'GATE',
+                            style: GoogleFonts.boldonse(
+                              fontSize: 22,
+                              height: 1.0,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'LETICS',
+                            style: GoogleFonts.orbitron(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              height: 1.15,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 14),
 
                     // Version Badge
                     Center(
@@ -83,12 +98,49 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                           border: Border.all(color: Colors.white12, width: 1),
                         ),
                         child: Text(
-                          "v${packageInfo.version} (Stable)",
+                          "v${packageInfo.version}",
                           style: GoogleFonts.outfit(
                             color: Colors.white70,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
                             letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              final Uri url = Uri.parse('https://vishnunandan555.github.io/gateletics/');
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: accentColor.withAlpha(25),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: accentColor.withAlpha(100), width: 1.2),
+                              ),
+                              child: Text(
+                                "Official Website",
+                                style: GoogleFonts.outfit(
+                                  color: accentColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
