@@ -42,53 +42,59 @@ class AppBarTitle extends ConsumerWidget {
         GestureDetector(
           onTap: () => _showRandomQuote(context, ref, progressColor),
           behavior: HitTestBehavior.translucent,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'GATE',
+                  style: GoogleFonts.boldonse(
+                    fontSize: 20,
+                    height: 1.0,
+                  ),
+                ),
+                Text(
+                  'LETICS',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    height: 1.15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        FittedBox(
+          fit: BoxFit.scaleDown,
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'GATE',
-                style: GoogleFonts.boldonse(
-                  fontSize: 24,
-                  height: 1.0,
-                ),
+                'v${packageInfo.version} ',
+                style: const TextStyle(color: Colors.grey, fontSize: 10),
               ),
-              Text(
-                'LETICS',
-                style: GoogleFonts.orbitron(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                  height: 1.15,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: progressColor.withAlpha(51),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Stable',
+                  style: TextStyle(
+                    color: progressColor,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'v${packageInfo.version} ',
-              style: const TextStyle(color: Colors.grey, fontSize: 10),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: progressColor.withAlpha(51),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'Stable',
-                style: TextStyle(
-                  color: progressColor,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );

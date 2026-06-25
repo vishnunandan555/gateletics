@@ -52,8 +52,8 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "GATEletics");
   }
 
-  // Phone aspect ratio: 9:19.5. Start at a comfortable phone-sized window.
-  gtk_window_set_default_size(window, 390, 845);
+  // Phone aspect ratio: 9:16. Start at a comfortable phone-sized window.
+  gtk_window_set_default_size(window, 390, 693);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
@@ -68,18 +68,21 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Lock to a phone aspect ratio (9:19.5) with min/max size bounds.
+  // Ensure the window is resizable, then enforce 9:16 aspect ratio.
+  gtk_window_set_resizable(window, TRUE);
+
   GdkGeometry geometry;
-  geometry.min_width   = 230;   // ~500px tall at 9:19.5
-  geometry.min_height  = 500;
-  geometry.max_width   = 415;   // ~900px tall at 9:19.5
-  geometry.max_height  = 900;
-  geometry.min_aspect  = 9.0 / 19.5;
-  geometry.max_aspect  = 9.0 / 19.5;
+  // Min/max bounds
+  geometry.min_width   = 200;
+  geometry.min_height  = 355;
+  geometry.max_width   = 900;
+  geometry.max_height  = 1600;
+  geometry.min_aspect  = 9.0 / 16.0;
+  geometry.max_aspect  = 9.0 / 16.0;
+
   gtk_window_set_geometry_hints(
       window, nullptr, &geometry,
-      static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE |
-                                  GDK_HINT_ASPECT));
+      static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE | GDK_HINT_ASPECT));
 
   // Show the window when Flutter renders.
   // Requires the view to be realized so we can start rendering.

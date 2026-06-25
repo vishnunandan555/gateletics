@@ -5,12 +5,12 @@
 
 #include "resource.h"
 
-// Phone aspect ratio: 9 wide : 19.5 tall (e.g. iPhone-style)
+// Phone aspect ratio: 9:16 (standard mobile ratio)
 static constexpr double kAspectRatioW = 9.0;
-static constexpr double kAspectRatioH = 19.5;
+static constexpr double kAspectRatioH = 16.0;
 // Minimum window height (in logical pixels before DPI scale)
-static constexpr int kMinHeightLogical = 500;
-static constexpr int kMaxHeightLogical = 900;
+static constexpr int kMinHeightLogical = 355;
+static constexpr int kMaxHeightLogical = 1600;
 
 namespace {
 
