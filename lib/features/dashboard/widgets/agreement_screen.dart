@@ -21,13 +21,13 @@ TERMS OF SERVICE
 Last updated: June 25, 2026
 
 1. Acceptance of Terms
-By using the GATE Progress Tracker ("App"), you agree to be bound by these Terms. If you disagree with any part of the terms, you may not use the App.
+By using GATEletics ("App"), you agree to be bound by these Terms. If you disagree with any part of the terms, you may not use the App.
 
 2. License to Use
 We grant you a personal, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial educational purposes on devices owned or controlled by you.
 
 3. Intellectual Property
-The App, its original features, and source code are open-source and licensed under the MIT License. You may modify and redistribute it under the terms of the MIT License, but the official Play Store version and brand name "GATE Progress Tracker" are represented by the developer.
+The App, its original features, and source code are open-source and licensed under the MIT License. You may modify and redistribute it under the terms of the MIT License, but the official Play Store version and brand name "GATEletics" are represented by the developer.
 
 4. Limitation of Liability & "As-Is" Clause
 The App is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind. Vishnu Nandan shall not be liable for any damages arising out of your use of, or inability to use, the App. This includes loss of study data, device issues, or syllabus errors.
@@ -164,7 +164,7 @@ If you have any questions about this Privacy Policy, please contact us at: vishn
 
                             // Welcome Message
                             Text(
-                              "Welcome to GATE Progress Tracker. Before you begin tracking your syllabus progress, please take a moment to read and accept our legal terms.",
+                              "Welcome to GATEletics. Before you begin tracking your syllabus progress, please take a moment to read and accept our legal terms.",
                               style: GoogleFonts.outfit(
                                 color: Colors.white70,
                                 fontSize: 13.5,
