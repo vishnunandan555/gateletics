@@ -61,8 +61,8 @@ To publish on the Google Play Store, Google **requires** a Privacy Policy URL. A
 
 ### How to Host These Files for Free
 1. **GitHub Pages (Recommended):**
-   - Enable GitHub Pages on your `gate-tracker` repo in **Settings -> Pages**.
-   - Use the URL (e.g., `https://vishnunandan555.github.io/gate-tracker/PRIVACY_POLICY.md`) in your Play Console submission.
+   - Enable GitHub Pages on your `gateletics` repo in **Settings -> Pages**.
+   - Use the URL (e.g., `https://vishnunandan555.github.io/gateletics/PRIVACY_POLICY.md`) in your Play Console submission.
 
 ### Copy-Paste Templates
 
@@ -70,11 +70,11 @@ Below are complete, tailored templates you can use for this app:
 
 ````carousel
 ```markdown
-# Privacy Policy for GATE Progress Tracker
+# Privacy Policy for GATEletics
 
 Last updated: June 25, 2026
 
-Vishnu Nandan ("we", "our", or "us") operates the GATE Progress Tracker mobile application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
+Vishnu Nandan ("we", "our", or "us") operates the GATEletics mobile application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
 
 ## 1. Information Collection and Use
 
@@ -98,11 +98,11 @@ If you have any questions about this Privacy Policy, please contact us at: vishn
 ```
 <!-- slide -->
 ```markdown
-# Terms of Service for GATE Progress Tracker
+# Terms of Service for GATEletics
 
 Last updated: June 25, 2026
 
-Please read these Terms of Service ("Terms") carefully before using the GATE Progress Tracker mobile application (the "App") operated by Vishnu Nandan ("us", "we", or "our").
+Please read these Terms of Service ("Terms") carefully before using the GATEletics mobile application (the "App") operated by Vishnu Nandan ("us", "we", or "our").
 
 ## 1. Acceptance of Terms
 By downloading or using the App, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access or use the App.
@@ -111,7 +111,7 @@ By downloading or using the App, you agree to be bound by these Terms. If you di
 We grant you a personal, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial educational purposes on devices owned or controlled by you.
 
 ## 3. Intellectual Property
-The App, its original features, and source code are open-source and licensed under the MIT License. You may modify and redistribute it under the terms of the MIT License, but the official Play Store version and brand name "GATE Progress Tracker" are represented by the developer.
+The App, its original features, and source code are open-source and licensed under the MIT License. You may modify and redistribute it under the terms of the MIT License, but the official Play Store version and brand name "GATEletics" are represented by the developer.
 
 ## 4. Limitation of Liability & "As-Is" Clause
 The App is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind, either express or implied. 

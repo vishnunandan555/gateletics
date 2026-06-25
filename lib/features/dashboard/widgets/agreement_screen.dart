@@ -140,7 +140,7 @@ If you have any questions about this Privacy Policy, please contact us at: vishn
                             const SizedBox(height: 20),
                             Center(
                               child: Text(
-                                "GATE TRACKER",
+                                "GATELETICS",
                                 style: GoogleFonts.outfit(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,

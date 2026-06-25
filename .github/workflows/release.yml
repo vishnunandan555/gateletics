@@ -48,8 +48,8 @@ jobs:
       - name: Prepare Android Artifacts
         run: |
           mkdir -p artifacts
-          cp build/app/outputs/flutter-apk/app-release.apk artifacts/gate-tracker.apk
-          cp build/app/outputs/bundle/release/app-release.aab artifacts/gate-tracker.aab
+          cp build/app/outputs/flutter-apk/app-release.apk artifacts/gateletics.apk
+          cp build/app/outputs/bundle/release/app-release.aab artifacts/gateletics.aab
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -86,13 +86,13 @@ jobs:
       - name: Compress Windows Release Bundle (Executable + DLLs)
         shell: pwsh
         run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath gate-tracker-windows.zip
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath gateletics-windows.zip
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: gate-tracker-windows.zip
+          path: gateletics-windows.zip
 
   # -------------------------------------------------------------------------
   # Job 3: Build Linux Desktop App (TAR.GZ)
@@ -127,7 +127,7 @@ jobs:
 
       - name: Compress Linux Release Bundle (Tarball)
         run: |
-          tar -czf gate-tracker-linux.tar.gz -C build/linux/x64/release/bundle .
+          tar -czf gateletics-linux.tar.gz -C build/linux/x64/release/bundle .
 
       - name: Package Linux Desktop App as AppImage
         run: |
@@ -146,30 +146,30 @@ jobs:
           # 4. Create AppRun launch script (using echo to avoid heredoc indentation bugs)
           echo '#!/bin/sh' > AppDir/AppRun
           echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
-          echo 'exec "$HERE/usr/bin/gate_tracker" "$@"' >> AppDir/AppRun
+          echo 'exec "$HERE/usr/bin/gateletics" "$@"' >> AppDir/AppRun
           chmod +x AppDir/AppRun
           
           # 5. Create desktop entry file
-          echo '[Desktop Entry]' > AppDir/gate_tracker.desktop
-          echo 'Name=GATE Tracker' >> AppDir/gate_tracker.desktop
-          echo 'Exec=gate_tracker' >> AppDir/gate_tracker.desktop
-          echo 'Icon=gate_tracker' >> AppDir/gate_tracker.desktop
-          echo 'Type=Application' >> AppDir/gate_tracker.desktop
-          echo 'Categories=Utility;' >> AppDir/gate_tracker.desktop
+          echo '[Desktop Entry]' > AppDir/gateletics.desktop
+          echo 'Name=GATEletics' >> AppDir/gateletics.desktop
+          echo 'Exec=gateletics' >> AppDir/gateletics.desktop
+          echo 'Icon=gateletics' >> AppDir/gateletics.desktop
+          echo 'Type=Application' >> AppDir/gateletics.desktop
+          echo 'Categories=Utility;' >> AppDir/gateletics.desktop
           
           # 6. Copy icon file
-          cp icon.png AppDir/gate_tracker.png
+          cp icon.png AppDir/gateletics.png
           
           # 7. Compile the AppImage
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gate-tracker-linux.AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gateletics-linux.AppImage
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
           path: |
-            gate-tracker-linux.tar.gz
-            gate-tracker-linux.AppImage
+            gateletics-linux.tar.gz
+            gateletics-linux.AppImage
 
   # -------------------------------------------------------------------------
   # Job 4: Build Web App (ZIP Bundle)
@@ -209,14 +209,14 @@ jobs:
       - name: Compress Web Release Bundle (Zip)
         run: |
           cd build/web
-          zip -r ../../gate-tracker-web.zip .
+          zip -r ../../gateletics-web.zip .
           cd ../..
 
       - name: Upload Web Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-build
-          path: gate-tracker-web.zip
+          path: gateletics-web.zip
 
   # -------------------------------------------------------------------------
   # Job 5: Pull and Publish to GitHub Releases
@@ -258,12 +258,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            release-files/gate-tracker.apk
-            release-files/gate-tracker.aab
-            release-files/gate-tracker-windows.zip
-            release-files/gate-tracker-linux.tar.gz
-            release-files/gate-tracker-linux.AppImage
-            release-files/gate-tracker-web.zip
+            release-files/gateletics.apk
+            release-files/gateletics.aab
+            release-files/gateletics-windows.zip
+            release-files/gateletics-linux.tar.gz
+            release-files/gateletics-linux.AppImage
+            release-files/gateletics-web.zip
           draft: false
           prerelease: ${{ startsWith(github.ref_name, 'v0.') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true

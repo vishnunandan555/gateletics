@@ -94,7 +94,7 @@ class SettingsSheet extends ConsumerWidget {
         final bytes = Uint8List.fromList(utf8.encode(json));
         path = await FilePicker.saveFile(
           dialogTitle: 'Save backup to device',
-          fileName: 'gate_tracker_backup.json',
+          fileName: 'gateletics_backup.json',
           bytes: bytes,
           type: FileType.custom,
           allowedExtensions: ['json'],
@@ -102,19 +102,19 @@ class SettingsSheet extends ConsumerWidget {
       } else if (defaultTargetPlatform == TargetPlatform.android ||
                  defaultTargetPlatform == TargetPlatform.iOS) {
         final tempDir = await getTemporaryDirectory();
-        final tempFile = File('${tempDir.path}/gate_tracker_backup.json');
+        final tempFile = File('${tempDir.path}/gateletics_backup.json');
         await tempFile.writeAsString(json);
 
         final params = SaveFileDialogParams(
           sourceFilePath: tempFile.path,
-          fileName: 'gate_tracker_backup.json',
+          fileName: 'gateletics_backup.json',
         );
         path = await FlutterFileDialog.saveFile(params: params);
       } else {
         final bytes = Uint8List.fromList(utf8.encode(json));
         path = await FilePicker.saveFile(
           dialogTitle: 'Save backup to device',
-          fileName: 'gate_tracker_backup.json',
+          fileName: 'gateletics_backup.json',
           bytes: bytes,
           type: FileType.custom,
           allowedExtensions: ['json'],
@@ -648,7 +648,7 @@ class SettingsSheet extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Center(
                     child: Text(
-                      'GATE Tracker v${packageInfo.version}',
+                      'GATEletics v${packageInfo.version}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 10,

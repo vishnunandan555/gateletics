@@ -66,7 +66,7 @@ class GateTrackerApp extends ConsumerWidget {
 
     if (!hasAgreed) {
       return MaterialApp(
-        title: 'GATE Tracker',
+        title: 'GATEletics',
         theme: AppTheme.darkTheme,
         home: const AgreementScreen(),
         debugShowCheckedModeBanner: false,
@@ -75,7 +75,7 @@ class GateTrackerApp extends ConsumerWidget {
 
     if (!hasSetup) {
       return MaterialApp(
-        title: 'GATE Tracker',
+        title: 'GATEletics',
         theme: AppTheme.darkTheme,
         home: const SetupScreen(),
         debugShowCheckedModeBanner: false,
@@ -83,7 +83,7 @@ class GateTrackerApp extends ConsumerWidget {
     }
 
     return MaterialApp.router(
-      title: 'GATE Tracker',
+      title: 'GATEletics',
       theme: AppTheme.darkTheme,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,

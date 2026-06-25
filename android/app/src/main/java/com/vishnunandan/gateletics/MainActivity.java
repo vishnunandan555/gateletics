@@ -1,4 +1,4 @@
-package com.vishnunandan.gate_tracker;
+package com.vishnunandan.gateletics;
 
 import io.flutter.embedding.android.FlutterActivity;
 

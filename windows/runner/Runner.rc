@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "gate_tracker" "\0"
+            VALUE "CompanyName", "com.vishnunandan" "\0"
+            VALUE "FileDescription", "gateletics" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "gate_tracker" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "gate_tracker.exe" "\0"
-            VALUE "ProductName", "gate_tracker" "\0"
+            VALUE "InternalName", "gateletics" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.vishnunandan. All rights reserved." "\0"
+            VALUE "OriginalFilename", "gateletics.exe" "\0"
+            VALUE "ProductName", "gateletics" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

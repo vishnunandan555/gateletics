@@ -1,6 +1,6 @@
 # Contributing Motivational Quotes 🌟
 
-We love community contributions! If you have a favorite motivational quote that keeps you focused, disciplined, or inspired during your exam preparation, you can add it directly to GATE Progress Tracker.
+We love community contributions! If you have a favorite motivational quote that keeps you focused, disciplined, or inspired during your exam preparation, you can add it directly to GATEletics.
 
 Here is how you can contribute your quotes:
 
@@ -15,7 +15,7 @@ Here is how you can contribute your quotes:
 ## Step-by-Step Contribution Guide
 
 ### 1. Fork the Repository
-Click the **Fork** button at the top-right of the [GATE Progress Tracker Repository](https://github.com/vishnunandan555/gate-tracker) to create a copy of the project in your GitHub account.
+Click the **Fork** button at the top-right of the [GATEletics Repository](https://github.com/vishnunandan555/gateletics) to create a copy of the project in your GitHub account.
 
 ### 2. Add Your Quote
 1. Navigate to the `quotes.json` file in the root of your forked repository.
@@ -34,5 +34,5 @@ Example format:
 ### 3. Open a Pull Request (PR)
 1. Commit your changes with a clear commit message, e.g., `feat: add new quote by [Author]`.
 2. Push the changes to your fork.
-3. Open a **Pull Request** from your fork to the main branch of `gate-tracker`.
+3. Open a **Pull Request** from your fork to the main branch of `gateletics`.
 4. We will review and merge it. Once merged, the app will automatically fetch and display your quote to all users!

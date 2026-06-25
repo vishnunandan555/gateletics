@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.vishnunandan.gate_tracker"
+    namespace = "com.vishnunandan.gateletics"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.vishnunandan.gate_tracker"
+        applicationId = "com.vishnunandan.gateletics"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -37,6 +37,7 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }

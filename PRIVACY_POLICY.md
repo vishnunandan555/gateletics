@@ -1,8 +1,8 @@
-# Privacy Policy for GATE Progress Tracker
+# Privacy Policy for GATEletics
 
 Last updated: June 25, 2026
 
-Vishnu Nandan ("we", "our", or "us") operates the GATE Progress Tracker mobile application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
+Vishnu Nandan ("we", "our", or "us") operates the GATEletics mobile application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
 
 ## 1. Information Collection and Use
 

@@ -1,7 +1,7 @@
-# GATE Progress Tracker
+# GATEletics
 
-[![Build & Release](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gate-tracker/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.2--stable-emerald.svg)](https://github.com/vishnunandan555/gate-tracker/releases)
+[![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
+[![Version](https://img.shields.io/badge/version-1.1.2--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -20,13 +20,13 @@ A minimalist, high-performance, offline-first syllabus tracker designed specific
 
 ## 📂 Local Data Storage Specifications
 
-GATE Progress Tracker is fully offline-first, requiring no network connection to operate. All database instances, progress entries, and custom configurations are stored locally on the host device.
+GATEletics is fully offline-first, requiring no network connection to operate. All database instances, progress entries, and custom configurations are stored locally on the host device.
 
 | Platform | Database Type | Storage Directory / File Path | Permission Prompts |
 | :--- | :--- | :--- | :--- |
-| **Android** | SQLite | `/data/data/com.example.gate_tracker/app_flutter/gate_tracker.db` | None (App-private storage) |
-| **Linux** | SQLite | `~/Documents/gate_tracker/gate_tracker.db` | None (User directory) |
-| **Windows** | SQLite | `C:\Users\<username>\Documents\gate_tracker\gate_tracker.db` | None (User directory) |
+| **Android** | SQLite | `/data/data/com.vishnunandan.gateletics/app_flutter/gateletics.db` | None (App-private storage) |
+| **Linux** | SQLite | `~/Documents/gateletics/gateletics.db` | None (User directory) |
+| **Windows** | SQLite | `C:\Users\<username>\Documents\gateletics\gateletics.db` | None (User directory) |
 | **Web** | IndexedDB | Browser-managed client-side database storage via local WebAssembly | None (Standard HTML5 storage) |
 
 ### Note on Web Storage (IndexedDB + WebAssembly)
@@ -51,7 +51,7 @@ GATE Progress Tracker is fully offline-first, requiring no network connection to
 
 ## 🌐 Web Deployment (Vercel)
 
-The web target of GATE Progress Tracker is designed for hosting on Vercel:
+The web target of GATEletics is designed for hosting on Vercel:
 - **Automated CI/CD Pipeline:** The application uses GitHub Actions to compile Dart code and deploy the pre-built web assets (`/build/web`) to Vercel instantly.
 - **Offline PWA Support:** On first load, the browser registers a service worker that caches all application resources—including local SQLite WebAssembly and style binaries—enabling the web app to run 100% offline subsequently.
 
@@ -65,8 +65,8 @@ The web target of GATE Progress Tracker is designed for hosting on Vercel:
 
 ### 1. Clone & Fetch Dependencies
 ```bash
-git clone https://github.com/vishnunandan555/gate-tracker.git
-cd gate-tracker
+git clone https://github.com/vishnunandan555/gateletics.git
+cd gateletics
 flutter pub get
 ```
 

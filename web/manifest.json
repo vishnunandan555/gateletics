@@ -1,11 +1,11 @@
 {
-    "name": "GATE Syllabus Tracker",
-    "short_name": "GATE Tracker",
+    "name": "GATEletics",
+    "short_name": "GATEletics",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#09090b",
     "theme_color": "#10b981",
-    "description": "A premium syllabus tracker for tracking GATE Exam preparation.",
+    "description": "GATEletics — A syllabus and resource tracker for GATE exam preparation.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

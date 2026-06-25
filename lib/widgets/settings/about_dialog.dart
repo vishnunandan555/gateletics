@@ -62,7 +62,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                     // App Title (no shadows)
                     const Center(
                       child: Text(
-                        "GATE TRACKER",
+                        "GATELETICS",
                         style: TextStyle(
                           fontFamily: 'BatmanForever',
                           fontSize: 18,
@@ -129,7 +129,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                       children: [
                         TextButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker/blob/main/TERMS_OF_SERVICE.md');
+                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/blob/main/TERMS_OF_SERVICE.md');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }
@@ -157,7 +157,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                         const SizedBox(width: 12),
                         TextButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker/blob/main/PRIVACY_POLICY.md');
+                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/blob/main/PRIVACY_POLICY.md');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }
@@ -186,7 +186,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                       children: [
                         FilledButton(
                           onPressed: () async {
-                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gate-tracker');
+                            final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics');
                             if (await canLaunchUrl(url)) {
                               await launchUrl(url, mode: LaunchMode.externalApplication);
                             }

@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 const String _kQuotesCacheKey = 'cached_quotes';
 const String _kQuotesUrl =
-    'https://raw.githubusercontent.com/vishnunandan555/gate-tracker/main/quotes.json';
+    'https://raw.githubusercontent.com/vishnunandan555/gateletics/main/quotes.json';
 
 /// Hardcoded fallback quotes in case there's no network and no cache.
 const List<String> _kFallbackQuotes = [
