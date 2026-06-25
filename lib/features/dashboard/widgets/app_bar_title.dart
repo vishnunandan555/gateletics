@@ -42,16 +42,27 @@ class AppBarTitle extends ConsumerWidget {
         GestureDetector(
           onTap: () => _showRandomQuote(context, ref, progressColor),
           behavior: HitTestBehavior.translucent,
-          child: const Text(
-            'GATELETICS',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-              height: 1.1,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'GATE',
+                style: GoogleFonts.boldonse(
+                  fontSize: 24,
+                  height: 1.0,
+                ),
+              ),
+              Text(
+                'LETICS',
+                style: GoogleFonts.orbitron(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  height: 1.15,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),

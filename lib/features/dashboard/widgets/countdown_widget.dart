@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../providers/subject_provider.dart';
 import '../../../providers/target_date_provider.dart';
 
@@ -36,9 +37,8 @@ class CountdownWidget extends ConsumerWidget {
           children: [
             Text(
               '$daysLeft',
-              style: TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 28,
+              style: GoogleFonts.jersey15(
+                fontSize: 32,
                 fontWeight: FontWeight.bold,
                 color: progressColor,
                 height: 1.0,
@@ -46,11 +46,10 @@ class CountdownWidget extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
+            Text(
               'DAYS LEFT',
-              style: TextStyle(
-                fontSize: 8,
-                fontFamily: 'BatmanForever',
+              style: GoogleFonts.jersey15(
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
                 color: Colors.white70,
                 letterSpacing: 0.5,

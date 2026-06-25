@@ -10,6 +10,7 @@ import '../providers/subject_provider.dart';
 import '../providers/completion_type_provider.dart';
 import '../providers/syllabus_provider.dart';
 import '../providers/package_info_provider.dart';
+import '../providers/progress_font_provider.dart';
 
 import 'settings/about_dialog.dart';
 
@@ -588,6 +589,95 @@ class SettingsSheet extends ConsumerWidget {
                               },
                             ),
                           ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      'ACCENT & CATEGORY FONT',
+                      style: TextStyle(
+                        color: ref.watch(overallProgressColorProvider).withAlpha(178),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final currentFont = ref.watch(progressFontProvider);
+                        final accentColor = ref.watch(overallProgressColorProvider);
+
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.start,
+                          children: ProgressFont.values.map((font) {
+                            String label;
+                            switch (font) {
+                              case ProgressFont.orbitron:
+                                label = 'Orbitron';
+                                break;
+                              case ProgressFont.jersey15:
+                                label = 'Jersey 15';
+                                break;
+                              case ProgressFont.jersey10:
+                                label = 'Jersey 10';
+                                break;
+                              case ProgressFont.tektur:
+                                label = 'Tektur';
+                                break;
+                              case ProgressFont.odibeeSans:
+                                label = 'Odibee Sans';
+                                break;
+                              case ProgressFont.pressStart2P:
+                                label = 'Press Start 2P';
+                                break;
+                              case ProgressFont.boldonse:
+                                label = 'Boldonse';
+                                break;
+                            }
+
+                            final isSelected = currentFont == font;
+
+                            return InkWell(
+                              onTap: () => ref
+                                  .read(progressFontProvider.notifier)
+                                  .setProgressFont(font),
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? accentColor.withAlpha(51)
+                                      : Colors.white10,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? accentColor
+                                        : Colors.transparent,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  label,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? accentColor
+                                        : Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
                         );
                       },
                     ),

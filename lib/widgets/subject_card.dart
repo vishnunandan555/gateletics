@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../database/app_database.dart';
 import '../providers/subject_provider.dart';
 import 'progress_bar.dart';
@@ -195,11 +196,10 @@ class SubjectCard extends ConsumerWidget {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF18181B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
+        title: Text(
           'DELETE SUBJECT?',
-          style: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 14,
+          style: GoogleFonts.jersey15(
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.redAccent,
             letterSpacing: 0.8,

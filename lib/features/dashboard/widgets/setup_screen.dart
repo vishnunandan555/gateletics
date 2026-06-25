@@ -149,14 +149,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         const SizedBox(height: 24),
         Text(
           "PREPARATION STYLE",
-          style: GoogleFonts.outfit(
-            textStyle: const TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.5,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.5,
           ),
           textAlign: TextAlign.center,
         ),
@@ -230,14 +227,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         const SizedBox(height: 16),
         Text(
           "GETTING STARTED",
-          style: GoogleFonts.outfit(
-            textStyle: const TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.5,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.5,
           ),
           textAlign: TextAlign.center,
         ),
@@ -307,14 +301,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         const SizedBox(height: 24),
         Text(
           "ARE YOU SURE?",
-          style: GoogleFonts.outfit(
-            textStyle: const TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.amberAccent,
-              letterSpacing: 1.5,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.amberAccent,
+            letterSpacing: 1.5,
           ),
           textAlign: TextAlign.center,
         ),

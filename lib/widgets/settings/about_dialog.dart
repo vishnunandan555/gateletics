@@ -60,12 +60,11 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                     const SizedBox(height: 18),
 
                     // App Title (no shadows)
-                    const Center(
+                     Center(
                       child: Text(
                         "GATELETICS",
-                        style: TextStyle(
-                          fontFamily: 'BatmanForever',
-                          fontSize: 18,
+                        style: GoogleFonts.jersey15(
+                          fontSize: 22,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

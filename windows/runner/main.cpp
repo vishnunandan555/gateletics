@@ -26,8 +26,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
-  Win32Window::Size size(1280, 720);
-  if (!window.Create(L"gateletics", origin, size)) {
+  // Phone aspect ratio: 9:19.5 (≈390×845 logical pixels)
+  Win32Window::Size size(390, 845);
+  if (!window.Create(L"GATEletics", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

@@ -108,14 +108,11 @@ void showEditSyllabusCategoryDialog(BuildContext context, SyllabusCategory categ
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'EDIT SYLLABUS CATEGORY',
-          style: GoogleFonts.outfit(
-            textStyle: TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Color(selectedColor),
-              letterSpacing: 0.8,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(selectedColor),
+            letterSpacing: 0.8,
           ),
         ),
         content: Column(
@@ -214,14 +211,11 @@ void _showDeleteSyllabusCategoryConfirm(BuildContext context, SyllabusCategory c
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'DELETE SYLLABUS CATEGORY?',
-        style: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: Colors.redAccent,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.redAccent,
+          letterSpacing: 0.8,
         ),
       ),
       content: Text(
@@ -262,14 +256,11 @@ void showAddSyllabusTopicDialog(BuildContext context, SyllabusCategory category,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'ADD SYLLABUS TOPIC',
-        style: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: color,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: color,
+          letterSpacing: 0.8,
         ),
       ),
       content: TextField(
@@ -325,15 +316,12 @@ void showReorderSyllabusTopicsDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'REORDER TOPICS',
-            style: GoogleFonts.outfit(
-              textStyle: TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 14,
+              style: GoogleFonts.jersey15(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: color,
                 letterSpacing: 0.8,
               ),
-            ),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -409,14 +397,11 @@ void showCreateSyllabusCategoryDialog(BuildContext context, WidgetRef ref) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'NEW SYLLABUS CATEGORY',
-          style: GoogleFonts.outfit(
-            textStyle: const TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 0.8,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 0.8,
           ),
         ),
         content: Column(
@@ -519,15 +504,12 @@ void showReorderSyllabusCategoriesDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'REORDER CATEGORIES',
-            style: GoogleFonts.outfit(
-              textStyle: const TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 14,
+              style: GoogleFonts.jersey15(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: 0.8,
               ),
-            ),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -606,14 +588,11 @@ void showRenameSyllabusTopicDialog(BuildContext context, SyllabusTopic topic, Co
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'RENAME TOPIC',
-        style: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: accentColor,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: accentColor,
+          letterSpacing: 0.8,
         ),
       ),
       content: TextField(
@@ -664,14 +643,11 @@ void showDeleteSyllabusTopicConfirm(BuildContext context, SyllabusTopic topic, C
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'DELETE TOPIC?',
-        style: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: Colors.redAccent,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.redAccent,
+          letterSpacing: 0.8,
         ),
       ),
       content: Text(
@@ -711,14 +687,11 @@ void showAddSyllabusTaskDialog(BuildContext context, SyllabusTopic topic, Color 
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'ADD TASK',
-        style: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: accentColor,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: accentColor,
+          letterSpacing: 0.8,
         ),
       ),
       content: TextField(
@@ -773,15 +746,12 @@ void showReorderSyllabusTasksDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'REORDER TASKS',
-            style: GoogleFonts.outfit(
-              textStyle: TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 14,
+              style: GoogleFonts.jersey15(
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: accentColor,
                 letterSpacing: 0.8,
               ),
-            ),
           ),
           content: SizedBox(
             width: double.maxFinite,
@@ -855,14 +825,11 @@ void showRenameSyllabusTaskDialog(BuildContext context, SyllabusTask task, Color
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'RENAME TASK',
-        style: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: accentColor,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: accentColor,
+          letterSpacing: 0.8,
         ),
       ),
       content: TextField(
@@ -913,14 +880,11 @@ void showDeleteSyllabusTaskConfirm(BuildContext context, SyllabusTask task, Colo
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'DELETE TASK?',
-        style: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: Colors.redAccent,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.redAccent,
+          letterSpacing: 0.8,
         ),
       ),
       content: Text(

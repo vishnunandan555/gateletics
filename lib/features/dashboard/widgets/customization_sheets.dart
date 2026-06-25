@@ -108,14 +108,11 @@ void showEditCategoryDialog(BuildContext context, Category category, WidgetRef r
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'EDIT CATEGORY',
-          style: GoogleFonts.outfit(
-            textStyle: TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Color(selectedColor),
-              letterSpacing: 0.8,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(selectedColor),
+            letterSpacing: 0.8,
           ),
         ),
         content: Column(
@@ -218,14 +215,11 @@ void _showDeleteCategoryConfirm(BuildContext context, Category category, WidgetR
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'DELETE CATEGORY?',
-        style: GoogleFonts.outfit(
-          textStyle: const TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.redAccent,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.redAccent,
+          letterSpacing: 0.8,
         ),
       ),
       content: Text(
@@ -269,14 +263,11 @@ void showAddSubjectDialog(BuildContext context, Category category, WidgetRef ref
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
         'ADD SUBJECT',
-        style: GoogleFonts.outfit(
-          textStyle: TextStyle(
-            fontFamily: 'BatmanForever',
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-            color: color,
-            letterSpacing: 0.8,
-          ),
+        style: GoogleFonts.jersey15(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: color,
+          letterSpacing: 0.8,
         ),
       ),
       content: SingleChildScrollView(
@@ -393,14 +384,11 @@ void showReorderCategoriesDialog(BuildContext context, List<Category> categories
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           title: Text(
             'REORDER CATEGORIES',
-            style: GoogleFonts.outfit(
-              textStyle: const TextStyle(
-                fontFamily: 'BatmanForever',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.8,
-              ),
+            style: GoogleFonts.jersey15(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 0.8,
             ),
           ),
           content: SizedBox(
@@ -481,14 +469,11 @@ void showCreateCategoryDialog(BuildContext context, WidgetRef ref) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           'NEW CATEGORY',
-          style: GoogleFonts.outfit(
-            textStyle: const TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 0.8,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 0.8,
           ),
         ),
         content: Column(

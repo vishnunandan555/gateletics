@@ -274,14 +274,11 @@ class WelcomeWidget extends ConsumerWidget {
             const SizedBox(width: 10),
             Text(
               'QUICK GUIDE',
-              style: GoogleFonts.outfit(
-                textStyle: TextStyle(
-                  fontFamily: 'BatmanForever',
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: progressColor,
-                  letterSpacing: 0.8,
-                ),
+              style: GoogleFonts.jersey15(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: progressColor,
+                letterSpacing: 0.8,
               ),
             ),
           ],
@@ -342,14 +339,11 @@ class WelcomeWidget extends ConsumerWidget {
         const SizedBox(height: 24),
         Text(
           isSyllabus ? "EMPTY SYLLABUS TRACKER" : "EMPTY RESOURCE TRACKER",
-          style: GoogleFonts.outfit(
-            textStyle: const TextStyle(
-              fontFamily: 'BatmanForever',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.2,
-            ),
+          style: GoogleFonts.jersey15(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.2,
           ),
           textAlign: TextAlign.center,
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
+import '../../../providers/progress_font_provider.dart';
 import 'customization_sheets.dart';
 
 class CategoryHeader extends ConsumerWidget {
@@ -18,13 +20,50 @@ class CategoryHeader extends ConsumerWidget {
     final title = category.name;
     final color = Color(category.color);
     final normalized = (progress / 100).clamp(0.0, 1.0);
-    const baseStyle = TextStyle(
-      fontFamily: 'Legend',
-      fontSize: 26,
-      fontWeight: FontWeight.bold,
+    final selectedFont = ref.watch(progressFontProvider);
+    const categoryFontSize = 26.0;
+    const categoryBase = TextStyle(
+      fontSize: categoryFontSize,
+      fontWeight: FontWeight.w900,
       letterSpacing: 1.2,
       color: Colors.white54,
     );
+
+    TextStyle getCategoryStyle() {
+      switch (selectedFont) {
+        case ProgressFont.jersey15:
+          return GoogleFonts.jersey15(
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -15),
+          );
+        case ProgressFont.jersey10:
+          return GoogleFonts.jersey10(
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -15),
+          );
+        case ProgressFont.tektur:
+          return GoogleFonts.tektur(
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -5),
+          );
+        case ProgressFont.odibeeSans:
+          return GoogleFonts.odibeeSans(
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -10),
+          );
+        case ProgressFont.pressStart2P:
+          return GoogleFonts.pressStart2p(
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - 7),
+          );
+        case ProgressFont.boldonse:
+          return GoogleFonts.boldonse(
+            textStyle: categoryBase.copyWith(
+              fontSize: categoryFontSize - 1,
+              height: 1.6,
+            ),
+          );
+        case ProgressFont.orbitron:
+          return GoogleFonts.orbitron(textStyle: categoryBase);
+      }
+    }
+
+    final baseStyle = getCategoryStyle();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
