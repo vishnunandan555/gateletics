@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.4--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.1.5--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -93,6 +93,15 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+## 🌟 Version 1.1.5 Highlights
+
+- **Completed Category Collapsing**: Categories that are 100% complete now collapse automatically by default, allowing user-toggled expansion with a single tap on the header.
+- **Snug & Balanced Layout Styling**: Collapsed category headers are styled with a clean rounded border container matching their theme color, featuring symmetric dynamic vertical spacing that automatically adjusts based on neighboring collapsed categories.
+- **Syllabus Preset Short Forms**: Shortened default category preset names for syllabus tracking (e.g. `C PROG.`, `DS`, `CD`, `OS`, `CN`, `Aptitude`) to fit mobile layouts better.
+- **Deferred Auto-Sorting**: Improved the Auto-Sort setting so that categories only re-order on tab navigation or app restart, preventing abrupt list jumps during active progress tracking.
+- **Category Font Size Setting**: Added a customization option in Settings to scale the category header font size (Smaller, Normal, or Larger).
+- **Red Shade Accent Update**: Corrected the app's neon red shade to use exactly `#ff0000`.
 
 ## 🌟 Version 1.1.4 Highlights
 
