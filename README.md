@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.1.5--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.0--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -93,6 +93,12 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+## 🌟 Version 1.2.0 Highlights
+
+- **Firebase Authentication & Cloud Sync**: Seamlessly sign in with Google to enable automatic, offline-first progress backups.
+- **Intelligent Database Merging**: If you log in on a new device or have offline edits, the app prompts you to merge your data, keeping the highest progress for each subject.
+- **Unified Backup Service**: Decoupled database import/export operations into a pure data serialization service, optimizing code and reducing footprint.
 
 ## 🌟 Version 1.1.5 Highlights
 

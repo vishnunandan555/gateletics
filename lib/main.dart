@@ -6,14 +6,29 @@ import 'database/app_database.dart';
 import 'providers/subject_provider.dart';
 import 'providers/agreement_provider.dart';
 import 'providers/setup_provider.dart';
+import 'providers/auth_provider.dart';
 import 'features/dashboard/widgets/agreement_screen.dart';
+import 'features/dashboard/widgets/auth_screen.dart';
 import 'features/dashboard/widgets/setup_screen.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
 import 'providers/package_info_provider.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (isFirebaseSupported()) {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      debugPrint("Firebase initialization failed: $e");
+    }
+  }
 
   final packageInfo = await PackageInfo.fromPlatform();
   final appDb = AppDatabase();
@@ -35,9 +50,10 @@ class GateTrackerApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final agreementAsync = ref.watch(agreementProvider);
+    final authAsync = ref.watch(authProvider);
     final setupAsync = ref.watch(setupCompletedProvider);
 
-    if (agreementAsync.isLoading || setupAsync.isLoading) {
+    if (agreementAsync.isLoading || authAsync.isLoading || setupAsync.isLoading) {
       return const MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
@@ -49,8 +65,8 @@ class GateTrackerApp extends ConsumerWidget {
       );
     }
 
-    if (agreementAsync.hasError || setupAsync.hasError) {
-      final error = agreementAsync.error ?? setupAsync.error;
+    if (agreementAsync.hasError || authAsync.hasError || setupAsync.hasError) {
+      final error = agreementAsync.error ?? authAsync.error ?? setupAsync.error;
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
@@ -62,6 +78,7 @@ class GateTrackerApp extends ConsumerWidget {
     }
 
     final hasAgreed = agreementAsync.value ?? false;
+    final authState = authAsync.value;
     final hasSetup = setupAsync.value ?? false;
 
     if (!hasAgreed) {
@@ -69,6 +86,15 @@ class GateTrackerApp extends ConsumerWidget {
         title: 'GATEletics',
         theme: AppTheme.darkTheme,
         home: const AgreementScreen(),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+
+    if (authState != null && !authState.isOfflineMode && authState.user == null) {
+      return MaterialApp(
+        title: 'GATEletics',
+        theme: AppTheme.darkTheme,
+        home: const AuthScreen(),
         debugShowCheckedModeBanner: false,
       );
     }

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "981770496770",
+    "project_id": "gateletics",
+    "storage_bucket": "gateletics.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:981770496770:android:bf38f16f882e62fade701b",
+        "android_client_info": {
+          "package_name": "com.vishnunandan.gateletics"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "981770496770-evrhr2el9stsv4mksn7qvbn2m2n3jo7u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vishnunandan.gateletics",
+            "certificate_hash": "2cef36fe8e848e6aadefbee8e1d86b31eac06af4"
+          }
+        },
+        {
+          "client_id": "981770496770-vjquhdkpekv4t22gaqtm5ng975u7927r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDD9GEpkoqirkyZjOJ6FD5rcgvQhYfoBic"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "981770496770-vjquhdkpekv4t22gaqtm5ng975u7927r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

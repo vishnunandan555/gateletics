@@ -4,6 +4,7 @@ import '../database/app_database.dart';
 import 'subject_provider.dart';
 
 import 'category_autosort_provider.dart';
+import 'sync_provider.dart';
 
 // Stream of categories
 final syllabusCategoriesProvider = StreamProvider<List<SyllabusCategory>>((ref) {
@@ -143,102 +144,126 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
+  void _triggerSync() {
+    ref.read(syncProvider.notifier).autoSync();
+  }
+
   // Task methods
   Future<void> toggleTask(int taskId, bool isCompleted) async {
     await _db.updateSyllabusTaskCompletion(taskId, isCompleted);
     await _db.updateSyllabusCategoryInteractionByTaskId(taskId);
+    _triggerSync();
   }
 
   Future<void> addTask(int topicId, String name) async {
     await _db.addSyllabusTask(topicId, name);
     await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
+    _triggerSync();
   }
 
   Future<void> renameTask(int id, String name, bool isCompleted) async {
     await _db.updateSyllabusTaskDetails(id, name, isCompleted);
     await _db.updateSyllabusCategoryInteractionByTaskId(id);
+    _triggerSync();
   }
 
   Future<void> deleteTask(int id) async {
     await _db.deleteSyllabusTask(id);
+    _triggerSync();
   }
 
   Future<void> reorderTasks(int topicId, List<int> orderedIds) async {
     await _db.updateSyllabusTaskPositions(topicId, orderedIds);
     await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
+    _triggerSync();
   }
 
   // Topic methods
   Future<void> addTopic(int categoryId, String name) async {
     await _db.addSyllabusTopic(categoryId, name);
     await _db.updateSyllabusCategoryInteraction(categoryId);
+    _triggerSync();
   }
 
   Future<void> renameTopic(int id, String name) async {
     await _db.updateSyllabusTopicDetails(id, name);
     await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    _triggerSync();
   }
 
   Future<void> deleteTopic(int id) async {
     await _db.deleteSyllabusTopic(id);
+    _triggerSync();
   }
 
   Future<void> reorderTopics(int categoryId, List<int> orderedIds) async {
     await _db.updateSyllabusTopicPositions(categoryId, orderedIds);
     await _db.updateSyllabusCategoryInteraction(categoryId);
+    _triggerSync();
   }
 
   // Category methods
   Future<void> addCategory(String name, int color) async {
     await _db.addSyllabusCategory(name, color);
     ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> renameCategory(int id, String name, int color) async {
     await _db.updateSyllabusCategoryDetails(id, name, color);
     ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> deleteCategory(int id) async {
     await _db.deleteSyllabusCategory(id);
     ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> reorderCategories(List<int> orderedIds) async {
     await _db.updateSyllabusCategoryPositions(orderedIds);
     ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   // Bulk operations
   Future<void> markCategoryCompleted(int id) async {
     await _db.markSyllabusCategoryCompleted(id);
+    _triggerSync();
   }
 
   Future<void> resetCategoryStats(int id) async {
     await _db.resetSyllabusCategoryStats(id);
+    _triggerSync();
   }
 
   Future<void> markTopicCompleted(int id) async {
     await _db.markSyllabusTopicCompleted(id);
+    _triggerSync();
   }
 
   Future<void> resetTopicStats(int id) async {
     await _db.resetSyllabusTopicStats(id);
+    _triggerSync();
   }
 
   // Reset / Presets
   Future<void> resetTrackingData() async {
     await _db.resetSyllabusTrackingData();
+    _triggerSync();
   }
 
   Future<void> applyPreset() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _db.seedSyllabus());
+    _triggerSync();
   }
 
   Future<void> resetEverything() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _db.resetSyllabusEverything());
+    _triggerSync();
   }
 }
 

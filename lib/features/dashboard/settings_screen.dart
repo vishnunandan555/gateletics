@@ -15,6 +15,9 @@ import '../../providers/package_info_provider.dart';
 import '../../providers/progress_font_provider.dart';
 import '../../providers/category_autosort_provider.dart';
 import '../../providers/category_font_size_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/sync_provider.dart';
+import '../../database/backup_service.dart';
 import '../../widgets/settings/about_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -23,66 +26,7 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     try {
       final db = ref.read(appDatabaseProvider);
-      
-      final categoriesList = await db.select(db.categories).get();
-      final subjectsList = await db.select(db.subjects).get();
-      final syllabusCats = await db.select(db.syllabusCategories).get();
-      final syllabusTops = await db.select(db.syllabusTopics).get();
-      final syllabusTsks = await db.select(db.syllabusTasks).get();
-
-      final categoryMap = {for (var c in categoriesList) c.id: c.name};
-
-      final exportedCategories = categoriesList.map((c) => {
-        'name': c.name,
-        'color': c.color,
-        'position': c.position,
-        'lastInteractedAt': c.lastInteractedAt?.toIso8601String(),
-      }).toList();
-
-      final exportedSubjects = subjectsList.map((s) => {
-        'name': s.name,
-        'categoryName': categoryMap[s.categoryId] ?? 'General',
-        'completedVideos': s.completedVideos,
-        'totalVideos': s.totalVideos,
-        'playlistLink': s.playlistLink,
-        'sourceName': s.sourceName,
-        'isActive': s.isActive,
-        'position': s.position,
-        'color': s.color,
-      }).toList();
-
-      final exportedSyllabusCats = syllabusCats.map((c) => {
-        'id': c.id,
-        'name': c.name,
-        'position': c.position,
-        'color': c.color,
-        'lastInteractedAt': c.lastInteractedAt?.toIso8601String(),
-      }).toList();
-
-      final exportedSyllabusTops = syllabusTops.map((t) => {
-        'id': t.id,
-        'categoryId': t.categoryId,
-        'name': t.name,
-        'position': t.position,
-      }).toList();
-
-      final exportedSyllabusTsks = syllabusTsks.map((k) => {
-        'id': k.id,
-        'topicId': k.topicId,
-        'name': k.name,
-        'isCompleted': k.isCompleted,
-        'position': k.position,
-      }).toList();
-
-      final exportPayload = {
-        'version': 3,
-        'categories': exportedCategories,
-        'subjects': exportedSubjects,
-        'syllabusCategories': exportedSyllabusCats,
-        'syllabusTopics': exportedSyllabusTops,
-        'syllabusTasks': exportedSyllabusTsks,
-      };
-
+      final exportPayload = await BackupService.exportDatabase(db);
       final json = const JsonEncoder.withIndent('  ').convert(exportPayload);
 
       String? path;
@@ -197,92 +141,8 @@ class SettingsScreen extends ConsumerWidget {
           );
         }
       } else {
-        // Full restore
-        final categoriesData = payload['categories'] as List<dynamic>;
-        final subjectsData = payload['subjects'] as List<dynamic>;
-        final syllabusCategoriesData = payload['syllabusCategories'] as List<dynamic>?;
-        final syllabusTopicsData = payload['syllabusTopics'] as List<dynamic>?;
-        final syllabusTasksData = payload['syllabusTasks'] as List<dynamic>?;
-
-        await db.transaction(() async {
-          // 1. Restore resource-based tables
-          await db.delete(db.subjects).go();
-          await db.delete(db.categories).go();
-
-          final categoryNameToNewId = <String, int>{};
-          for (final c in categoriesData) {
-            final name = c['name'] as String;
-            final color = c['color'] as int;
-            final position = c['position'] as int;
-            final lastIntStr = c['lastInteractedAt'] as String?;
-            final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
-            
-            final id = await db.addCategory(name, color, position: position, lastInteractedAt: lastInteracted);
-            categoryNameToNewId[name] = id;
-          }
-
-          for (final s in subjectsData) {
-            final categoryName = s['categoryName'] as String;
-            final catId = categoryNameToNewId[categoryName];
-            if (catId == null) continue; // Skip if category is missing
-
-            await db.addSubject(
-              name: s['name'] as String,
-              categoryId: catId,
-              totalVideos: s['totalVideos'] as int,
-              sourceName: s['sourceName'] as String,
-              playlistLink: s['playlistLink'] as String,
-              isActive: s['isActive'] as bool,
-              color: s['color'] as int?,
-              position: s['position'] as int? ?? 0,
-            );
-          }
-
-          // 2. Restore syllabus-based tables if present in backup
-          if (syllabusCategoriesData != null && syllabusTopicsData != null && syllabusTasksData != null) {
-            await db.delete(db.syllabusTasks).go();
-            await db.delete(db.syllabusTopics).go();
-            await db.delete(db.syllabusCategories).go();
-
-            final oldCatIdToNewId = <int, int>{};
-            for (final c in syllabusCategoriesData) {
-              final oldId = c['id'] as int;
-              final name = c['name'] as String;
-              final color = c['color'] as int;
-              final position = c['position'] as int;
-
-              final newId = await db.addSyllabusCategory(name, color, position: position);
-              oldCatIdToNewId[oldId] = newId;
-            }
-
-            final oldTopicIdToNewId = <int, int>{};
-            for (final t in syllabusTopicsData) {
-              final oldId = t['id'] as int;
-              final oldCatId = t['categoryId'] as int;
-              final name = t['name'] as String;
-              final position = t['position'] as int;
-
-              final newCatId = oldCatIdToNewId[oldCatId];
-              if (newCatId != null) {
-                final newId = await db.addSyllabusTopic(newCatId, name, position: position);
-                oldTopicIdToNewId[oldId] = newId;
-              }
-            }
-
-            for (final k in syllabusTasksData) {
-              final oldTopicId = k['topicId'] as int;
-              final name = k['name'] as String;
-              final isCompleted = k['isCompleted'] as bool;
-              final position = k['position'] as int;
-
-              final newTopicId = oldTopicIdToNewId[oldTopicId];
-              if (newTopicId != null) {
-                final taskId = await db.addSyllabusTask(newTopicId, name, position: position);
-                await db.updateSyllabusTaskCompletion(taskId, isCompleted);
-              }
-            }
-          }
-        });
+        // Full restore using BackupService
+        await BackupService.restoreDatabase(db, payload);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -361,6 +221,120 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  void _showSyncConflictDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          "Sync Conflict Detected",
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18),
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "Both your local device and cloud backup contain study tracking progress. How would you like to resolve this conflict?",
+                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              _buildDialogOption(
+                context: context,
+                title: "Merge Progress (Recommended)",
+                subtitle: "Combine local and cloud progress (no data lost)",
+                icon: Icons.merge_type_rounded,
+                color: Colors.cyanAccent,
+                onTap: () async {
+                  Navigator.pop(context);
+                  await ref.read(syncProvider.notifier).mergeCloudAndLocal();
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDialogOption(
+                context: context,
+                title: "Use Cloud Backup",
+                subtitle: "Overwrite local data with your cloud backup",
+                icon: Icons.cloud_download_rounded,
+                color: Colors.greenAccent,
+                onTap: () async {
+                  Navigator.pop(context);
+                  await ref.read(syncProvider.notifier).downloadCloudToLocal();
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDialogOption(
+                context: context,
+                title: "Keep Local Progress",
+                subtitle: "Overwrite cloud data with your local progress",
+                icon: Icons.cloud_upload_rounded,
+                color: Colors.orangeAccent,
+                onTap: () async {
+                  Navigator.pop(context);
+                  await ref.read(syncProvider.notifier).uploadLocalToCloud();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogOption({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white10),
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white.withAlpha(5),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatSyncTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return "$hour:$minute";
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final packageInfo = ref.watch(packageInfoProvider);
@@ -384,6 +358,250 @@ class SettingsScreen extends ConsumerWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           children: [
+            if (isFirebaseSupported()) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'CLOUD SYNC',
+                  style: TextStyle(
+                    color: accentColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final authAsync = ref.watch(authProvider);
+                  final syncState = ref.watch(syncProvider);
+
+                  return authAsync.when(
+                    data: (authState) {
+                      final user = authState.user;
+                      final isOffline = authState.isOfflineMode;
+
+                      if (user == null || isOffline) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(5),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white.withAlpha(8)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.cloud_off_rounded, color: Colors.white60),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        "Offline Mode Enabled",
+                                        style: GoogleFonts.outfit(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Your progress is stored locally on this device. Sign in with Google to enable automatic cloud sync and backups.",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white30,
+                                    fontSize: 12,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                FilledButton.icon(
+                                  onPressed: () async {
+                                    try {
+                                      await ref.read(authProvider.notifier).signInWithGoogle();
+                                      final needsAction = await ref.read(syncProvider.notifier).initializeSync();
+                                      if (needsAction && context.mounted) {
+                                        _showSyncConflictDialog(context, ref);
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Google Sign-in failed: $e')),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.cyanAccent,
+                                    foregroundColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.login_rounded, size: 18),
+                                  label: Text(
+                                    "SIGN IN WITH GOOGLE",
+                                    style: GoogleFonts.outfit(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(8)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 16,
+                                    backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+                                    backgroundColor: accentColor.withValues(alpha: 0.2),
+                                    child: user.photoURL == null ? const Icon(Icons.person, color: Colors.white) : null,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          user.displayName ?? "GATEletics User",
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        Text(
+                                          user.email ?? "",
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white30,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Divider(color: Colors.white10),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Sync Status:",
+                                          style: GoogleFonts.outfit(color: Colors.white54, fontSize: 11),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          syncState.status == SyncStatus.syncing
+                                              ? "Syncing..."
+                                              : syncState.status == SyncStatus.error
+                                                  ? "Sync Error"
+                                                  : syncState.lastSyncedAt != null
+                                                      ? "Last Synced: ${_formatSyncTime(syncState.lastSyncedAt!)}"
+                                                      : "Not synced",
+                                          style: GoogleFonts.outfit(
+                                            color: syncState.status == SyncStatus.error
+                                                ? Colors.redAccent
+                                                : Colors.cyanAccent,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (syncState.status == SyncStatus.syncing)
+                                    const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent),
+                                    )
+                                  else
+                                    IconButton(
+                                      icon: const Icon(Icons.sync, color: Colors.cyanAccent, size: 20),
+                                      onPressed: () async {
+                                        await ref.read(syncProvider.notifier).mergeCloudAndLocal();
+                                      },
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  await ref.read(authProvider.notifier).signOut();
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.white24),
+                                  foregroundColor: Colors.white70,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                icon: const Icon(Icons.logout_rounded, size: 16),
+                                label: Text(
+                                  "SIGN OUT",
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: Colors.cyanAccent),
+                    ),
+                    error: (err, _) => Text(
+                      'Auth Error: $err',
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  );
+                },
+              ),
+              const Divider(color: Colors.white12),
+            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                'LOCAL BACKUPS',
+                style: TextStyle(
+                  color: accentColor.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
               title: const Text('Export Data'),

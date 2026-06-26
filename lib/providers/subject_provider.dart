@@ -5,6 +5,7 @@ import '../database/app_database.dart';
 import '../core/theme/colors.dart';
 
 import 'category_autosort_provider.dart';
+import 'sync_provider.dart';
 
 // Database Provider
 final appDatabaseProvider = Provider<AppDatabase>((ref) => AppDatabase());
@@ -105,11 +106,16 @@ class SubjectController extends Notifier<AsyncValue<void>> {
 
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
+  void _triggerSync() {
+    ref.read(syncProvider.notifier).autoSync();
+  }
+
   Future<void> updateProgress(Subject subject, int newProgress) async {
     final clampedProgress = newProgress.clamp(0, subject.totalVideos);
     if (subject.completedVideos == clampedProgress) return;
     await _db.updateSubjectProgress(subject.id, clampedProgress);
     await _db.updateCategoryInteraction(subject.categoryId);
+    _triggerSync();
   }
 
   Future<void> addSubject({
@@ -131,6 +137,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
       color: color,
     );
     await _db.updateCategoryInteraction(categoryId);
+    _triggerSync();
   }
 
   Future<void> updateSubjectDetails(
@@ -157,6 +164,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
       categoryId: categoryId,
     );
     await _db.updateCategoryInteraction(categoryId ?? subject.categoryId);
+    _triggerSync();
   }
 
   Future<void> deleteSubject(int id) async {
@@ -166,6 +174,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
     if (catId != null) {
       await _db.updateCategoryInteraction(catId);
     }
+    _triggerSync();
   }
 
   // ----------------------------------------------------
@@ -175,24 +184,29 @@ class SubjectController extends Notifier<AsyncValue<void>> {
   Future<void> addCategory(String name, int color) async {
     await _db.addCategory(name, color);
     ref.read(resourceCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> updateCategory(int id, String name, int color) async {
     await _db.updateCategoryDetails(id, name, color);
     ref.read(resourceCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> deleteCategory(int id) async {
     await _db.deleteCategory(id);
     ref.read(resourceCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> markCategoryCompleted(int id) async {
     await _db.markCategoryCompleted(id);
+    _triggerSync();
   }
 
   Future<void> resetCategoryStats(int id) async {
     await _db.resetCategoryStats(id);
+    _triggerSync();
   }
 
   // ----------------------------------------------------
@@ -202,10 +216,12 @@ class SubjectController extends Notifier<AsyncValue<void>> {
   Future<void> reorderCategories(List<int> orderedIds) async {
     await _db.updateCategoryPositions(orderedIds);
     ref.read(resourceCategoriesOrderProvider.notifier).clear();
+    _triggerSync();
   }
 
   Future<void> reorderSubjects(int categoryId, List<int> orderedIds) async {
     await _db.updateSubjectPositions(categoryId, orderedIds);
+    _triggerSync();
   }
 
   // ----------------------------------------------------
@@ -215,16 +231,19 @@ class SubjectController extends Notifier<AsyncValue<void>> {
   Future<void> resetTrackingData() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _db.resetTrackingData());
+    _triggerSync();
   }
 
   Future<void> resetEverything() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _db.hardResetEverything());
+    _triggerSync();
   }
 
   Future<void> applyPreset() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _db.applyDefaultPreset());
+    _triggerSync();
   }
 
   Future<void> increment(Subject subject) async {
