@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
@@ -26,6 +28,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     _pageController = PageController(initialPage: 0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndInitSync();
+      _checkDesktopWarning();
     });
   }
 
@@ -279,6 +282,99 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _checkDesktopWarning() async {
+    if (!kIsWeb) return;
+
+    // Check if screen width is large (e.g. > 600)
+    final width = MediaQuery.of(context).size.width;
+    if (width <= 600) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenWarning = prefs.getBool('has_seen_desktop_warning') ?? false;
+
+    if (!hasSeenWarning && mounted) {
+      _showDesktopWarningDialog();
+    }
+  }
+
+  void _showDesktopWarningDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B), // Zinc 900
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: const Icon(
+          Icons.phonelink_setup_rounded,
+          color: Colors.cyanAccent,
+          size: 32,
+        ),
+        title: Text(
+          "Optimized for Mobile",
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 18,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "GATEletics is built primarily with a mobile-first user interface. While all features function perfectly on desktop, the visual layout is optimized for narrower aspect ratios.",
+                style: GoogleFonts.outfit(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "💡 Tip: For the best visual experience on your computer, try resizing this browser window to make it narrower, or access it directly from your mobile phone!",
+                style: GoogleFonts.outfit(
+                  color: Colors.cyanAccent.withAlpha(200),
+                  fontSize: 12,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('has_seen_desktop_warning', true);
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              backgroundColor: Colors.cyanAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              "GOT IT",
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

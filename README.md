@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.0--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.2--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -93,6 +93,15 @@ To build a release binary (e.g., for Linux):
 ```bash
 flutter build linux
 ```
+
+## 🌟 Version 1.2.2 Highlights
+
+- **Web Compatibility & Google Login Fixes**: Replaced the deprecated and cookie-blocked `google_sign_in_web` package flow on Web targets with Firebase Auth's native `signInWithPopup`, resolving critical cross-origin iframe security issues and `popup_closed` errors on non-Chrome browsers (like Firefox and Safari).
+- **Responsive Desktop Warn Banner**: Added checks to automatically detect wide desktop screen viewports on Web and display a friendly, user-dismissible onboarding dialog recommending mobile aspect ratio sizing.
+- **Advanced Sync Frequencies**: Added settings for background synchronization intervals (Instant, Every 5 Minutes, On App Close, and Manual) nested inside a collapsed-by-default ExpansionTile.
+- **Optimized Lifecycle Syncing**: Background sync listener flushes unsaved local database changes to the cloud automatically when the app is minimized, closed, or suspended on mobile platforms.
+- **Improved Conflict Resolutions**: Integrated a structural check `_areDataEqual` to perform deep comparison of local and backup database stats. It exits early on equality to prevent duplicate prompt popups if local data matches the cloud backup, and visualizes the cloud's last synced time in the conflict modal.
+- **Robust Database Restoration**: Clears stale Riverpod cached notifier IDs upon database restore or JSON import to avoid UI-query mismatches, and forces server-side Firestore calls for data validation.
 
 ## 🌟 Version 1.2.0 Highlights
 
