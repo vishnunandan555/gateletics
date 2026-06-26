@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/syllabus_provider.dart';
+import '../../../providers/category_font_size_provider.dart';
 import '../../../widgets/progress_bar.dart';
 import 'syllabus_customization_sheets.dart';
 
@@ -28,12 +29,13 @@ class SyllabusTopicCard extends ConsumerWidget {
     final expandedSet = ref.watch(expandedTopicsProvider);
     final isExpanded = expandedSet.contains(topic.id);
 
+    final topicScaleFactor = ref.watch(categoryFontSizeProvider).topicScaleFactor;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Adaptive font sizes based on screen width
-    final topicFontSize = (screenWidth * 0.04).clamp(13.0, 16.0);
-    final percentFontSize = (screenWidth * 0.08).clamp(24.0, 32.0);
-    final countFontSize = (screenWidth * 0.028).clamp(10.0, 12.0);
+    final topicFontSize = (screenWidth * 0.04).clamp(13.0, 16.0) * topicScaleFactor;
+    final percentFontSize = (screenWidth * 0.08).clamp(24.0, 32.0) * topicScaleFactor;
+    final countFontSize = (screenWidth * 0.028).clamp(10.0, 12.0) * topicScaleFactor;
     final taskFontSize = (screenWidth * 0.035).clamp(12.0, 15.0);
 
     late TapDownDetails topicTapDetails;

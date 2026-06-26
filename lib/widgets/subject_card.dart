@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../database/app_database.dart';
 import '../providers/subject_provider.dart';
+import '../providers/category_font_size_provider.dart';
 import 'progress_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -338,6 +339,7 @@ class SubjectCard extends ConsumerWidget {
             ? 0.0
             : (subject.completedVideos / subject.totalVideos) * 100);
 
+    final topicScaleFactor = ref.watch(categoryFontSizeProvider).topicScaleFactor;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Card content: Row without IntrinsicHeight (incompatible with LayoutBuilder in ProgressBar)
@@ -375,7 +377,7 @@ class SubjectCard extends ConsumerWidget {
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                fontSize: (screenWidth * 0.038).clamp(12.0, 15.0),
+                                fontSize: (screenWidth * 0.038).clamp(12.0, 15.0) * topicScaleFactor,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -448,7 +450,7 @@ class SubjectCard extends ConsumerWidget {
                       Text(
                         '${percentage.toStringAsFixed(0)}%',
                         style: TextStyle(
-                          fontSize: (screenWidth * 0.08).clamp(24.0, 34.0),
+                          fontSize: (screenWidth * 0.08).clamp(24.0, 34.0) * topicScaleFactor,
                           fontWeight: FontWeight.w900,
                           color: color,
                           letterSpacing: -1.5,
@@ -466,7 +468,7 @@ class SubjectCard extends ConsumerWidget {
                         '${subject.completedVideos}/${subject.totalVideos}',
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: (screenWidth * 0.028).clamp(9.0, 11.0),
+                          fontSize: (screenWidth * 0.028).clamp(9.0, 11.0) * topicScaleFactor,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
@@ -480,6 +482,7 @@ class SubjectCard extends ConsumerWidget {
         ),
       ),
     );
+
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),

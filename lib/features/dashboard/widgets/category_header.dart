@@ -27,6 +27,12 @@ class CategoryHeader extends ConsumerWidget {
     final selectedFont = ref.watch(progressFontProvider);
     final sizeOpt = ref.watch(categoryFontSizeProvider);
     final categoryFontSize = sizeOpt.size;
+    final scaleFactor = sizeOpt.scaleFactor;
+    
+    final progressFontSize = (20.0 * scaleFactor).clamp(11.0, 20.0);
+    final iconSize = (26.0 * scaleFactor).clamp(14.0, 26.0);
+    final splashRadius = (16.0 * scaleFactor).clamp(10.0, 16.0);
+
     final categoryBase = TextStyle(
       fontSize: categoryFontSize,
       fontWeight: FontWeight.w900,
@@ -129,16 +135,16 @@ class CategoryHeader extends ConsumerWidget {
           style: TextStyle(
             color: color,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: progressFontSize,
           ),
         ),
         const SizedBox(width: 6),
         IconButton(
-          icon: const Icon(Icons.more_vert_rounded, size: 26, color: Colors.white54),
+          icon: Icon(Icons.more_vert_rounded, size: iconSize, color: Colors.white54),
           onPressed: () => showCategoryOptionsSheet(context, category, ref),
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
-          splashRadius: 16,
+          splashRadius: splashRadius,
           tooltip: 'Category Settings',
         ),
       ],

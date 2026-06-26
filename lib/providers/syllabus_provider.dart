@@ -131,6 +131,8 @@ class ExpandedTopicsNotifier extends Notifier<Set<int>> {
   }
 
   bool isExpanded(int id) => state.contains(id);
+
+  void clear() => state = {};
 }
 
 // Controller for syllabus mutations
@@ -145,7 +147,7 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
   void _triggerSync() {
-    ref.read(syncProvider.notifier).autoSync();
+    ref.read(syncProvider.notifier).triggerAutoSync();
   }
 
   // Task methods
@@ -300,6 +302,8 @@ class ManuallyExpandedCompletedSyllabusCategoriesNotifier extends Notifier<Set<i
       state = {...state}..remove(categoryId);
     }
   }
+
+  void clear() => state = {};
 }
 
 final manuallyExpandedCompletedSyllabusCategoriesProvider =

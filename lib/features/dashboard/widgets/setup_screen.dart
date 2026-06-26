@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/sync_provider.dart';
 import '../../../providers/completion_type_provider.dart';
 import '../../../providers/setup_provider.dart';
 import '../../../providers/subject_provider.dart';
@@ -17,6 +19,221 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   int _currentStep = 1;
   CompletionType _selectedType = CompletionType.syllabus;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForCloudBackup();
+    });
+  }
+
+  Future<bool> _checkIfLocalDataExists() async {
+    final db = ref.read(appDatabaseProvider);
+    final cats = await db.select(db.categories).get();
+    if (cats.isNotEmpty) return true;
+    final sylCats = await db.select(db.syllabusCategories).get();
+    if (sylCats.isNotEmpty) return true;
+    return false;
+  }
+
+  Future<void> _checkForCloudBackup() async {
+    final authState = ref.read(authProvider).value;
+    if (authState?.user == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final needsAction = await ref.read(syncProvider.notifier).initializeSync();
+      if (needsAction) {
+        if (mounted) {
+          _showSyncConflictDialog();
+        }
+      } else {
+        final hasData = await _checkIfLocalDataExists();
+        if (hasData) {
+          await ref.read(setupCompletedProvider.notifier).completeSetup();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('✓ Cloud data loaded successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking for cloud backup: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSyncConflictDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          "Sync Conflict Detected",
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18),
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "Both your local device and cloud backup contain study tracking progress. How would you like to resolve this conflict?",
+                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              _buildDialogOption(
+                title: "Merge Progress (Recommended)",
+                subtitle: "Combine local and cloud progress (no data lost)",
+                icon: Icons.merge_type_rounded,
+                color: Colors.cyanAccent,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  setState(() => _isLoading = true);
+                  try {
+                    await ref.read(syncProvider.notifier).mergeCloudAndLocal();
+                    await ref.read(setupCompletedProvider.notifier).completeSetup();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ Cloud data merged successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Merge failed: $e')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDialogOption(
+                title: "Use Cloud Backup",
+                subtitle: "Overwrite local data with your cloud backup",
+                icon: Icons.cloud_download_rounded,
+                color: Colors.greenAccent,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  setState(() => _isLoading = true);
+                  try {
+                    await ref.read(syncProvider.notifier).downloadCloudToLocal();
+                    await ref.read(setupCompletedProvider.notifier).completeSetup();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ Cloud data loaded successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Restore failed: $e')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildDialogOption(
+                title: "Keep Local Progress",
+                subtitle: "Overwrite cloud data with your local progress",
+                icon: Icons.cloud_upload_rounded,
+                color: Colors.orangeAccent,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  setState(() => _isLoading = true);
+                  try {
+                    await ref.read(syncProvider.notifier).uploadLocalToCloud();
+                    await ref.read(setupCompletedProvider.notifier).completeSetup();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('✓ Local progress kept and uploaded successfully!'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Upload failed: $e')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogOption({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white10),
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white.withAlpha(5),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _selectType(CompletionType type) {
     setState(() {

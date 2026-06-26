@@ -1,10 +1,16 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/app_database.dart';
 import '../database/backup_service.dart';
 import 'auth_provider.dart';
 import 'subject_provider.dart';
+import 'syllabus_provider.dart';
+import 'completion_type_provider.dart';
+import '../database/syllabus_preset.dart';
 
 enum SyncStatus {
   idle,
@@ -42,10 +48,129 @@ class SyncState {
   }
 }
 
-class SyncNotifier extends Notifier<SyncState> {
+class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
+  bool _hasPendingChanges = false;
+  Timer? _syncTimer;
+
+  bool get hasPendingChanges => _hasPendingChanges;
+
   @override
   SyncState build() {
+    _load();
+    WidgetsBinding.instance.addObserver(this);
+    ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
+      _syncTimer?.cancel();
+    });
     return SyncState(status: SyncStatus.idle);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      final freq = ref.read(syncFrequencyProvider);
+      if (freq == SyncFrequency.appClose && _hasPendingChanges) {
+        autoSync();
+      }
+    }
+  }
+
+  void triggerAutoSync() {
+    _hasPendingChanges = true;
+    final freq = ref.read(syncFrequencyProvider);
+    switch (freq) {
+      case SyncFrequency.instant:
+        autoSync();
+        break;
+      case SyncFrequency.fiveMinutes:
+        _scheduleFiveMinuteSync();
+        break;
+      case SyncFrequency.appClose:
+      case SyncFrequency.manual:
+        // Do nothing automatically, wait for app close or manual sync
+        break;
+    }
+  }
+
+  void _scheduleFiveMinuteSync() {
+    if (_syncTimer != null && _syncTimer!.isActive) return;
+    _syncTimer = Timer(const Duration(minutes: 5), () async {
+      if (_hasPendingChanges) {
+        await autoSync();
+      }
+      _syncTimer = null;
+    });
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastSyncedStr = prefs.getString('last_synced_at');
+      final lastStatusStr = prefs.getString('last_sync_status');
+      final lastErrorStr = prefs.getString('last_sync_error');
+
+      DateTime? lastSyncedAt;
+      if (lastSyncedStr != null) {
+        lastSyncedAt = DateTime.tryParse(lastSyncedStr);
+      }
+
+      SyncStatus status = SyncStatus.idle;
+      if (lastStatusStr != null) {
+        status = SyncStatus.values.firstWhere(
+          (e) => e.name == lastStatusStr,
+          orElse: () => SyncStatus.idle,
+        );
+      }
+
+      state = SyncState(
+        status: status,
+        lastSyncedAt: lastSyncedAt,
+        errorMessage: lastErrorStr,
+      );
+    } catch (e) {
+      debugPrint("Error loading sync state from prefs: $e");
+    }
+  }
+
+  Future<void> _updateSyncState({
+    required SyncStatus status,
+    DateTime? lastSyncedAt,
+    String? errorMessage,
+    Map<String, dynamic>? pendingCloudData,
+  }) async {
+    state = SyncState(
+      status: status,
+      lastSyncedAt: lastSyncedAt ?? state.lastSyncedAt,
+      errorMessage: errorMessage,
+      pendingCloudData: pendingCloudData,
+    );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_sync_status', status.name);
+      if (lastSyncedAt != null) {
+        await prefs.setString('last_synced_at', lastSyncedAt.toIso8601String());
+      }
+      if (errorMessage != null) {
+        await prefs.setString('last_sync_error', errorMessage);
+      } else {
+        await prefs.remove('last_sync_error');
+      }
+    } catch (e) {
+      debugPrint("Error saving sync state to prefs: $e");
+    }
+  }
+
+  Future<void> clearSyncState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('last_sync_status');
+      await prefs.remove('last_synced_at');
+      await prefs.remove('last_sync_error');
+    } catch (e) {
+      debugPrint("Error clearing sync state: $e");
+    }
+    state = SyncState(status: SyncStatus.idle);
   }
 
   AppDatabase get _db => ref.read(appDatabaseProvider);
@@ -56,8 +181,17 @@ class SyncNotifier extends Notifier<SyncState> {
   }
 
   // Helper: Restore database from backup JSON format
-  Future<void> _restoreLocalData(Map<String, dynamic> payload) {
-    return BackupService.restoreDatabase(_db, payload);
+  Future<void> _restoreLocalData(Map<String, dynamic> payload) async {
+    await BackupService.restoreDatabase(_db, payload);
+    clearDatabaseCaches();
+  }
+
+  void clearDatabaseCaches() {
+    ref.read(resourceCategoriesOrderProvider.notifier).clear();
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+    ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).clear();
+    ref.read(expandedTopicsProvider.notifier).clear();
+    ref.read(manuallyExpandedCompletedSyllabusCategoriesProvider.notifier).clear();
   }
 
   // Intelligent Merge local data with cloud data
@@ -126,10 +260,20 @@ class SyncNotifier extends Notifier<SyncState> {
 
     // Merge Syllabus Topics by Category Name & Topic Name
     final mergedSylTops = <String, Map<String, dynamic>>{};
-    for (final t in [...localSylTops, ...cloudSylTops]) {
+    for (final t in localSylTops) {
       final catName = t.containsKey('categoryName')
           ? t['categoryName'] as String
-          : getSylCatName(t['categoryId'] as int, t['categoryId'] < 1000 ? localSylCats : cloudSylCats);
+          : getSylCatName(t['categoryId'] as int, localSylCats);
+      final key = "${catName}_${t['name']}";
+      mergedSylTops[key] = {
+        ...t,
+        'categoryName': catName,
+      };
+    }
+    for (final t in cloudSylTops) {
+      final catName = t.containsKey('categoryName')
+          ? t['categoryName'] as String
+          : getSylCatName(t['categoryId'] as int, cloudSylCats);
       final key = "${catName}_${t['name']}";
       if (!mergedSylTops.containsKey(key)) {
         mergedSylTops[key] = {
@@ -140,7 +284,7 @@ class SyncNotifier extends Notifier<SyncState> {
     }
 
     // Helper to find Topic Name
-    String getTopicKey(int topicId, List<Map<String, dynamic>> topsList, List<Map<String, dynamic>> catsList) {
+    String getTopicKeyForSource(int topicId, List<Map<String, dynamic>> topsList, List<Map<String, dynamic>> catsList) {
       final match = topsList.firstWhere((t) => t['id'] == topicId, orElse: () => {});
       final name = match['name'] as String? ?? 'Unknown';
       final catId = match['categoryId'] as int? ?? 0;
@@ -150,10 +294,20 @@ class SyncNotifier extends Notifier<SyncState> {
 
     // Merge Syllabus Tasks by Topic name & Task name
     final mergedSylTsks = <String, Map<String, dynamic>>{};
-    for (final k in [...localSylTsks, ...cloudSylTsks]) {
+    for (final k in localSylTsks) {
       final topicKey = k.containsKey('topicKey')
           ? k['topicKey'] as String
-          : getTopicKey(k['topicId'] as int, k['topicId'] < 1000 ? localSylTops : cloudSylTops, k['topicId'] < 1000 ? localSylCats : cloudSylCats);
+          : getTopicKeyForSource(k['topicId'] as int, localSylTops, localSylCats);
+      final key = "${topicKey}_${k['name']}";
+      mergedSylTsks[key] = {
+        ...k,
+        'topicKey': topicKey,
+      };
+    }
+    for (final k in cloudSylTsks) {
+      final topicKey = k.containsKey('topicKey')
+          ? k['topicKey'] as String
+          : getTopicKeyForSource(k['topicId'] as int, cloudSylTops, cloudSylCats);
       final key = "${topicKey}_${k['name']}";
       if (!mergedSylTsks.containsKey(key)) {
         mergedSylTsks[key] = {
@@ -229,26 +383,56 @@ class SyncNotifier extends Notifier<SyncState> {
   // Sync Operations
   // ----------------------------------------------------
 
+  Future<bool> _hasLocalUserModifications() async {
+    try {
+      // 1. Check if there is any progress in resource-based subjects
+      final subjects = await _db.select(_db.subjects).get();
+      if (subjects.any((s) => s.completedVideos > 0)) return true;
+
+      // 2. Check if there is any progress in syllabus tasks
+      final tasks = await _db.select(_db.syllabusTasks).get();
+      if (tasks.any((t) => t.isCompleted)) return true;
+
+      // 3. Check if there are custom resource categories or missing default categories
+      final categories = await _db.select(_db.categories).get();
+      final defaultCatNames = {'Mathematics', 'Programming', 'Machine Logic', 'Core Systems', 'Aptitude'};
+      final currentCatNames = categories.map((c) => c.name).toSet();
+      if (currentCatNames.length != defaultCatNames.length || !currentCatNames.containsAll(defaultCatNames)) {
+        return true;
+      }
+
+      // 4. Check if there are custom syllabus categories or missing default syllabus categories
+      final sylCategories = await _db.select(_db.syllabusCategories).get();
+      final defaultSylCatNames = defaultSyllabusPreset.map((e) => e.name).toSet();
+      final currentSylCatNames = sylCategories.map((c) => c.name).toSet();
+      if (currentSylCatNames.length != defaultSylCatNames.length || !currentSylCatNames.containsAll(defaultSylCatNames)) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Error checking local modifications: $e");
+      return true;
+    }
+    return false;
+  }
+
   // Call on Startup or after sign-in. Returns true if sync conflicts require user choice.
   Future<bool> initializeSync() async {
     if (!isFirebaseSupported()) return false;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return false;
 
-    state = SyncState(status: SyncStatus.syncing);
+    await _updateSyncState(status: SyncStatus.syncing);
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get(const GetOptions(source: Source.server));
       
-      final localData = await _exportLocalData();
-      final hasLocalData = (localData['categories'] as List).isNotEmpty || 
-                           (localData['syllabusCategories'] as List).isNotEmpty;
+      final hasLocalData = await _hasLocalUserModifications();
 
       if (!doc.exists || doc.data()?['data'] == null) {
         // Cloud is empty. If local has data, upload it.
         if (hasLocalData) {
           await uploadLocalToCloud();
         } else {
-          state = SyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
+          await _updateSyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
         }
         return false;
       }
@@ -256,21 +440,49 @@ class SyncNotifier extends Notifier<SyncState> {
       // Cloud database exists
       final cloudData = doc.data()!['data'] as Map<String, dynamic>;
 
+      // Get lastSyncedAt from the cloud document
+      DateTime? cloudLastSynced;
+      final ts = doc.data()?['lastSyncedAt'];
+      if (ts is Timestamp) {
+        cloudLastSynced = ts.toDate();
+      }
+
+      // Deep data comparison: if local and cloud are identical, bypass conflict check
+      if (hasLocalData) {
+        final localData = await _exportLocalData();
+        if (_areDataEqual(localData, cloudData)) {
+          await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
+          return false;
+        }
+      }
+
       if (!hasLocalData) {
         // Local is empty (e.g., fresh install). Auto-download.
         await _restoreLocalData(cloudData);
-        state = SyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
+
+        // Restore completionType
+        final compTypeStr = cloudData['completionType'] as String?;
+        if (compTypeStr != null) {
+          final compType = CompletionType.values.firstWhere(
+            (e) => e.name == compTypeStr,
+            orElse: () => CompletionType.resource,
+          );
+          await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
+        }
+
+        await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
         return false;
       }
 
       // Conflict: Both local and cloud have progress entries. Requires user action.
-      state = SyncState(
+      await _updateSyncState(
         status: SyncStatus.requiresAction,
+        lastSyncedAt: cloudLastSynced,
         pendingCloudData: cloudData,
       );
       return true;
     } catch (e) {
-      state = SyncState(status: SyncStatus.error, errorMessage: e.toString());
+      await _updateSyncState(status: SyncStatus.error, errorMessage: e.toString());
       return false;
     }
   }
@@ -280,16 +492,22 @@ class SyncNotifier extends Notifier<SyncState> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    state = SyncState(status: SyncStatus.syncing);
+    _hasPendingChanges = false;
+    _syncTimer?.cancel();
+    _syncTimer = null;
+
+    await _updateSyncState(status: SyncStatus.syncing);
     try {
       final localData = await _exportLocalData();
+      localData['completionType'] = ref.read(completionTypeProvider).name;
+
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'data': localData,
         'lastSyncedAt': FieldValue.serverTimestamp(),
       });
-      state = SyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
+      await _updateSyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
     } catch (e) {
-      state = SyncState(status: SyncStatus.error, errorMessage: e.toString());
+      await _updateSyncState(status: SyncStatus.error, errorMessage: e.toString());
     }
   }
 
@@ -298,16 +516,34 @@ class SyncNotifier extends Notifier<SyncState> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    state = SyncState(status: SyncStatus.syncing);
+    await _updateSyncState(status: SyncStatus.syncing);
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get(const GetOptions(source: Source.server));
       if (doc.exists && doc.data()?['data'] != null) {
         final cloudData = doc.data()!['data'] as Map<String, dynamic>;
         await _restoreLocalData(cloudData);
+
+        // Restore completionType
+        final compTypeStr = cloudData['completionType'] as String?;
+        if (compTypeStr != null) {
+          final compType = CompletionType.values.firstWhere(
+            (e) => e.name == compTypeStr,
+            orElse: () => CompletionType.resource,
+          );
+          await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
+        }
+        // Get lastSyncedAt from the cloud document
+        DateTime? cloudLastSynced;
+        final ts = doc.data()?['lastSyncedAt'];
+        if (ts is Timestamp) {
+          cloudLastSynced = ts.toDate();
+        }
+        await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
+      } else {
+        await _updateSyncState(status: SyncStatus.success);
       }
-      state = SyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
     } catch (e) {
-      state = SyncState(status: SyncStatus.error, errorMessage: e.toString());
+      await _updateSyncState(status: SyncStatus.error, errorMessage: e.toString());
     }
   }
 
@@ -317,12 +553,12 @@ class SyncNotifier extends Notifier<SyncState> {
     if (user == null) return;
 
     final cloudData = state.pendingCloudData;
-    state = SyncState(status: SyncStatus.syncing);
+    await _updateSyncState(status: SyncStatus.syncing);
 
     try {
       Map<String, dynamic>? dataToMerge = cloudData;
       if (dataToMerge == null) {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get(const GetOptions(source: Source.server));
         if (doc.exists && doc.data()?['data'] != null) {
           dataToMerge = doc.data()!['data'] as Map<String, dynamic>;
         }
@@ -334,16 +570,27 @@ class SyncNotifier extends Notifier<SyncState> {
         
         // Restore local DB with merged data
         await _restoreLocalData(merged);
+
+        // Restore completionType
+        final compTypeStr = dataToMerge['completionType'] as String?;
+        if (compTypeStr != null) {
+          final compType = CompletionType.values.firstWhere(
+            (e) => e.name == compTypeStr,
+            orElse: () => CompletionType.resource,
+          );
+          await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
+        }
         
         // Write merged data back to Cloud
+        merged['completionType'] = ref.read(completionTypeProvider).name;
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'data': merged,
           'lastSyncedAt': FieldValue.serverTimestamp(),
         });
       }
-      state = SyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
+      await _updateSyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
     } catch (e) {
-      state = SyncState(status: SyncStatus.error, errorMessage: e.toString());
+      await _updateSyncState(status: SyncStatus.error, errorMessage: e.toString());
     }
   }
 
@@ -353,18 +600,129 @@ class SyncNotifier extends Notifier<SyncState> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    _hasPendingChanges = false;
+    _syncTimer?.cancel();
+    _syncTimer = null;
+
     try {
       final localData = await _exportLocalData();
+      localData['completionType'] = ref.read(completionTypeProvider).name;
+
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'data': localData,
         'lastSyncedAt': FieldValue.serverTimestamp(),
       });
+      // Silent success: keep previous status but update lastSyncedAt.
+      await _updateSyncState(status: state.status, lastSyncedAt: DateTime.now());
     } catch (_) {
       // Fail silently on auto-sync (likely internet is down)
+    }
+  }
+
+  bool _areDataEqual(Map<String, dynamic> local, Map<String, dynamic> cloud) {
+    try {
+      // Compare completionType
+      if (local['completionType'] != cloud['completionType']) return false;
+
+      // Compare categories count and names
+      final localCats = local['categories'] as List?;
+      final cloudCats = cloud['categories'] as List?;
+      if (localCats?.length != cloudCats?.length) return false;
+
+      // Compare subjects progress
+      final localSubjs = local['subjects'] as List?;
+      final cloudSubjs = cloud['subjects'] as List?;
+      if (localSubjs?.length != cloudSubjs?.length) return false;
+      
+      // Map local subjects by name for comparison
+      final localSubjMap = {
+        for (var s in (localSubjs ?? [])) 
+          "${s['categoryName'] ?? ''}_${s['name'] ?? ''}": s
+      };
+      for (final cs in (cloudSubjs ?? [])) {
+        final key = "${cs['categoryName'] ?? ''}_${cs['name'] ?? ''}";
+        final ls = localSubjMap[key];
+        if (ls == null) return false;
+        if (ls['completedVideos'] != cs['completedVideos']) return false;
+        if (ls['totalVideos'] != cs['totalVideos']) return false;
+      }
+
+      // Compare syllabus tasks progress
+      final localTasks = local['syllabusTasks'] as List?;
+      final cloudTasks = cloud['syllabusTasks'] as List?;
+      if (localTasks?.length != cloudTasks?.length) return false;
+
+      // Map local syllabus tasks by topicKey and name
+      final localTaskMap = {
+        for (var t in (localTasks ?? []))
+          "${t['topicKey'] ?? t['topicId']}_${t['name'] ?? ''}": t
+      };
+      for (final ct in (cloudTasks ?? [])) {
+        final key = "${ct['topicKey'] ?? ct['topicId']}_${ct['name'] ?? ''}";
+        final lt = localTaskMap[key];
+        if (lt == null) return false;
+        if (lt['isCompleted'] != ct['isCompleted']) return false;
+      }
+
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 }
 
 final syncProvider = NotifierProvider<SyncNotifier, SyncState>(() {
   return SyncNotifier();
+});
+
+enum SyncFrequency {
+  instant,
+  fiveMinutes,
+  appClose,
+  manual,
+}
+
+class SyncFrequencyNotifier extends Notifier<SyncFrequency> {
+  @override
+  SyncFrequency build() {
+    _load();
+    return SyncFrequency.instant;
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final val = prefs.getString('sync_frequency');
+    if (val != null) {
+      state = SyncFrequency.values.firstWhere(
+        (e) => e.name == val,
+        orElse: () => SyncFrequency.instant,
+      );
+    }
+  }
+
+  Future<void> setFrequency(SyncFrequency val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('sync_frequency', val.name);
+    state = val;
+
+    final syncNotifier = ref.read(syncProvider.notifier);
+    if (val == SyncFrequency.instant) {
+      if (syncNotifier.hasPendingChanges) {
+        syncNotifier.autoSync();
+      }
+      syncNotifier._syncTimer?.cancel();
+      syncNotifier._syncTimer = null;
+    } else if (val == SyncFrequency.fiveMinutes) {
+      if (syncNotifier.hasPendingChanges) {
+        syncNotifier._scheduleFiveMinuteSync();
+      }
+    } else {
+      syncNotifier._syncTimer?.cancel();
+      syncNotifier._syncTimer = null;
+    }
+  }
+}
+
+final syncFrequencyProvider = NotifierProvider<SyncFrequencyNotifier, SyncFrequency>(() {
+  return SyncFrequencyNotifier();
 });

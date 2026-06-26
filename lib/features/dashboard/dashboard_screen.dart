@@ -68,7 +68,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                     child: PillProgressWidget(
                       percentage: overallProgress,
                       totalCompleted: totalCompleted,
@@ -198,7 +198,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                   child: PillProgressWidget(
                     percentage: overallProgress,
                     totalCompleted: totalCompleted,

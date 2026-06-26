@@ -80,8 +80,8 @@ class BackupService {
       final categoryNameToNewId = <String, int>{};
       for (final c in categoriesData) {
         final name = c['name'] as String;
-        final color = c['color'] as int;
-        final position = c['position'] as int;
+        final color = (c['color'] as num).toInt();
+        final position = (c['position'] as num).toInt();
         final lastIntStr = c['lastInteractedAt'] as String?;
         final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
         
@@ -97,12 +97,13 @@ class BackupService {
         await db.addSubject(
           name: s['name'] as String,
           categoryId: catId,
-          totalVideos: s['totalVideos'] as int,
+          totalVideos: (s['totalVideos'] as num).toInt(),
           sourceName: s['sourceName'] as String,
           playlistLink: s['playlistLink'] as String,
           isActive: s['isActive'] as bool,
-          color: s['color'] as int?,
-          position: s['position'] as int? ?? 0,
+          completedVideos: (s['completedVideos'] as num?)?.toInt() ?? 0,
+          color: (s['color'] as num?)?.toInt(),
+          position: (s['position'] as num?)?.toInt() ?? 0,
         );
       }
 
@@ -114,21 +115,23 @@ class BackupService {
 
         final oldCatIdToNewId = <int, int>{};
         for (final c in syllabusCategoriesData) {
-          final oldId = c['id'] as int;
+          final oldId = (c['id'] as num).toInt();
           final name = c['name'] as String;
-          final color = c['color'] as int;
-          final position = c['position'] as int;
+          final color = (c['color'] as num).toInt();
+          final position = (c['position'] as num).toInt();
+          final lastIntStr = c['lastInteractedAt'] as String?;
+          final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
 
-          final newId = await db.addSyllabusCategory(name, color, position: position);
+          final newId = await db.addSyllabusCategory(name, color, position: position, lastInteractedAt: lastInteracted);
           oldCatIdToNewId[oldId] = newId;
         }
 
         final oldTopicIdToNewId = <int, int>{};
         for (final t in syllabusTopicsData) {
-          final oldId = t['id'] as int;
-          final oldCatId = t['categoryId'] as int;
+          final oldId = (t['id'] as num).toInt();
+          final oldCatId = (t['categoryId'] as num).toInt();
           final name = t['name'] as String;
-          final position = t['position'] as int;
+          final position = (t['position'] as num).toInt();
 
           final newCatId = oldCatIdToNewId[oldCatId];
           if (newCatId != null) {
@@ -138,10 +141,10 @@ class BackupService {
         }
 
         for (final k in syllabusTasksData) {
-          final oldTopicId = k['topicId'] as int;
+          final oldTopicId = (k['topicId'] as num).toInt();
           final name = k['name'] as String;
           final isCompleted = k['isCompleted'] as bool;
-          final position = k['position'] as int;
+          final position = (k['position'] as num).toInt();
 
           final newTopicId = oldTopicIdToNewId[oldTopicId];
           if (newTopicId != null) {

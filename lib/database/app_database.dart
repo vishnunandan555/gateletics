@@ -82,6 +82,7 @@ class SyllabusCategoryWithTopics {
 @DriftDatabase(tables: [Categories, Subjects, SyllabusCategories, SyllabusTopics, SyllabusTasks])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
+  AppDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => appSchemaVersion;
@@ -176,6 +177,7 @@ class AppDatabase extends _$AppDatabase {
     required String playlistLink,
     required String sourceName,
     required bool isActive,
+    int? completedVideos,
     int? color,
     int? position,
   }) async {
@@ -191,6 +193,7 @@ class AppDatabase extends _$AppDatabase {
       playlistLink: Value(playlistLink),
       sourceName: Value(sourceName),
       isActive: Value(isActive),
+      completedVideos: completedVideos != null ? Value(completedVideos) : const Value.absent(),
       position: pos,
       color: Value(color),
     ));

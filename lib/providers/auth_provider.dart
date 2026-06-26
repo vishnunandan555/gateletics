@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'sync_provider.dart';
 
 // Check if Firebase is supported on the current platform
 bool isFirebaseSupported() {
@@ -77,6 +78,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId: kIsWeb ? '981770496770-vjquhdkpekv4t22gaqtm5ng975u7927r.apps.googleusercontent.com' : null,
         scopes: ['email'],
       );
 
@@ -131,6 +133,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         await FirebaseAuth.instance.signOut();
       }
       await _prefs.setBool('has_chosen_offline', false);
+      try {
+        await ref.read(syncProvider.notifier).clearSyncState();
+      } catch (e) {
+        debugPrint("Error clearing sync state: $e");
+      }
       state = AsyncValue.data(AuthState(
         user: null,
         isOfflineMode: false,
@@ -148,6 +155,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     if (isFirebaseSupported()) {
       await GoogleSignIn().signOut();
       await FirebaseAuth.instance.signOut();
+    }
+    try {
+      await ref.read(syncProvider.notifier).clearSyncState();
+    } catch (e) {
+      debugPrint("Error clearing sync state: $e");
     }
     state = AsyncValue.data(AuthState(
       user: null,

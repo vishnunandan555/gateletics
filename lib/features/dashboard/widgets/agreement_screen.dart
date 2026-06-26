@@ -111,231 +111,223 @@ If you have any questions about this Privacy Policy, please contact us at: vishn
               builder: (context, constraints) {
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: IntrinsicHeight(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 24),
-                            // App Icon / Welcome Header
-                            Center(
-                              child: Container(
-                                width: 72,
-                                height: 72,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(22),
-                                  border: Border.all(color: Colors.white.withAlpha(20), width: 1.5),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Image.asset(
-                                    'icon.png',
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        // App Icon / Welcome Header
+                        Center(
+                          child: Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(color: Colors.white.withAlpha(20), width: 1.5),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.asset(
+                                'icon.png',
+                                fit: BoxFit.cover,
                               ),
                             ),
-                            const SizedBox(height: 20),
-                            Center(
-                              child: Text(
-                                "GATELETICS",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 2.0,
-                                  color: Colors.white,
-                                ),
-                              ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Center(
+                          child: Text(
+                            "GATELETICS",
+                            style: GoogleFonts.outfit(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2.0,
+                              color: Colors.white,
                             ),
-                            const SizedBox(height: 8),
-                            Center(
-                              child: Text(
-                                "Please review and accept our policies to continue",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  color: Colors.white38,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            "Please review and accept our policies to continue",
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              color: Colors.white38,
                             ),
-                            const SizedBox(height: 32),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
 
-                            // Welcome Message
-                            Text(
-                              "Welcome to GATEletics. Before you begin tracking your syllabus progress, please take a moment to read and accept our legal terms.",
-                              style: GoogleFonts.outfit(
-                                color: Colors.white70,
-                                fontSize: 13.5,
-                                height: 1.6,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 24),
+                        // Welcome Message
+                        Text(
+                          "Welcome to GATEletics. Before you begin tracking your syllabus progress, please take a moment to read and accept our legal terms.",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white70,
+                            fontSize: 13.5,
+                            height: 1.6,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
 
-                            // Terms Card Button
-                            ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              tileColor: Colors.white.withAlpha(8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: const BorderSide(color: Colors.white10),
-                              ),
-                              leading: const Icon(Icons.description_rounded, color: Colors.cyanAccent),
-                              title: Text(
-                                "Terms of Service",
-                                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              subtitle: Text(
-                                "Usage conditions & disclaimer",
-                                style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
-                              onTap: () => _showDocumentDialog("Terms of Service", _tosText),
-                            ),
-                            const SizedBox(height: 12),
+                        // Terms Card Button
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          tileColor: Colors.white.withAlpha(8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: Colors.white10),
+                          ),
+                          leading: const Icon(Icons.description_rounded, color: Colors.cyanAccent),
+                          title: Text(
+                            "Terms of Service",
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            "Usage conditions & disclaimer",
+                            style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+                          onTap: () => _showDocumentDialog("Terms of Service", _tosText),
+                        ),
+                        const SizedBox(height: 12),
 
-                            // Privacy Card Button
-                            ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              tileColor: Colors.white.withAlpha(8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: const BorderSide(color: Colors.white10),
-                              ),
-                              leading: const Icon(Icons.privacy_tip_rounded, color: Colors.cyanAccent),
-                              title: Text(
-                                "Privacy Policy",
-                                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              subtitle: Text(
-                                "Data storage & usage details",
-                                style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
-                              onTap: () => _showDocumentDialog("Privacy Policy", _privacyText),
-                            ),
-                            
-                            const Spacer(),
-                            const SizedBox(height: 24),
+                        // Privacy Card Button
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          tileColor: Colors.white.withAlpha(8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: Colors.white10),
+                          ),
+                          leading: const Icon(Icons.privacy_tip_rounded, color: Colors.cyanAccent),
+                          title: Text(
+                            "Privacy Policy",
+                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            "Data storage & usage details",
+                            style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+                          onTap: () => _showDocumentDialog("Privacy Policy", _privacyText),
+                        ),
+                        
+                        const SizedBox(height: 24),
 
-                            // Agreement Toggles in a clean Card style
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(5),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withAlpha(8)),
-                              ),
-                              child: Theme(
-                                data: ThemeData(unselectedWidgetColor: Colors.white30),
-                                child: Column(
-                                  children: [
-                                    CheckboxListTile(
-                                      activeColor: Colors.cyanAccent,
-                                      checkColor: Colors.black,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                      value: _tosAgreed,
-                                      title: Text(
-                                        "I read and agree to the Terms of Service",
-                                        style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                                      ),
-                                      controlAffinity: ListTileControlAffinity.leading,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _tosAgreed = val ?? false;
-                                        });
-                                      },
-                                    ),
-                                    const Divider(color: Colors.white10, height: 1),
-                                    CheckboxListTile(
-                                      activeColor: Colors.cyanAccent,
-                                      checkColor: Colors.black,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                      value: _privacyAgreed,
-                                      title: Text(
-                                        "I read and agree to the Privacy Policy",
-                                        style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                                      ),
-                                      controlAffinity: ListTileControlAffinity.leading,
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _privacyAgreed = val ?? false;
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Action Buttons
-                            Row(
+                        // Agreement Toggles in a clean Card style
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(5),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white.withAlpha(8)),
+                          ),
+                          child: Theme(
+                            data: ThemeData(unselectedWidgetColor: Colors.white30),
+                            child: Column(
                               children: [
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      if (Platform.isAndroid || Platform.isIOS) {
-                                        SystemNavigator.pop();
-                                      } else {
-                                        exit(0);
-                                      }
-                                    },
-                                    style: OutlinedButton.styleFrom(
+                                CheckboxListTile(
+                                  activeColor: Colors.cyanAccent,
+                                  checkColor: Colors.black,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                  value: _tosAgreed,
+                                  title: Text(
+                                    "I read and agree to the Terms of Service",
+                                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                  ),
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _tosAgreed = val ?? false;
+                                    });
+                                  },
+                                ),
+                                const Divider(color: Colors.white10, height: 1),
+                                CheckboxListTile(
+                                  activeColor: Colors.cyanAccent,
+                                  checkColor: Colors.black,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                  value: _privacyAgreed,
+                                  title: Text(
+                                    "I read and agree to the Privacy Policy",
+                                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                  ),
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _privacyAgreed = val ?? false;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Action Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  if (Platform.isAndroid || Platform.isIOS) {
+                                    SystemNavigator.pop();
+                                  } else {
+                                    exit(0);
+                                  }
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 15),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  side: const BorderSide(color: Colors.white24),
+                                  foregroundColor: Colors.white70,
+                                ),
+                                child: Text(
+                                  "EXIT APP",
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12.5, letterSpacing: 0.5),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Consumer(
+                                builder: (context, ref, _) {
+                                  final isEnabled = _tosAgreed && _privacyAgreed;
+
+                                  return FilledButton(
+                                    onPressed: isEnabled
+                                        ? () async {
+                                            await ref.read(agreementProvider.notifier).acceptAgreement();
+                                          }
+                                        : null,
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: Colors.cyanAccent,
+                                      foregroundColor: Colors.black,
+                                      disabledBackgroundColor: Colors.white12,
+                                      disabledForegroundColor: Colors.white24,
                                       padding: const EdgeInsets.symmetric(vertical: 15),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
                                       ),
-                                      side: const BorderSide(color: Colors.white24),
-                                      foregroundColor: Colors.white70,
                                     ),
                                     child: Text(
-                                      "EXIT APP",
+                                      "AGREE & START",
                                       style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12.5, letterSpacing: 0.5),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Consumer(
-                                    builder: (context, ref, _) {
-                                      final isEnabled = _tosAgreed && _privacyAgreed;
-
-                                      return FilledButton(
-                                        onPressed: isEnabled
-                                            ? () async {
-                                                await ref.read(agreementProvider.notifier).acceptAgreement();
-                                              }
-                                            : null,
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: Colors.cyanAccent,
-                                          foregroundColor: Colors.black,
-                                          disabledBackgroundColor: Colors.white12,
-                                          disabledForegroundColor: Colors.white24,
-                                          padding: const EdgeInsets.symmetric(vertical: 15),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(14),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "AGREE & START",
-                                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12.5, letterSpacing: 0.5),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
+                                  );
+                                },
+                              ),
                             ),
-                            const SizedBox(height: 8),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ),
                 );

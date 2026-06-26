@@ -107,7 +107,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
   void _triggerSync() {
-    ref.read(syncProvider.notifier).autoSync();
+    ref.read(syncProvider.notifier).triggerAutoSync();
   }
 
   Future<void> updateProgress(Subject subject, int newProgress) async {
@@ -272,6 +272,8 @@ class ManuallyExpandedCompletedCategoriesNotifier extends Notifier<Set<int>> {
       state = {...state}..remove(categoryId);
     }
   }
+
+  void clear() => state = {};
 }
 
 final manuallyExpandedCompletedCategoriesProvider =

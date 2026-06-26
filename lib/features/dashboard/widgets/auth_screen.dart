@@ -66,104 +66,102 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   physics: const BouncingScrollPhysics(),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-                    child: IntrinsicHeight(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 48),
-                          // App Branding Icon
-                          Center(
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: Colors.white.withAlpha(20), width: 1.5),
-                                gradient: const LinearGradient(
-                                  colors: [Colors.cyanAccent, Colors.blueAccent],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 48),
+                        // App Branding Icon
+                        Center(
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.white.withAlpha(20), width: 1.5),
+                              gradient: const LinearGradient(
+                                colors: [Colors.cyanAccent, Colors.blueAccent],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: Image.asset(
+                                'icon.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => const Icon(
+                                  Icons.cloud_sync_rounded,
+                                  color: Colors.black,
+                                  size: 40,
                                 ),
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(22),
-                                child: Image.asset(
-                                  'icon.png',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => const Icon(
-                                    Icons.cloud_sync_rounded,
-                                    color: Colors.black,
-                                    size: 40,
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
-                          const SizedBox(height: 32),
-                          // Title
-                          Text(
-                            "SYNC YOUR PROGRESS",
-                            style: GoogleFonts.jersey15(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 2.0,
-                            ),
-                            textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 32),
+                        // Title
+                        Text(
+                          "SYNC YOUR PROGRESS",
+                          style: GoogleFonts.orbitron(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            letterSpacing: 1.5,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Choose how you want to manage your data",
-                            style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              color: Colors.white38,
-                            ),
-                            textAlign: TextAlign.center,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Choose how you want to manage your data",
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            color: Colors.white38,
                           ),
-                          const SizedBox(height: 48),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 48),
 
-                          // Option 1: Sign in with Google (Cloud sync)
-                          _buildAuthOptionCard(
-                            title: "Cloud Synchronization",
-                            description: "Backup your progress securely in the cloud and sync automatically across all your devices.",
-                            icon: Icons.backup_rounded,
-                            accentColor: Colors.cyanAccent,
-                            isLoading: _isGoogleLoading,
-                            isDisabled: _isOfflineLoading,
-                            buttonText: "SIGN IN WITH GOOGLE",
-                            buttonIcon: Image.network(
-                              'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
-                              width: 18,
-                              height: 18,
-                              errorBuilder: (context, error, stackTrace) => const Icon(
-                                Icons.login,
-                                color: Colors.black,
-                                size: 18,
-                              ),
-                            ),
-                            onTap: _handleGoogleSignIn,
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Option 2: Use locally
-                          _buildAuthOptionCard(
-                            title: "100% Local Storage",
-                            description: "Store everything locally on this device. No accounts, no internet required. You can always sign in later from settings.",
-                            icon: Icons.phonelink_setup_rounded,
-                            accentColor: Colors.white70,
-                            isLoading: _isOfflineLoading,
-                            isDisabled: _isGoogleLoading,
-                            buttonText: "USE LOCALLY",
-                            buttonIcon: const Icon(
-                              Icons.cloud_off_rounded,
+                        // Option 1: Sign in with Google (Cloud sync)
+                        _buildAuthOptionCard(
+                          title: "Cloud Synchronization",
+                          description: "Backup your progress securely in the cloud and sync automatically across all your devices.",
+                          icon: Icons.backup_rounded,
+                          accentColor: Colors.cyanAccent,
+                          isLoading: _isGoogleLoading,
+                          isDisabled: _isOfflineLoading,
+                          buttonText: "SIGN IN WITH GOOGLE",
+                          buttonIcon: Image.network(
+                            'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
+                            width: 18,
+                            height: 18,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.login,
                               color: Colors.black,
                               size: 18,
                             ),
-                            onTap: _handleOfflineMode,
                           ),
-                          const SizedBox(height: 48),
-                        ],
-                      ),
+                          onTap: _handleGoogleSignIn,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Option 2: Use locally
+                        _buildAuthOptionCard(
+                          title: "100% Local Storage",
+                          description: "Store everything locally on this device. No accounts, no internet required. You can always sign in later from settings.",
+                          icon: Icons.phonelink_setup_rounded,
+                          accentColor: Colors.white70,
+                          isLoading: _isOfflineLoading,
+                          isDisabled: _isGoogleLoading,
+                          buttonText: "USE LOCALLY",
+                          buttonIcon: const Icon(
+                            Icons.cloud_off_rounded,
+                            color: Colors.black,
+                            size: 18,
+                          ),
+                          onTap: _handleOfflineMode,
+                        ),
+                        const SizedBox(height: 48),
+                      ],
                     ),
                   ),
                 );
