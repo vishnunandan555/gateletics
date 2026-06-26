@@ -136,6 +136,46 @@ class SubjectCard extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            completedController.text = totalController.text;
+                          });
+                        },
+                        icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                        label: const Text('Mark Full'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: color,
+                          side: BorderSide(color: color.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            completedController.text = '0';
+                          });
+                        },
+                        icon: const Icon(Icons.replay_rounded, size: 18),
+                        label: const Text('Reset'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.redAccent,
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 SwitchListTile(
                   title: const Text('Is Active',
                       style: TextStyle(color: Colors.white)),

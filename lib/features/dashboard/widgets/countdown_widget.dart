@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../providers/subject_provider.dart';
 import '../../../providers/target_date_provider.dart';
+import '../../../providers/progress_font_provider.dart';
 
 class CountdownWidget extends ConsumerWidget {
   const CountdownWidget({super.key});
@@ -11,9 +12,36 @@ class CountdownWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final targetDate = ref.watch(targetDateProvider);
     final progressColor = ref.watch(overallProgressColorProvider);
+    final selectedFont = ref.watch(progressFontProvider);
     final now = DateTime.now();
     final difference = targetDate.difference(now);
     final daysLeft = difference.inDays > 0 ? difference.inDays : 0;
+
+    TextStyle getDaysStyle(double size, Color col) {
+      final base = TextStyle(
+        fontSize: size,
+        fontWeight: FontWeight.bold,
+        color: col,
+        height: 1.0,
+      );
+
+      switch (selectedFont) {
+        case ProgressFont.jersey15:
+          return GoogleFonts.jersey15(textStyle: base.copyWith(fontSize: size + 8));
+        case ProgressFont.jersey10:
+          return GoogleFonts.jersey10(textStyle: base.copyWith(fontSize: size + 8));
+        case ProgressFont.tektur:
+          return GoogleFonts.tektur(textStyle: base);
+        case ProgressFont.odibeeSans:
+          return GoogleFonts.odibeeSans(textStyle: base.copyWith(fontSize: size + 4));
+        case ProgressFont.pressStart2P:
+          return GoogleFonts.pressStart2p(textStyle: base.copyWith(fontSize: size - 8));
+        case ProgressFont.boldonse:
+          return GoogleFonts.boldonse(textStyle: base.copyWith(fontSize: size - 2, height: 1.2));
+        case ProgressFont.orbitron:
+          return GoogleFonts.orbitron(textStyle: base);
+      }
+    }
 
     return GestureDetector(
       onLongPress: () async {
@@ -29,33 +57,29 @@ class CountdownWidget extends ConsumerWidget {
       },
       child: Container(
         margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         color: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$daysLeft',
-              style: GoogleFonts.jersey15(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: progressColor,
-                height: 1.0,
-                shadows: [Shadow(color: progressColor.withAlpha(204), blurRadius: 10)],
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$daysLeft',
+                style: getDaysStyle(32, progressColor).copyWith(
+                  shadows: [Shadow(color: progressColor.withAlpha(204), blurRadius: 10)],
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'DAYS LEFT',
-              style: GoogleFonts.jersey15(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white70,
-                letterSpacing: 0.5,
+              const SizedBox(height: 2),
+              Text(
+                'DAYS LEFT',
+                style: getDaysStyle(10, Colors.white70).copyWith(
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

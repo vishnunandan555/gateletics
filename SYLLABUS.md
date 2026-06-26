@@ -164,7 +164,7 @@ The Syllabus is divided into 3 levels
 
 ---
 
-## 4. Programming in C
+## 4. C Programming
 
 ### C Language Fundamentals
 

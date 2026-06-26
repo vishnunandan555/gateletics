@@ -15,7 +15,7 @@ void main() {
 
   // Let's define the neon colors
   final colors = [
-    0xFFFF073A, // Neon Red
+    0xFFFF0000, // Neon Red
     0xFF39FF14, // Neon Green
     0xFF00F0FF, // Neon Cyan
     0xFFD500F9, // Neon Purple

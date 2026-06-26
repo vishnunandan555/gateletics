@@ -8,7 +8,6 @@ import 'widgets/countdown_widget.dart';
 import 'widgets/category_header.dart';
 import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
-import '../../widgets/settings_sheet.dart';
 import '../../providers/completion_type_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import 'widgets/syllabus_category_header.dart';
@@ -60,12 +59,8 @@ class DashboardScreen extends ConsumerWidget {
                   pinned: true,
                   elevation: 0,
                   scrolledUnderElevation: 2,
-                  centerTitle: true,
-                  leading: IconButton(
-                    icon: const Icon(Icons.settings_rounded),
-                    onPressed: () => showSettingsSheet(context, ref),
-                    tooltip: 'Settings',
-                  ),
+                  centerTitle: false,
+                  automaticallyImplyLeading: false,
                   title: const AppBarTitle(),
                   actions: const [
                     CountdownWidget(),
@@ -90,7 +85,9 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   )
                 else ...[
-                  ...syllabusData.map((catWithTopics) {
+                  ...syllabusData.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final catWithTopics = entry.value;
                     final category = catWithTopics.category;
                     final topics = catWithTopics.topics;
 
@@ -102,30 +99,55 @@ class DashboardScreen extends ConsumerWidget {
                     final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
                     final rawTopics = topics.map((e) => e.topic).toList();
 
+                    final manuallyExpanded = ref.watch(manuallyExpandedCompletedSyllabusCategoriesProvider);
+                    final isCompleted = catProgress >= 100.0 && catTotal > 0;
+                    final isCollapsed = isCompleted && !manuallyExpanded.contains(category.id);
+
+                    bool isPrevCollapsed = false;
+                    if (index > 0) {
+                      final prevCat = syllabusData[index - 1];
+                      int prevCompleted = 0, prevTotal = 0;
+                      for (final topic in prevCat.topics) {
+                        prevCompleted += topic.tasks.where((t) => t.isCompleted).length;
+                        prevTotal += topic.tasks.length;
+                      }
+                      final prevProgress = prevTotal == 0 ? 0.0 : (prevCompleted / prevTotal) * 100;
+                      final prevCompletedCheck = prevProgress >= 100.0 && prevTotal > 0;
+                      isPrevCollapsed = prevCompletedCheck && !manuallyExpanded.contains(prevCat.category.id);
+                    }
+
+                    final headerPadding = isCollapsed
+                        ? const EdgeInsets.fromLTRB(16, 12, 16, 0)
+                        : (isPrevCollapsed
+                            ? const EdgeInsets.fromLTRB(16, 12, 16, 8)
+                            : const EdgeInsets.fromLTRB(16, 24, 16, 8));
+
                     return SliverMainAxisGroup(
                       slivers: [
                         SliverToBoxAdapter(
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                            padding: headerPadding,
                             child: SyllabusCategoryHeader(
                               category: category,
                               progress: catProgress,
                               topics: rawTopics,
+                              isCollapsed: isCollapsed,
                             ),
                           ),
                         ),
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final topicWithTasks = topics[index];
-                              return SyllabusTopicCard(
-                                topicWithTasks: topicWithTasks,
-                                categoryColor: Color(category.color),
-                              );
-                            },
-                            childCount: topics.length,
+                        if (!isCollapsed)
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final topicWithTasks = topics[index];
+                                return SyllabusTopicCard(
+                                  topicWithTasks: topicWithTasks,
+                                  categoryColor: Color(category.color),
+                                );
+                              },
+                              childCount: topics.length,
+                            ),
                           ),
-                        ),
                       ],
                     );
                   }),
@@ -167,12 +189,8 @@ class DashboardScreen extends ConsumerWidget {
                 pinned: true,
                 elevation: 0,
                 scrolledUnderElevation: 2,
-                centerTitle: true,
-                leading: IconButton(
-                  icon: const Icon(Icons.settings_rounded),
-                  onPressed: () => showSettingsSheet(context, ref),
-                  tooltip: 'Settings',
-                ),
+                centerTitle: false,
+                automaticallyImplyLeading: false,
                 title: const AppBarTitle(),
                 actions: const [
                   CountdownWidget(),
@@ -197,7 +215,9 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 )
                 else
-                  ...categoriesWithSubs.map((catWithSubs) {
+                  ...categoriesWithSubs.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final catWithSubs = entry.value;
                     final category = catWithSubs.category;
                     final catSubjects = catWithSubs.subjects;
                     final catColor = Color(category.color);
@@ -211,35 +231,62 @@ class DashboardScreen extends ConsumerWidget {
                     }
                     final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
 
+                    final manuallyExpanded = ref.watch(manuallyExpandedCompletedCategoriesProvider);
+                    final isCompleted = catProgress >= 100.0 && catTotal > 0;
+                    final isCollapsed = isCompleted && !manuallyExpanded.contains(category.id);
+
+                    bool isPrevCollapsed = false;
+                    if (index > 0) {
+                      final prevCat = categoriesWithSubs[index - 1];
+                      int prevCompleted = 0, prevTotal = 0;
+                      for (final s in prevCat.subjects) {
+                        if (s.isActive) {
+                          prevCompleted += s.completedVideos;
+                          prevTotal += s.totalVideos;
+                        }
+                      }
+                      final prevProgress = prevTotal == 0 ? 0.0 : (prevCompleted / prevTotal) * 100;
+                      final prevCompletedCheck = prevProgress >= 100.0 && prevTotal > 0;
+                      isPrevCollapsed = prevCompletedCheck && !manuallyExpanded.contains(prevCat.category.id);
+                    }
+
+                    final headerPadding = isCollapsed
+                        ? const EdgeInsets.fromLTRB(20, 16, 20, 0)
+                        : (isPrevCollapsed
+                            ? const EdgeInsets.fromLTRB(20, 16, 20, 12)
+                            : const EdgeInsets.fromLTRB(20, 32, 20, 12));
+
                     return SliverMainAxisGroup(
                       slivers: [
                         SliverToBoxAdapter(
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
+                            padding: headerPadding,
                             child: CategoryHeader(
                               category: category,
                               progress: catProgress,
+                              isCollapsed: isCollapsed,
                             ),
                           ),
                         ),
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final s = catSubjects[index];
-                              return SubjectCard(
-                                subject: s,
-                                color: s.color != null ? Color(s.color!) : catColor,
-                                onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
-                                onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
-                                onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
-                                    ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
-                                      s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
-                                    ),
-                              );
-                            },
-                            childCount: catSubjects.length,
+                        if (!isCollapsed)
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final s = catSubjects[index];
+                                return SubjectCard(
+                                  subject: s,
+                                  color: s.color != null ? Color(s.color!) : catColor,
+                                  onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
+                                  onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
+                                  onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
+                                      ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
+                                        s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
+                                      ),
+                                );
+                              },
+                              childCount: catSubjects.length,
+                            ),
                           ),
-                        ),
                       ],
                     );
                   }),

@@ -3,16 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/progress_font_provider.dart';
+import '../../../providers/subject_provider.dart';
+import '../../../providers/category_font_size_provider.dart';
 import 'customization_sheets.dart';
 
 class CategoryHeader extends ConsumerWidget {
   final Category category;
   final double progress;
+  final bool isCollapsed;
 
   const CategoryHeader({
     super.key,
     required this.category,
     required this.progress,
+    this.isCollapsed = false,
   });
 
   @override
@@ -21,8 +25,9 @@ class CategoryHeader extends ConsumerWidget {
     final color = Color(category.color);
     final normalized = (progress / 100).clamp(0.0, 1.0);
     final selectedFont = ref.watch(progressFontProvider);
-    const categoryFontSize = 26.0;
-    const categoryBase = TextStyle(
+    final sizeOpt = ref.watch(categoryFontSizeProvider);
+    final categoryFontSize = sizeOpt.size;
+    final categoryBase = TextStyle(
       fontSize: categoryFontSize,
       fontWeight: FontWeight.w900,
       letterSpacing: 1.2,
@@ -65,7 +70,7 @@ class CategoryHeader extends ConsumerWidget {
 
     final baseStyle = getCategoryStyle();
 
-    return Row(
+    Widget headerContent = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -91,6 +96,13 @@ class CategoryHeader extends ConsumerWidget {
                   return GestureDetector(
                     behavior: HitTestBehavior.translucent,
                     onLongPress: () => showCreateCategoryDialog(context, ref),
+                    onTap: isCollapsed
+                        ? null
+                        : () {
+                            if (progress >= 100.0) {
+                              ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
+                            }
+                          },
                     child: Stack(
                       children: [
                         Text(title.toUpperCase(), style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -131,6 +143,29 @@ class CategoryHeader extends ConsumerWidget {
         ),
       ],
     );
+
+    if (isCollapsed) {
+      headerContent = GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: 0.8),
+              width: 1.5,
+            ),
+          ),
+          child: headerContent,
+        ),
+      );
+    }
+
+    return headerContent;
   }
 }
 

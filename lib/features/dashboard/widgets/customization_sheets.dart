@@ -5,7 +5,7 @@ import '../../../database/app_database.dart';
 import '../../../providers/subject_provider.dart';
 
 final neonPalette = [
-  0xFFFF073A, // Neon Red
+  0xFFFF0000, // Neon Red
   0xFF00F0FF, // Neon Cyan
   0xFF39FF14, // Neon Green
   0xFFD500F9, // Neon Purple
@@ -56,6 +56,8 @@ void showCategoryOptionsSheet(BuildContext context, Category category, WidgetRef
             ListTile(
               leading: Icon(Icons.add_circle_outline_rounded, color: color),
               title: Text('Add Subject', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 showAddSubjectDialog(context, category, ref);
@@ -64,14 +66,38 @@ void showCategoryOptionsSheet(BuildContext context, Category category, WidgetRef
             ListTile(
               leading: Icon(Icons.edit_rounded, color: color),
               title: Text('Edit Category Details', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 showEditCategoryDialog(context, category, ref);
               },
             ),
             ListTile(
+              leading: Icon(Icons.check_circle_outline_rounded, color: color),
+              title: Text('Mark as Complete', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(subjectControllerProvider.notifier).markCategoryCompleted(category.id);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.replay_rounded, color: color),
+              title: Text('Reset Stats', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(subjectControllerProvider.notifier).resetCategoryStats(category.id);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.swap_vert_rounded, color: Colors.white70),
               title: Text('Reorder Categories', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () async {
                 Navigator.pop(context);
                 final list = ref.read(categoriesWithSubjectsProvider).value;
@@ -84,6 +110,8 @@ void showCategoryOptionsSheet(BuildContext context, Category category, WidgetRef
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
               title: Text('Delete Category', style: GoogleFonts.outfit(color: Colors.redAccent)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteCategoryConfirm(context, category, ref);
@@ -459,7 +487,7 @@ void showReorderCategoriesDialog(BuildContext context, List<Category> categories
 
 void showCreateCategoryDialog(BuildContext context, WidgetRef ref) {
   final nameController = TextEditingController();
-  int selectedColor = 0xFFFF073A; // Default Neon Red
+  int selectedColor = 0xFFFF0000; // Default Neon Red
 
   showDialog(
     context: context,

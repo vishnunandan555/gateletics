@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/subject_provider.dart';
+import '../../providers/syllabus_provider.dart';
 import 'dashboard_screen.dart';
 import 'widgets/future_feature_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -39,10 +41,15 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
           setState(() {
             _currentIndex = index;
           });
+          if (index == 0) {
+            ref.read(resourceCategoriesOrderProvider.notifier).clear();
+            ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+          }
         },
         children: [
-          const DashboardScreen(),
-          FutureFeatureScreen(progressColor: progressColor),
+          const KeepAliveWrapper(child: DashboardScreen()),
+          KeepAliveWrapper(child: FutureFeatureScreen(progressColor: progressColor)),
+          const KeepAliveWrapper(child: SettingsScreen()),
         ],
       ),
       bottomNavigationBar: Theme(
@@ -78,6 +85,12 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                   label: 'Future',
                   color: progressColor,
                 ),
+                _buildNavItem(
+                  index: 2,
+                  icon: Icons.settings_rounded,
+                  label: 'Settings',
+                  color: progressColor,
+                ),
               ],
             ),
           ),
@@ -95,10 +108,14 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     final isSelected = _currentIndex == index;
     return InkWell(
       onTap: () {
+        if (index == 0 && _currentIndex != 0) {
+          ref.read(resourceCategoriesOrderProvider.notifier).clear();
+          ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+        }
         _pageController.animateToPage(
           index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.fastOutSlowIn,
         );
       },
       child: Column(
@@ -122,4 +139,25 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
       ),
     );
   }
+}
+
+class KeepAliveWrapper extends StatefulWidget {
+  final Widget child;
+
+  const KeepAliveWrapper({super.key, required this.child});
+
+  @override
+  State<KeepAliveWrapper> createState() => _KeepAliveWrapperState();
+}
+
+class _KeepAliveWrapperState extends State<KeepAliveWrapper>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+
+  @override
+  bool get wantKeepAlive => true;
 }

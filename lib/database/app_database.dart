@@ -10,6 +10,7 @@ class Categories extends Table {
   TextColumn get name => text().withLength(min: 1, max: 100)();
   IntColumn get position => integer()();
   IntColumn get color => integer()();
+  DateTimeColumn get lastInteractedAt => dateTime().nullable()();
 }
 
 class Subjects extends Table {
@@ -40,6 +41,7 @@ class SyllabusCategories extends Table {
   TextColumn get name => text().withLength(min: 1, max: 100)();
   IntColumn get position => integer()();
   IntColumn get color => integer()();
+  DateTimeColumn get lastInteractedAt => dateTime().nullable()();
 }
 
 class SyllabusTopics extends Table {
@@ -121,7 +123,7 @@ class AppDatabase extends _$AppDatabase {
   // Category Operations
   // ----------------------------------------------------
 
-  Future<int> addCategory(String name, int color, {int? position}) async {
+  Future<int> addCategory(String name, int color, {int? position, DateTime? lastInteractedAt}) async {
     int pos = position ?? 0;
     if (position == null) {
       final existing = await select(categories).get();
@@ -131,6 +133,7 @@ class AppDatabase extends _$AppDatabase {
       name: name,
       color: color,
       position: pos,
+      lastInteractedAt: Value(lastInteractedAt),
     ));
   }
 
@@ -273,7 +276,7 @@ class AppDatabase extends _$AppDatabase {
       final mathCatId = await into(categories).insert(CategoriesCompanion.insert(
         name: 'Mathematics',
         position: 0,
-        color: 0xFFFF073A,
+        color: 0xFFFF0000,
       ));
 
       final progCatId = await into(categories).insert(CategoriesCompanion.insert(
@@ -444,6 +447,10 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(syllabusTasks);
             await seedSyllabus();
           }
+          if (from < 3) {
+            await m.addColumn(categories, categories.lastInteractedAt);
+            await m.addColumn(syllabusCategories, syllabusCategories.lastInteractedAt);
+          }
         },
       );
 
@@ -513,7 +520,7 @@ class AppDatabase extends _$AppDatabase {
   // Syllabus Category Operations
   // ----------------------------------------------------
 
-  Future<int> addSyllabusCategory(String name, int color, {int? position}) async {
+  Future<int> addSyllabusCategory(String name, int color, {int? position, DateTime? lastInteractedAt}) async {
     int pos = position ?? 0;
     if (position == null) {
       final existing = await select(syllabusCategories).get();
@@ -523,6 +530,7 @@ class AppDatabase extends _$AppDatabase {
       name: name,
       color: color,
       position: pos,
+      lastInteractedAt: Value(lastInteractedAt),
     ));
   }
 
@@ -646,6 +654,97 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+    });
+  }
+
+  // ----------------------------------------------------
+  // Category/Topic Interaction & Bulk Progress Operations
+  // ----------------------------------------------------
+
+  Future<void> updateCategoryInteraction(int id) async {
+    await (update(categories)..where((t) => t.id.equals(id))).write(
+      CategoriesCompanion(lastInteractedAt: Value(DateTime.now())),
+    );
+  }
+
+  Future<void> updateSyllabusCategoryInteraction(int id) async {
+    await (update(syllabusCategories)..where((t) => t.id.equals(id))).write(
+      SyllabusCategoriesCompanion(lastInteractedAt: Value(DateTime.now())),
+    );
+  }
+
+  Future<void> updateSyllabusCategoryInteractionByTaskId(int taskId) async {
+    final task = await (select(syllabusTasks)..where((t) => t.id.equals(taskId))).getSingle();
+    await updateSyllabusCategoryInteractionByTopicId(task.topicId);
+  }
+
+  Future<void> updateSyllabusCategoryInteractionByTopicId(int topicId) async {
+    final topic = await (select(syllabusTopics)..where((t) => t.id.equals(topicId))).getSingle();
+    await updateSyllabusCategoryInteraction(topic.categoryId);
+  }
+
+  Future<void> markCategoryCompleted(int categoryId) async {
+    await transaction(() async {
+      final categorySubjects = await (select(subjects)..where((t) => t.categoryId.equals(categoryId))).get();
+      for (final s in categorySubjects) {
+        if (s.isActive) {
+          await (update(subjects)..where((t) => t.id.equals(s.id))).write(
+            SubjectsCompanion(completedVideos: Value(s.totalVideos)),
+          );
+        }
+      }
+      await updateCategoryInteraction(categoryId);
+    });
+  }
+
+  Future<void> resetCategoryStats(int categoryId) async {
+    await transaction(() async {
+      await (update(subjects)..where((t) => t.categoryId.equals(categoryId))).write(
+        const SubjectsCompanion(completedVideos: Value(0)),
+      );
+      await updateCategoryInteraction(categoryId);
+    });
+  }
+
+  Future<void> markSyllabusCategoryCompleted(int categoryId) async {
+    await transaction(() async {
+      final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
+      for (final topic in categoryTopics) {
+        await (update(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).write(
+          const SyllabusTasksCompanion(isCompleted: Value(true)),
+        );
+      }
+      await updateSyllabusCategoryInteraction(categoryId);
+    });
+  }
+
+  Future<void> resetSyllabusCategoryStats(int categoryId) async {
+    await transaction(() async {
+      final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
+      for (final topic in categoryTopics) {
+        await (update(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).write(
+          const SyllabusTasksCompanion(isCompleted: Value(false)),
+        );
+      }
+      await updateSyllabusCategoryInteraction(categoryId);
+    });
+  }
+
+  Future<void> markSyllabusTopicCompleted(int topicId) async {
+    await transaction(() async {
+      await (update(syllabusTasks)..where((t) => t.topicId.equals(topicId))).write(
+        const SyllabusTasksCompanion(isCompleted: Value(true)),
+      );
+      await updateSyllabusCategoryInteractionByTopicId(topicId);
+    });
+  }
+
+  Future<void> resetSyllabusTopicStats(int topicId) async {
+    await transaction(() async {
+      await (update(syllabusTasks)..where((t) => t.topicId.equals(topicId))).write(
+        const SyllabusTasksCompanion(isCompleted: Value(false)),
+      );
+      await updateSyllabusCategoryInteractionByTopicId(topicId);
     });
   }
 }

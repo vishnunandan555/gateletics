@@ -55,8 +55,26 @@ class $CategoriesTable extends Categories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _lastInteractedAtMeta = const VerificationMeta(
+    'lastInteractedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, position, color];
+  late final GeneratedColumn<DateTime> lastInteractedAt =
+      GeneratedColumn<DateTime>(
+        'last_interacted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    position,
+    color,
+    lastInteractedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -96,6 +114,15 @@ class $CategoriesTable extends Categories
     } else if (isInserting) {
       context.missing(_colorMeta);
     }
+    if (data.containsKey('last_interacted_at')) {
+      context.handle(
+        _lastInteractedAtMeta,
+        lastInteractedAt.isAcceptableOrUnknown(
+          data['last_interacted_at']!,
+          _lastInteractedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -121,6 +148,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}color'],
       )!,
+      lastInteractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interacted_at'],
+      ),
     );
   }
 
@@ -135,11 +166,13 @@ class Category extends DataClass implements Insertable<Category> {
   final String name;
   final int position;
   final int color;
+  final DateTime? lastInteractedAt;
   const Category({
     required this.id,
     required this.name,
     required this.position,
     required this.color,
+    this.lastInteractedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -148,6 +181,9 @@ class Category extends DataClass implements Insertable<Category> {
     map['name'] = Variable<String>(name);
     map['position'] = Variable<int>(position);
     map['color'] = Variable<int>(color);
+    if (!nullToAbsent || lastInteractedAt != null) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
+    }
     return map;
   }
 
@@ -157,6 +193,9 @@ class Category extends DataClass implements Insertable<Category> {
       name: Value(name),
       position: Value(position),
       color: Value(color),
+      lastInteractedAt: lastInteractedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractedAt),
     );
   }
 
@@ -170,6 +209,9 @@ class Category extends DataClass implements Insertable<Category> {
       name: serializer.fromJson<String>(json['name']),
       position: serializer.fromJson<int>(json['position']),
       color: serializer.fromJson<int>(json['color']),
+      lastInteractedAt: serializer.fromJson<DateTime?>(
+        json['lastInteractedAt'],
+      ),
     );
   }
   @override
@@ -180,22 +222,34 @@ class Category extends DataClass implements Insertable<Category> {
       'name': serializer.toJson<String>(name),
       'position': serializer.toJson<int>(position),
       'color': serializer.toJson<int>(color),
+      'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
     };
   }
 
-  Category copyWith({int? id, String? name, int? position, int? color}) =>
-      Category(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        position: position ?? this.position,
-        color: color ?? this.color,
-      );
+  Category copyWith({
+    int? id,
+    String? name,
+    int? position,
+    int? color,
+    Value<DateTime?> lastInteractedAt = const Value.absent(),
+  }) => Category(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    position: position ?? this.position,
+    color: color ?? this.color,
+    lastInteractedAt: lastInteractedAt.present
+        ? lastInteractedAt.value
+        : this.lastInteractedAt,
+  );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       position: data.position.present ? data.position.value : this.position,
       color: data.color.present ? data.color.value : this.color,
+      lastInteractedAt: data.lastInteractedAt.present
+          ? data.lastInteractedAt.value
+          : this.lastInteractedAt,
     );
   }
 
@@ -205,13 +259,14 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('position: $position, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, position, color);
+  int get hashCode => Object.hash(id, name, position, color, lastInteractedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -219,7 +274,8 @@ class Category extends DataClass implements Insertable<Category> {
           other.id == this.id &&
           other.name == this.name &&
           other.position == this.position &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.lastInteractedAt == this.lastInteractedAt);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
@@ -227,17 +283,20 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String> name;
   final Value<int> position;
   final Value<int> color;
+  final Value<DateTime?> lastInteractedAt;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.position = const Value.absent(),
     this.color = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     required int position,
     required int color,
+    this.lastInteractedAt = const Value.absent(),
   }) : name = Value(name),
        position = Value(position),
        color = Value(color);
@@ -246,12 +305,14 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<String>? name,
     Expression<int>? position,
     Expression<int>? color,
+    Expression<DateTime>? lastInteractedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (position != null) 'position': position,
       if (color != null) 'color': color,
+      if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
     });
   }
 
@@ -260,12 +321,14 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String>? name,
     Value<int>? position,
     Value<int>? color,
+    Value<DateTime?>? lastInteractedAt,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       position: position ?? this.position,
       color: color ?? this.color,
+      lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
     );
   }
 
@@ -284,6 +347,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (color.present) {
       map['color'] = Variable<int>(color.value);
     }
+    if (lastInteractedAt.present) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
+    }
     return map;
   }
 
@@ -293,7 +359,8 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('position: $position, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
@@ -966,8 +1033,26 @@ class $SyllabusCategoriesTable extends SyllabusCategories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _lastInteractedAtMeta = const VerificationMeta(
+    'lastInteractedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, position, color];
+  late final GeneratedColumn<DateTime> lastInteractedAt =
+      GeneratedColumn<DateTime>(
+        'last_interacted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    position,
+    color,
+    lastInteractedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1007,6 +1092,15 @@ class $SyllabusCategoriesTable extends SyllabusCategories
     } else if (isInserting) {
       context.missing(_colorMeta);
     }
+    if (data.containsKey('last_interacted_at')) {
+      context.handle(
+        _lastInteractedAtMeta,
+        lastInteractedAt.isAcceptableOrUnknown(
+          data['last_interacted_at']!,
+          _lastInteractedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1032,6 +1126,10 @@ class $SyllabusCategoriesTable extends SyllabusCategories
         DriftSqlType.int,
         data['${effectivePrefix}color'],
       )!,
+      lastInteractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interacted_at'],
+      ),
     );
   }
 
@@ -1047,11 +1145,13 @@ class SyllabusCategory extends DataClass
   final String name;
   final int position;
   final int color;
+  final DateTime? lastInteractedAt;
   const SyllabusCategory({
     required this.id,
     required this.name,
     required this.position,
     required this.color,
+    this.lastInteractedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1060,6 +1160,9 @@ class SyllabusCategory extends DataClass
     map['name'] = Variable<String>(name);
     map['position'] = Variable<int>(position);
     map['color'] = Variable<int>(color);
+    if (!nullToAbsent || lastInteractedAt != null) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
+    }
     return map;
   }
 
@@ -1069,6 +1172,9 @@ class SyllabusCategory extends DataClass
       name: Value(name),
       position: Value(position),
       color: Value(color),
+      lastInteractedAt: lastInteractedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractedAt),
     );
   }
 
@@ -1082,6 +1188,9 @@ class SyllabusCategory extends DataClass
       name: serializer.fromJson<String>(json['name']),
       position: serializer.fromJson<int>(json['position']),
       color: serializer.fromJson<int>(json['color']),
+      lastInteractedAt: serializer.fromJson<DateTime?>(
+        json['lastInteractedAt'],
+      ),
     );
   }
   @override
@@ -1092,6 +1201,7 @@ class SyllabusCategory extends DataClass
       'name': serializer.toJson<String>(name),
       'position': serializer.toJson<int>(position),
       'color': serializer.toJson<int>(color),
+      'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
     };
   }
 
@@ -1100,11 +1210,15 @@ class SyllabusCategory extends DataClass
     String? name,
     int? position,
     int? color,
+    Value<DateTime?> lastInteractedAt = const Value.absent(),
   }) => SyllabusCategory(
     id: id ?? this.id,
     name: name ?? this.name,
     position: position ?? this.position,
     color: color ?? this.color,
+    lastInteractedAt: lastInteractedAt.present
+        ? lastInteractedAt.value
+        : this.lastInteractedAt,
   );
   SyllabusCategory copyWithCompanion(SyllabusCategoriesCompanion data) {
     return SyllabusCategory(
@@ -1112,6 +1226,9 @@ class SyllabusCategory extends DataClass
       name: data.name.present ? data.name.value : this.name,
       position: data.position.present ? data.position.value : this.position,
       color: data.color.present ? data.color.value : this.color,
+      lastInteractedAt: data.lastInteractedAt.present
+          ? data.lastInteractedAt.value
+          : this.lastInteractedAt,
     );
   }
 
@@ -1121,13 +1238,14 @@ class SyllabusCategory extends DataClass
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('position: $position, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, position, color);
+  int get hashCode => Object.hash(id, name, position, color, lastInteractedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1135,7 +1253,8 @@ class SyllabusCategory extends DataClass
           other.id == this.id &&
           other.name == this.name &&
           other.position == this.position &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.lastInteractedAt == this.lastInteractedAt);
 }
 
 class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
@@ -1143,17 +1262,20 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
   final Value<String> name;
   final Value<int> position;
   final Value<int> color;
+  final Value<DateTime?> lastInteractedAt;
   const SyllabusCategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.position = const Value.absent(),
     this.color = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   });
   SyllabusCategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     required int position,
     required int color,
+    this.lastInteractedAt = const Value.absent(),
   }) : name = Value(name),
        position = Value(position),
        color = Value(color);
@@ -1162,12 +1284,14 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     Expression<String>? name,
     Expression<int>? position,
     Expression<int>? color,
+    Expression<DateTime>? lastInteractedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (position != null) 'position': position,
       if (color != null) 'color': color,
+      if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
     });
   }
 
@@ -1176,12 +1300,14 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     Value<String>? name,
     Value<int>? position,
     Value<int>? color,
+    Value<DateTime?>? lastInteractedAt,
   }) {
     return SyllabusCategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       position: position ?? this.position,
       color: color ?? this.color,
+      lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
     );
   }
 
@@ -1200,6 +1326,9 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     if (color.present) {
       map['color'] = Variable<int>(color.value);
     }
+    if (lastInteractedAt.present) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
+    }
     return map;
   }
 
@@ -1209,7 +1338,8 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('position: $position, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
@@ -1937,6 +2067,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       required String name,
       required int position,
       required int color,
+      Value<DateTime?> lastInteractedAt,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
     CategoriesCompanion Function({
@@ -1944,6 +2075,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> position,
       Value<int> color,
+      Value<DateTime?> lastInteractedAt,
     });
 
 final class $$CategoriesTableReferences
@@ -1996,6 +2128,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get color => $composableBuilder(
     column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2053,6 +2190,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.color,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -2075,6 +2217,11 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => column,
+  );
 
   Expression<T> subjectsRefs<T extends Object>(
     Expression<T> Function($$SubjectsTableAnnotationComposer a) f,
@@ -2134,11 +2281,13 @@ class $$CategoriesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<int> color = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
                 position: position,
                 color: color,
+                lastInteractedAt: lastInteractedAt,
               ),
           createCompanionCallback:
               ({
@@ -2146,11 +2295,13 @@ class $$CategoriesTableTableManager
                 required String name,
                 required int position,
                 required int color,
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
                 position: position,
                 color: color,
+                lastInteractedAt: lastInteractedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2630,6 +2781,7 @@ typedef $$SyllabusCategoriesTableCreateCompanionBuilder =
       required String name,
       required int position,
       required int color,
+      Value<DateTime?> lastInteractedAt,
     });
 typedef $$SyllabusCategoriesTableUpdateCompanionBuilder =
     SyllabusCategoriesCompanion Function({
@@ -2637,6 +2789,7 @@ typedef $$SyllabusCategoriesTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> position,
       Value<int> color,
+      Value<DateTime?> lastInteractedAt,
     });
 
 final class $$SyllabusCategoriesTableReferences
@@ -2703,6 +2856,11 @@ class $$SyllabusCategoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> syllabusTopicsRefs(
     Expression<bool> Function($$SyllabusTopicsTableFilterComposer f) f,
   ) {
@@ -2757,6 +2915,11 @@ class $$SyllabusCategoriesTableOrderingComposer
     column: $table.color,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SyllabusCategoriesTableAnnotationComposer
@@ -2779,6 +2942,11 @@ class $$SyllabusCategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => column,
+  );
 
   Expression<T> syllabusTopicsRefs<T extends Object>(
     Expression<T> Function($$SyllabusTopicsTableAnnotationComposer a) f,
@@ -2843,11 +3011,13 @@ class $$SyllabusCategoriesTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<int> color = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => SyllabusCategoriesCompanion(
                 id: id,
                 name: name,
                 position: position,
                 color: color,
+                lastInteractedAt: lastInteractedAt,
               ),
           createCompanionCallback:
               ({
@@ -2855,11 +3025,13 @@ class $$SyllabusCategoriesTableTableManager
                 required String name,
                 required int position,
                 required int color,
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => SyllabusCategoriesCompanion.insert(
                 id: id,
                 name: name,
                 position: position,
                 color: color,
+                lastInteractedAt: lastInteractedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(

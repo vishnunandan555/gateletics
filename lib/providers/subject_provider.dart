@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
 import '../core/theme/colors.dart';
 
+import 'category_autosort_provider.dart';
+
 // Database Provider
 final appDatabaseProvider = Provider<AppDatabase>((ref) => AppDatabase());
 
@@ -13,10 +15,61 @@ final subjectsProvider = StreamProvider<List<Subject>>((ref) {
   return db.watchSubjects();
 });
 
+final resourceCategoriesOrderProvider = NotifierProvider<ResourceCategoriesOrderNotifier, List<int>>(() {
+  return ResourceCategoriesOrderNotifier();
+});
+
+class ResourceCategoriesOrderNotifier extends Notifier<List<int>> {
+  @override
+  List<int> build() => [];
+
+  void setOrder(List<int> ids) => state = ids;
+  void clear() => state = [];
+}
+
+int _compareCategories(Category a, Category b) {
+  final aTime = a.lastInteractedAt;
+  final bTime = b.lastInteractedAt;
+  if (aTime == null && bTime == null) {
+    return a.position.compareTo(b.position);
+  }
+  if (aTime == null) return 1;
+  if (bTime == null) return -1;
+  return bTime.compareTo(aTime);
+}
+
 // Stream provider for nested categories with their subjects
 final categoriesWithSubjectsProvider = StreamProvider<List<CategoryWithSubjects>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchCategoriesWithSubjects();
+  final autoSort = ref.watch(categoryAutoSortProvider);
+  final lockedOrder = ref.watch(resourceCategoriesOrderProvider);
+
+  return db.watchCategoriesWithSubjects().map((list) {
+    if (!autoSort) return list;
+    final sorted = List<CategoryWithSubjects>.from(list);
+
+    if (lockedOrder.isEmpty) {
+      sorted.sort((a, b) => _compareCategories(a.category, b.category));
+      final ids = sorted.map((e) => e.category.id).toList();
+      Future.microtask(() {
+        ref.read(resourceCategoriesOrderProvider.notifier).setOrder(ids);
+      });
+      return sorted;
+    }
+
+    sorted.sort((a, b) {
+      final indexA = lockedOrder.indexOf(a.category.id);
+      final indexB = lockedOrder.indexOf(b.category.id);
+      if (indexA != -1 && indexB != -1) {
+        return indexA.compareTo(indexB);
+      }
+      if (indexA != -1) return -1;
+      if (indexB != -1) return 1;
+      return _compareCategories(a.category, b.category);
+    });
+
+    return sorted;
+  });
 });
 
 // Progress Color Provider using standard Notifier
@@ -56,6 +109,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
     final clampedProgress = newProgress.clamp(0, subject.totalVideos);
     if (subject.completedVideos == clampedProgress) return;
     await _db.updateSubjectProgress(subject.id, clampedProgress);
+    await _db.updateCategoryInteraction(subject.categoryId);
   }
 
   Future<void> addSubject({
@@ -76,6 +130,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
       isActive: isActive,
       color: color,
     );
+    await _db.updateCategoryInteraction(categoryId);
   }
 
   Future<void> updateSubjectDetails(
@@ -101,10 +156,16 @@ class SubjectController extends Notifier<AsyncValue<void>> {
       color: color,
       categoryId: categoryId,
     );
+    await _db.updateCategoryInteraction(categoryId ?? subject.categoryId);
   }
 
   Future<void> deleteSubject(int id) async {
+    final subject = await (_db.select(_db.subjects)..where((t) => t.id.equals(id))).getSingleOrNull();
+    final catId = subject?.categoryId;
     await _db.deleteSubject(id);
+    if (catId != null) {
+      await _db.updateCategoryInteraction(catId);
+    }
   }
 
   // ----------------------------------------------------
@@ -113,14 +174,25 @@ class SubjectController extends Notifier<AsyncValue<void>> {
 
   Future<void> addCategory(String name, int color) async {
     await _db.addCategory(name, color);
+    ref.read(resourceCategoriesOrderProvider.notifier).clear();
   }
 
   Future<void> updateCategory(int id, String name, int color) async {
     await _db.updateCategoryDetails(id, name, color);
+    ref.read(resourceCategoriesOrderProvider.notifier).clear();
   }
 
   Future<void> deleteCategory(int id) async {
     await _db.deleteCategory(id);
+    ref.read(resourceCategoriesOrderProvider.notifier).clear();
+  }
+
+  Future<void> markCategoryCompleted(int id) async {
+    await _db.markCategoryCompleted(id);
+  }
+
+  Future<void> resetCategoryStats(int id) async {
+    await _db.resetCategoryStats(id);
   }
 
   // ----------------------------------------------------
@@ -129,6 +201,7 @@ class SubjectController extends Notifier<AsyncValue<void>> {
 
   Future<void> reorderCategories(List<int> orderedIds) async {
     await _db.updateCategoryPositions(orderedIds);
+    ref.read(resourceCategoriesOrderProvider.notifier).clear();
   }
 
   Future<void> reorderSubjects(int categoryId, List<int> orderedIds) async {
@@ -162,3 +235,27 @@ class SubjectController extends Notifier<AsyncValue<void>> {
     await updateProgress(subject, subject.completedVideos - 1);
   }
 }
+
+class ManuallyExpandedCompletedCategoriesNotifier extends Notifier<Set<int>> {
+  @override
+  Set<int> build() => {};
+
+  void toggle(int categoryId) {
+    if (state.contains(categoryId)) {
+      state = {...state}..remove(categoryId);
+    } else {
+      state = {...state, categoryId};
+    }
+  }
+
+  void collapse(int categoryId) {
+    if (state.contains(categoryId)) {
+      state = {...state}..remove(categoryId);
+    }
+  }
+}
+
+final manuallyExpandedCompletedCategoriesProvider =
+    NotifierProvider<ManuallyExpandedCompletedCategoriesNotifier, Set<int>>(() {
+  return ManuallyExpandedCompletedCategoriesNotifier();
+});

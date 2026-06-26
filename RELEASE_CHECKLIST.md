@@ -55,9 +55,9 @@ To publish on the Google Play Store, Google **requires** a Privacy Policy URL. A
 - [x] Create `TERMS_OF_SERVICE.md` in repository root (Completed ✅)
 - [x] Integrate first-launch Legal Agreement Screen to lock the app until agreed (Completed ✅)
 - [x] Integrate Onboarding Setup Screen for style & preset selection (Completed ✅)
-- [/] Push changes to GitHub repository (Staged locally, ready to push ⏳)
-- [x] Host the files on the web (Created `docs/index.html`, `terms.html`, and `privacy.html` for GitHub Pages ✅)
-- [ ] Paste the hosted Privacy Policy link into the Google Play Console (`https://vishnunandan555.github.io/gateletics/privacy.html`)
+- [ ] Push changes to GitHub repository (Ready to push ⏳)
+- [x] Host the files on the web (Created `/docs` files for GitHub Pages ✅)
+- [ ] Paste hosted Privacy Policy link into Google Play Console (Console app not created yet - pending ⏳)
 
 ### How to Host These Files for Free
 1. **GitHub Pages (Recommended):**

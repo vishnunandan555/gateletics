@@ -3,6 +3,8 @@ import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import 'subject_provider.dart';
 
+import 'category_autosort_provider.dart';
+
 // Stream of categories
 final syllabusCategoriesProvider = StreamProvider<List<SyllabusCategory>>((ref) {
   final db = ref.watch(appDatabaseProvider);
@@ -21,11 +23,35 @@ final syllabusTasksProvider = StreamProvider<List<SyllabusTask>>((ref) {
   return db.watchSyllabusTasks();
 });
 
+final syllabusCategoriesOrderProvider = NotifierProvider<SyllabusCategoriesOrderNotifier, List<int>>(() {
+  return SyllabusCategoriesOrderNotifier();
+});
+
+class SyllabusCategoriesOrderNotifier extends Notifier<List<int>> {
+  @override
+  List<int> build() => [];
+
+  void setOrder(List<int> ids) => state = ids;
+  void clear() => state = [];
+}
+
+int _compareSyllabusCategories(SyllabusCategory a, SyllabusCategory b) {
+  final aTime = a.lastInteractedAt;
+  final bTime = b.lastInteractedAt;
+  if (aTime == null && bTime == null) {
+    return a.position.compareTo(b.position);
+  }
+  if (aTime == null) return 1;
+  if (bTime == null) return -1;
+  return bTime.compareTo(aTime);
+}
+
 // Combined syllabus provider
 final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>((ref) {
   final catsAsync = ref.watch(syllabusCategoriesProvider);
   final topicsAsync = ref.watch(syllabusTopicsProvider);
   final tasksAsync = ref.watch(syllabusTasksProvider);
+  final autoSort = ref.watch(categoryAutoSortProvider);
 
   if (catsAsync.hasError) return AsyncValue.error(catsAsync.error!, catsAsync.stackTrace!);
   if (topicsAsync.hasError) return AsyncValue.error(topicsAsync.error!, topicsAsync.stackTrace!);
@@ -35,9 +61,31 @@ final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>(
     return const AsyncValue.loading();
   }
 
-  final cats = catsAsync.value!;
+  final cats = List<SyllabusCategory>.from(catsAsync.value!);
   final tops = topicsAsync.value!;
   final tsks = tasksAsync.value!;
+
+  if (autoSort) {
+    final lockedOrder = ref.watch(syllabusCategoriesOrderProvider);
+    if (lockedOrder.isEmpty) {
+      cats.sort((a, b) => _compareSyllabusCategories(a, b));
+      final ids = cats.map((e) => e.id).toList();
+      Future.microtask(() {
+        ref.read(syllabusCategoriesOrderProvider.notifier).setOrder(ids);
+      });
+    } else {
+      cats.sort((a, b) {
+        final indexA = lockedOrder.indexOf(a.id);
+        final indexB = lockedOrder.indexOf(b.id);
+        if (indexA != -1 && indexB != -1) {
+          return indexA.compareTo(indexB);
+        }
+        if (indexA != -1) return -1;
+        if (indexB != -1) return 1;
+        return _compareSyllabusCategories(a, b);
+      });
+    }
+  }
 
   // Group tasks by topicId
   final tasksByTopic = <int, List<SyllabusTask>>{};
@@ -98,14 +146,17 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   // Task methods
   Future<void> toggleTask(int taskId, bool isCompleted) async {
     await _db.updateSyllabusTaskCompletion(taskId, isCompleted);
+    await _db.updateSyllabusCategoryInteractionByTaskId(taskId);
   }
 
   Future<void> addTask(int topicId, String name) async {
     await _db.addSyllabusTask(topicId, name);
+    await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
   }
 
   Future<void> renameTask(int id, String name, bool isCompleted) async {
     await _db.updateSyllabusTaskDetails(id, name, isCompleted);
+    await _db.updateSyllabusCategoryInteractionByTaskId(id);
   }
 
   Future<void> deleteTask(int id) async {
@@ -114,15 +165,18 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   Future<void> reorderTasks(int topicId, List<int> orderedIds) async {
     await _db.updateSyllabusTaskPositions(topicId, orderedIds);
+    await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
   }
 
   // Topic methods
   Future<void> addTopic(int categoryId, String name) async {
     await _db.addSyllabusTopic(categoryId, name);
+    await _db.updateSyllabusCategoryInteraction(categoryId);
   }
 
   Future<void> renameTopic(int id, String name) async {
     await _db.updateSyllabusTopicDetails(id, name);
+    await _db.updateSyllabusCategoryInteractionByTopicId(id);
   }
 
   Future<void> deleteTopic(int id) async {
@@ -131,23 +185,45 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   Future<void> reorderTopics(int categoryId, List<int> orderedIds) async {
     await _db.updateSyllabusTopicPositions(categoryId, orderedIds);
+    await _db.updateSyllabusCategoryInteraction(categoryId);
   }
 
   // Category methods
   Future<void> addCategory(String name, int color) async {
     await _db.addSyllabusCategory(name, color);
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
   }
 
   Future<void> renameCategory(int id, String name, int color) async {
     await _db.updateSyllabusCategoryDetails(id, name, color);
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
   }
 
   Future<void> deleteCategory(int id) async {
     await _db.deleteSyllabusCategory(id);
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
   }
 
   Future<void> reorderCategories(List<int> orderedIds) async {
     await _db.updateSyllabusCategoryPositions(orderedIds);
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+  }
+
+  // Bulk operations
+  Future<void> markCategoryCompleted(int id) async {
+    await _db.markSyllabusCategoryCompleted(id);
+  }
+
+  Future<void> resetCategoryStats(int id) async {
+    await _db.resetSyllabusCategoryStats(id);
+  }
+
+  Future<void> markTopicCompleted(int id) async {
+    await _db.markSyllabusTopicCompleted(id);
+  }
+
+  Future<void> resetTopicStats(int id) async {
+    await _db.resetSyllabusTopicStats(id);
   }
 
   // Reset / Presets
@@ -181,3 +257,27 @@ extension SyllabusReset on AppDatabase {
     });
   }
 }
+
+class ManuallyExpandedCompletedSyllabusCategoriesNotifier extends Notifier<Set<int>> {
+  @override
+  Set<int> build() => {};
+
+  void toggle(int categoryId) {
+    if (state.contains(categoryId)) {
+      state = {...state}..remove(categoryId);
+    } else {
+      state = {...state, categoryId};
+    }
+  }
+
+  void collapse(int categoryId) {
+    if (state.contains(categoryId)) {
+      state = {...state}..remove(categoryId);
+    }
+  }
+}
+
+final manuallyExpandedCompletedSyllabusCategoriesProvider =
+    NotifierProvider<ManuallyExpandedCompletedSyllabusCategoriesNotifier, Set<int>>(() {
+  return ManuallyExpandedCompletedSyllabusCategoriesNotifier();
+});

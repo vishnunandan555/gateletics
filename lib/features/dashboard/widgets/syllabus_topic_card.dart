@@ -244,6 +244,7 @@ class SyllabusTopicCard extends ConsumerWidget {
       items: [
         PopupMenuItem(
           value: 'rename',
+          height: 36,
           child: Row(
             children: [
               Icon(Icons.edit_rounded, color: categoryColor, size: 18),
@@ -254,6 +255,7 @@ class SyllabusTopicCard extends ConsumerWidget {
         ),
         PopupMenuItem(
           value: 'add_task',
+          height: 36,
           child: Row(
             children: [
               Icon(Icons.add_circle_outline_rounded, color: categoryColor, size: 18),
@@ -263,7 +265,30 @@ class SyllabusTopicCard extends ConsumerWidget {
           ),
         ),
         PopupMenuItem(
+          value: 'complete',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_outline_rounded, color: categoryColor, size: 18),
+              const SizedBox(width: 10),
+              const Text('Mark as Complete', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'reset',
+          height: 36,
+          child: Row(
+            children: [
+              Icon(Icons.replay_rounded, color: categoryColor, size: 18),
+              const SizedBox(width: 10),
+              const Text('Reset Stats', style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+        PopupMenuItem(
           value: 'reorder',
+          height: 36,
           child: Row(
             children: [
               Icon(Icons.swap_vert_rounded, color: categoryColor, size: 18),
@@ -274,6 +299,7 @@ class SyllabusTopicCard extends ConsumerWidget {
         ),
         PopupMenuItem(
           value: 'delete',
+          height: 36,
           child: Row(
             children: [
               const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
@@ -289,6 +315,10 @@ class SyllabusTopicCard extends ConsumerWidget {
         showRenameSyllabusTopicDialog(context, topic, categoryColor, ref);
       } else if (val == 'add_task') {
         showAddSyllabusTaskDialog(context, topic, categoryColor, ref);
+      } else if (val == 'complete') {
+        ref.read(syllabusControllerProvider.notifier).markTopicCompleted(topic.id);
+      } else if (val == 'reset') {
+        ref.read(syllabusControllerProvider.notifier).resetTopicStats(topic.id);
       } else if (val == 'reorder') {
         showReorderSyllabusTasksDialog(context, topic, tasks, categoryColor, ref);
       } else if (val == 'delete') {
@@ -307,6 +337,7 @@ class SyllabusTopicCard extends ConsumerWidget {
       items: [
         PopupMenuItem(
           value: 'rename',
+          height: 36,
           child: Row(
             children: [
               Icon(Icons.edit_rounded, color: categoryColor, size: 18),
@@ -317,6 +348,7 @@ class SyllabusTopicCard extends ConsumerWidget {
         ),
         PopupMenuItem(
           value: 'delete',
+          height: 36,
           child: Row(
             children: [
               const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),

@@ -26,7 +26,7 @@ class PresetTopic {
 const List<PresetCategory> defaultSyllabusPreset = [
   PresetCategory(
     name: 'Mathematics',
-    color: 0xFFFF073A,
+    color: 0xFFFF0000,
     topics: [
       PresetTopic(
         name: 'Discrete Mathematics',
@@ -207,7 +207,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'Programming in C',
+    name: 'C PROG.',
     color: 0xFFD500F9,
     topics: [
       PresetTopic(
@@ -237,7 +237,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'Data Structures',
+    name: 'DS',
     color: 0xFFFFE500,
     topics: [
       PresetTopic(
@@ -349,7 +349,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'Compiler Design',
+    name: 'CD',
     color: 0xFF2979FF,
     topics: [
       PresetTopic(
@@ -391,8 +391,8 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'Operating Systems',
-    color: 0xFFFF073A,
+    name: 'OS',
+    color: 0xFFFF0000,
     topics: [
       PresetTopic(
         name: 'Processes, Threads & IPC',
@@ -504,7 +504,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'Computer Networks',
+    name: 'CN',
     color: 0xFF00F0FF,
     topics: [
       PresetTopic(
@@ -573,7 +573,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'General Aptitude',
+    name: 'Aptitude',
     color: 0xFFD500F9,
     topics: [
       PresetTopic(

@@ -48,6 +48,8 @@ void showSyllabusCategoryOptionsSheet(
             ListTile(
               leading: Icon(Icons.add_circle_outline_rounded, color: color),
               title: Text('Add Topic', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 showAddSyllabusTopicDialog(context, category, ref);
@@ -56,14 +58,38 @@ void showSyllabusCategoryOptionsSheet(
             ListTile(
               leading: Icon(Icons.edit_rounded, color: color),
               title: Text('Edit Category Details', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 showEditSyllabusCategoryDialog(context, category, ref);
               },
             ),
             ListTile(
+              leading: Icon(Icons.check_circle_outline_rounded, color: color),
+              title: Text('Mark as Complete', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(syllabusControllerProvider.notifier).markCategoryCompleted(category.id);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.replay_rounded, color: color),
+              title: Text('Reset Stats', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(syllabusControllerProvider.notifier).resetCategoryStats(category.id);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.swap_vert_rounded, color: Colors.white70),
               title: Text('Reorder Topics', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 showReorderSyllabusTopicsDialog(context, category, topics, ref);
@@ -72,6 +98,8 @@ void showSyllabusCategoryOptionsSheet(
             ListTile(
               leading: const Icon(Icons.swap_vert_rounded, color: Colors.white70),
               title: Text('Reorder Categories', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 final list = ref.read(syllabusCategoriesProvider).value;
@@ -83,6 +111,8 @@ void showSyllabusCategoryOptionsSheet(
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
               title: Text('Delete Category', style: GoogleFonts.outfit(color: Colors.redAccent)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteSyllabusCategoryConfirm(context, category, ref);
@@ -387,7 +417,7 @@ void showReorderSyllabusTopicsDialog(
 // Create Syllabus Category Dialog
 void showCreateSyllabusCategoryDialog(BuildContext context, WidgetRef ref) {
   final nameController = TextEditingController();
-  int selectedColor = 0xFFFF073A; // Default Red
+  int selectedColor = 0xFFFF0000; // Default Red
 
   showDialog(
     context: context,

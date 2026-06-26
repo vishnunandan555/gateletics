@@ -4,7 +4,7 @@ class AppColors {
   static const List<Color> neonCycle = [
     Color(0xFF00F0FF), // Neon cyan
     Color(0xFF39FF14), // Neon green
-    Color(0xFFFF073A), // Neon scarlet red
+    Color(0xFFFF0000), // Neon scarlet red
     Color(0xFFFFAD00), // Neon golden amber
     Color(0xFFE040FB), // Neon magenta/purple
     Color(0xFFFF5E00), // Neon orange
