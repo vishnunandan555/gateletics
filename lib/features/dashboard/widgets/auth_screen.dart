@@ -223,7 +223,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             style: GoogleFonts.outfit(
               color: Colors.white60,
               fontSize: 13,
-              height: 1.5,
             ),
           ),
           const SizedBox(height: 20),

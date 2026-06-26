@@ -77,31 +77,43 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         throw UnsupportedError('Firebase is not supported on this platform.');
       }
 
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: kIsWeb ? '981770496770-vjquhdkpekv4t22gaqtm5ng975u7927r.apps.googleusercontent.com' : null,
-        scopes: ['email'],
-      );
+      final UserCredential userCredential;
 
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        // User cancelled the sign-in flow
-        final currentOffline = _prefs.getBool('has_chosen_offline') ?? false;
-        state = AsyncValue.data(AuthState(
-          user: null,
-          isOfflineMode: currentOffline,
-          isLoading: false,
-        ));
-        return;
+      if (kIsWeb) {
+        // Use Firebase Auth's native signInWithPopup for Web. This runs inside Firebase's
+        // auth handler domain, bypassing GIS (Google Identity Services) iframe restrictions
+        // and resolving the common 'popup_closed' error in Firefox/Safari.
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        
+        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        // Mobile platform (Android/iOS) uses the GoogleSignIn package flow
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          scopes: ['email'],
+        );
+
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        if (googleUser == null) {
+          // User cancelled the sign-in flow
+          final currentOffline = _prefs.getBool('has_chosen_offline') ?? false;
+          state = AsyncValue.data(AuthState(
+            user: null,
+            isOfflineMode: currentOffline,
+            isLoading: false,
+          ));
+          return;
+        }
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
       }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
 
       // Disable offline mode on successful login
       await _prefs.setBool('has_chosen_offline', false);
