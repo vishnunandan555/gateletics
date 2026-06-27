@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <script>
     // Apply theme immediately to prevent flashing
@@ -15,14 +16,23 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="GATEletics - A minimalist, offline-first syllabus and resource tracker for GATE exam preparation.">
+  <meta name="description"
+    content="GATEletics - A minimalist, offline-first syllabus and resource tracker for GATE exam preparation.">
   <title>GATEletics - GATE Exam Syllabus Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Boldonse&family=Orbitron:wght@400..900&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <header>
     <div class="nav-container">
-      <a href="index.html" class="logo">GATE<span>LETICS</span></a>
+      <a href="index.html" class="logo">
+        <img src="logo_trans_cropped.png" alt="GATEletics Logo" class="logo-img">
+        <span class="logo-text"><span class="logo-gate">GATE</span><span class="logo-letics">LETICS</span></span>
+      </a>
       <div class="nav-controls">
         <div class="nav-links">
           <a href="#downloads">Downloads</a>
@@ -37,60 +47,92 @@
 
   <div class="container">
     <section class="hero">
-      <h1>GATEletics</h1>
-      <p>A minimalist, offline-first syllabus and resource tracker designed specifically for GATE Exam preparation. Logically organize subjects, define topic weights, and track your progress in real-time.</p>
+      <h1 class="hero-title">
+        <span class="logo-gate">GATE</span><span class="logo-letics">LETICS</span>
+      </h1>
+      <p>A minimalist, offline-first syllabus and resource tracker designed specifically for GATE Exam preparation.
+        Logically organize subjects, define topic weights, and track your progress in real-time.</p>
       <a href="https://gateletics.vercel.app/" target="_blank" class="btn-primary">
         Open Live Web App
       </a>
     </section>
 
-    <h2 id="downloads">Local Installer Downloads</h2>
+    <h2 id="downloads">Downloads</h2>
     <div class="grid">
       <!-- Windows -->
       <div class="card">
-        <h3>Windows Desktop</h3>
+        <div class="card-header-layout">
+          <img src="https://img.icons8.com/?size=100&id=108792&format=png&color=000000" class="card-icon"
+            alt="Windows logo">
+          <h3>Windows Desktop</h3>
+        </div>
         <p>Native desktop application bundle. Simply extract the ZIP file and run gateletics.exe.</p>
         <div class="download-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
           <a href="#" id="win-mobile-download" class="btn-secondary">Download Mobile UI (.zip)</a>
-          <a href="#" id="win-desktop-download" class="btn-secondary" style="border-color: var(--accent-color); color: var(--accent-color);">Download Desktop UI Beta (.zip)</a>
+          <a href="#" id="win-desktop-download" class="btn-secondary"
+            style="border-color: var(--accent-color); color: var(--accent-color);">Download Desktop UI (Beta) (.zip)</a>
         </div>
-        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link" style="margin-top: 12px; display: inline-block;">Release notes</a>
+        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link"
+          style="margin-top: 12px; display: inline-block;">Release notes</a>
       </div>
 
       <!-- Linux -->
       <div class="card">
-        <h3>Linux Desktop</h3>
+        <div class="card-header-layout">
+          <img src="linux.png" class="card-icon" alt="Linux logo">
+          <h3>Linux Desktop</h3>
+        </div>
         <p>Standalone AppImage executable (chmod +x and launch) or native tarball archive.</p>
         <div class="download-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
           <div style="font-size: 11px; font-weight: bold; color: var(--text-color); opacity: 0.7;">MOBILE UI</div>
           <div style="display: flex; gap: 8px;">
-            <a href="#" id="linux-mobile-appimage" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px;">AppImage</a>
-            <a href="#" id="linux-mobile-tarball" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px;">Tarball</a>
+            <a href="#" id="linux-mobile-appimage" class="btn-secondary"
+              style="flex: 1; font-size: 12px; padding: 10px;">AppImage</a>
+            <a href="#" id="linux-mobile-tarball" class="btn-secondary"
+              style="flex: 1; font-size: 12px; padding: 10px;">Tarball</a>
           </div>
-          <div style="font-size: 11px; font-weight: bold; color: var(--accent-color); opacity: 0.9; margin-top: 8px;">DESKTOP UI BETA</div>
+          <div style="font-size: 11px; font-weight: bold; color: var(--accent-color); opacity: 0.9; margin-top: 8px;">
+            DESKTOP UI (BETA)</div>
           <div style="display: flex; gap: 8px;">
-            <a href="#" id="linux-desktop-appimage" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px; border-color: var(--accent-color); color: var(--accent-color);">AppImage</a>
-            <a href="#" id="linux-desktop-tarball" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px; border-color: var(--accent-color); color: var(--accent-color);">Tarball</a>
+            <a href="#" id="linux-desktop-appimage" class="btn-secondary"
+              style="flex: 1; font-size: 12px; padding: 10px; border-color: var(--accent-color); color: var(--accent-color);">AppImage</a>
+            <a href="#" id="linux-desktop-tarball" class="btn-secondary"
+              style="flex: 1; font-size: 12px; padding: 10px; border-color: var(--accent-color); color: var(--accent-color);">Tarball</a>
           </div>
         </div>
       </div>
 
       <!-- Android -->
       <div class="card">
-        <h3>Android Mobile</h3>
+        <div class="card-header-layout">
+          <img src="https://img.icons8.com/?size=100&id=P2AnGyiJxMpp&format=png&color=000000" class="card-icon"
+            alt="Android logo">
+          <h3>Android Mobile</h3>
+        </div>
         <p>Direct APK package binary. Install and run GATEletics on any Android mobile device.</p>
         <a href="#" id="android-apk-download" class="btn-secondary" style="margin-top: 16px;">Download APK Package</a>
-        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link" style="margin-top: 12px; display: inline-block;">View other releases</a>
+        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link"
+          style="margin-top: 12px; display: inline-block;">View other releases</a>
       </div>
     </div>
 
+    <div
+      style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-top: 24px; margin-bottom: 48px;">
+      <h3 id="release-version-title" style="margin-top: 0; color: var(--accent-color);">Loading latest release...</h3>
+      <div id="release-body"
+        style="color: var(--text-main); opacity: 0.9; margin-top: 16px; white-space: pre-wrap; font-size: 14px; line-height: 1.6;">
+        Fetching release notes...</div>
+    </div>
+
     <h2 id="guide">Quick Setup Guide</h2>
-    <div style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-top: 24px;">
+    <div
+      style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-top: 24px;">
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-content">
           <h3>Accept Legal Terms</h3>
-          <p>Read and accept the onboarding legal disclosures (Terms of Service and Privacy Policy) to initialize the local secure database environment.</p>
+          <p>Read and accept the onboarding legal disclosures (Terms of Service and Privacy Policy) to initialize the
+            local secure database environment.</p>
         </div>
       </div>
 
@@ -98,7 +140,8 @@
         <div class="step-number">2</div>
         <div class="step-content">
           <h3>Select Completion Model</h3>
-          <p>Choose between <strong>Syllabus-Based</strong> (topic checkboxes) and <strong>Resource-Based</strong> (playlist or video count logs) tracker modes.</p>
+          <p>Choose between <strong>Syllabus-Based</strong> (topic checkboxes) and <strong>Resource-Based</strong>
+            (playlist or video count logs) tracker modes.</p>
         </div>
       </div>
 
@@ -106,7 +149,8 @@
         <div class="step-number">3</div>
         <div class="step-content">
           <h3>Import Presets</h3>
-          <p>Instantly populate your categories and subjects by loading pre-configured presets for popular video playlists or general syllabus guidelines.</p>
+          <p>Instantly populate your categories and subjects by loading pre-configured presets for popular video
+            playlists or general syllabus guidelines.</p>
         </div>
       </div>
     </div>
@@ -151,28 +195,33 @@
       .then(data => {
         const assets = data.assets || [];
         const tag = data.tag_name;
-        
+
         const winMobile = assets.find(a => a.name.includes('windows-mobileUI'));
         const winDesktop = assets.find(a => a.name.includes('windows-deskUI-beta'));
-        
+
         const linuxMobileAppImage = assets.find(a => a.name.includes('linux-mobileUI') && a.name.endsWith('.AppImage'));
         const linuxMobileTarball = assets.find(a => a.name.includes('linux-mobileUI') && a.name.endsWith('.tar.gz'));
-        
+
         const linuxDesktopAppImage = assets.find(a => a.name.includes('linux-deskUI-beta') && a.name.endsWith('.AppImage'));
         const linuxDesktopTarball = assets.find(a => a.name.includes('linux-deskUI-beta') && a.name.endsWith('.tar.gz'));
-        
+
         const apkAsset = assets.find(a => a.name.startsWith('gateletics-v') && a.name.endsWith('.apk')) || assets.find(a => a.name.endsWith('.apk'));
 
         document.getElementById('win-mobile-download').href = winMobile ? winMobile.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-windows-mobileUI-${tag}.zip`;
         document.getElementById('win-desktop-download').href = winDesktop ? winDesktop.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-windows-deskUI-beta-${tag}.zip`;
-        
+
         document.getElementById('linux-mobile-appimage').href = linuxMobileAppImage ? linuxMobileAppImage.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-mobileUI-${tag}.AppImage`;
         document.getElementById('linux-mobile-tarball').href = linuxMobileTarball ? linuxMobileTarball.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-mobileUI-${tag}.tar.gz`;
-        
+
         document.getElementById('linux-desktop-appimage').href = linuxDesktopAppImage ? linuxDesktopAppImage.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-deskUI-beta-${tag}.AppImage`;
         document.getElementById('linux-desktop-tarball').href = linuxDesktopTarball ? linuxDesktopTarball.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-deskUI-beta-${tag}.tar.gz`;
-        
+
         document.getElementById('android-apk-download').href = apkAsset ? apkAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-${tag}.apk`;
+
+        const releaseTitle = document.getElementById('release-version-title');
+        const releaseBody = document.getElementById('release-body');
+        if (releaseTitle) releaseTitle.textContent = `Latest Release: ${tag}`;
+        if (releaseBody) releaseBody.textContent = data.body || 'No release notes provided.';
       })
       .catch(err => {
         console.warn('GitHub API failed, falling back to release page url:', err);
@@ -184,7 +233,13 @@
         document.getElementById('linux-desktop-appimage').href = releasePage;
         document.getElementById('linux-desktop-tarball').href = releasePage;
         document.getElementById('android-apk-download').href = releasePage;
+
+        const releaseTitle = document.getElementById('release-version-title');
+        const releaseBody = document.getElementById('release-body');
+        if (releaseTitle) releaseTitle.textContent = 'Release Notes';
+        if (releaseBody) releaseBody.innerHTML = `Could not fetch release notes from GitHub API. <a href="${releasePage}" style="color: var(--accent-color);">View releases on GitHub</a>`;
       });
   </script>
 </body>
+
 </html>

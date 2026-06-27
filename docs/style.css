@@ -56,14 +56,38 @@ header {
 }
 
 .logo {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text-main);
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.logo span {
+.logo-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.logo-text {
+  display: flex;
+  align-items: center;
+}
+
+.logo-gate {
+  font-family: 'Boldonse', sans-serif;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.logo-letics {
   color: var(--accent-color);
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  line-height: 1;
 }
 
 .nav-controls {
@@ -128,6 +152,9 @@ header {
   font-weight: 800;
   margin: 0 0 16px 0;
   letter-spacing: -0.5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .hero p {
@@ -342,5 +369,23 @@ footer {
 
 .copyright {
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
+}
+
+/* Platform Download Cards Header Layout */
+.card-header-layout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-header-layout h3 {
+  margin: 0 !important;
+}
+
+.card-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }

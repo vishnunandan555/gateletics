@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.2--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.3--stable-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -107,6 +107,15 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.3 Highlights
+
+- **Dynamic Widescreen Desktop UI**: Bypassed strict `9:16` aspect ratio constraints when run under the `FORCE_DESK_UI` environment. Enabled clean, resizable window configurations starting at `1280x720` for Linux and Windows runner targets.
+- **Desktop UI Auto-Routing**: Mapped initial route resolver in Riverpod router to directly bootstrap into `/desk` layouts on native platforms when desktop mode is active.
+- **Sidebar Overflow Patches**: Fixed font and padding layout scaling inside `desk_dashboard_shell.dart` to prevent visual `RenderFlex` exceptions.
+- **Robust Clean Reboots**: Enhanced settings "Reset Everything" mechanism to purge all `SharedPreferences` onboarding keys, ensuring database reset properly triggers the legal agreement welcome flow.
+- **CI/CD Workflow Improvements**: Configured automated compilation environments for desktop-ratio builds, outputting dual-UI desktop binaries.
+- **Landing Page Polish**: Added platform logos to download columns (Windows, Linux, Android) with responsive dark/light styling, and added an auto-updating "What's New" container pulling release notes directly from the GitHub API.
 
 ## 🌟 Version 1.2.2 Highlights
 
