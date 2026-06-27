@@ -24,7 +24,10 @@ class _DeskDashboardShellState extends ConsumerState<DeskDashboardShell> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndInitSync());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndInitSync();
+      checkAppVersionUpdate(context, ref);
+    });
   }
 
   void _checkAndInitSync() {

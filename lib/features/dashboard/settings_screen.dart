@@ -207,6 +207,9 @@ class SettingsScreen extends ConsumerWidget {
         await prefs.remove('has_agreed_legal');
         await prefs.remove('has_completed_setup');
         await prefs.remove('completion_type');
+        await prefs.remove('has_seen_desktop_warning');
+        await prefs.remove('last_seen_desktop_warning_version');
+        await prefs.remove('desktop_warning_seen_time_ms');
 
         ref.invalidate(agreementProvider);
         ref.invalidate(setupCompletedProvider);

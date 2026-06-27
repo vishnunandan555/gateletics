@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/sync_provider.dart';
+import '../../../providers/package_info_provider.dart';
 
 class KeepAliveWrapper extends StatefulWidget {
   final Widget child;
@@ -150,5 +153,65 @@ class _SyncDialogOption extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+Future<void> checkAppVersionUpdate(BuildContext context, WidgetRef ref) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final packageInfo = ref.read(packageInfoProvider);
+    final currentVer = '${packageInfo.version}+${packageInfo.buildNumber}';
+    final lastKnownVer = prefs.getString('last_known_app_version');
+
+    if (lastKnownVer != null && lastKnownVer != currentVer) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF18181B),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.white.withAlpha(20), width: 1),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.cyanAccent,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "GATEletics updated to v${packageInfo.version}",
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            action: SnackBarAction(
+              label: "CHANGELOG",
+              textColor: Colors.cyanAccent,
+              onPressed: () async {
+                final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/releases');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+            ),
+          ),
+        );
+      }
+    }
+
+    // Always update to current version to prevent duplicate updates or loops
+    await prefs.setString('last_known_app_version', currentVer);
+  } catch (e) {
+    debugPrint("Error checking app version update: $e");
   }
 }

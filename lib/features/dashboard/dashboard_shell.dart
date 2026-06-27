@@ -12,6 +12,7 @@ import 'dashboard_screen.dart';
 import 'widgets/future_feature_screen.dart';
 import 'widgets/shell_common.dart';
 import 'settings_screen.dart';
+import '../../providers/package_info_provider.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -31,6 +32,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndInitSync();
       _checkDesktopWarning();
+      checkAppVersionUpdate(context, ref);
     });
   }
 
@@ -173,11 +175,45 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     if (width <= 600) return;
 
     final prefs = await SharedPreferences.getInstance();
+
+    // Check version upgrade and time-based expiration
+    final packageInfo = ref.read(packageInfoProvider);
+    final currentVer = '${packageInfo.version}+${packageInfo.buildNumber}';
+    final lastSeenVer = prefs.getString('last_seen_desktop_warning_version');
+
+    final lastSeenTimeMs = prefs.getInt('desktop_warning_seen_time_ms');
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 30 days expiration (in milliseconds)
+    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+
+    bool isExpired = false;
+    if (lastSeenTimeMs != null && (now - lastSeenTimeMs) > thirtyDaysMs) {
+      isExpired = true;
+    }
+
+    if (lastSeenVer != currentVer || isExpired) {
+      await prefs.setBool('has_seen_desktop_warning', false);
+      if (lastSeenVer != currentVer) {
+        await prefs.setString('last_seen_desktop_warning_version', currentVer);
+      }
+    }
+
     final hasSeenWarning = prefs.getBool('has_seen_desktop_warning') ?? false;
 
     if (!hasSeenWarning && mounted) {
       _showDesktopWarningDialog();
     }
+  }
+
+  Future<void> _markDesktopWarningSeen(SharedPreferences prefs) async {
+    final packageInfo = ref.read(packageInfoProvider);
+    final currentVer = '${packageInfo.version}+${packageInfo.buildNumber}';
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    await prefs.setBool('has_seen_desktop_warning', true);
+    await prefs.setString('last_seen_desktop_warning_version', currentVer);
+    await prefs.setInt('desktop_warning_seen_time_ms', now);
   }
 
   void _showDesktopWarningDialog() {
@@ -268,7 +304,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 onPressed: () async {
                   Navigator.pop(dialogContext);
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('has_seen_desktop_warning', true);
+                  await _markDesktopWarningSeen(prefs);
                   if (mounted) {
                     context.go('/desk');
                   }
@@ -318,7 +354,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 onPressed: () async {
                   Navigator.pop(dialogContext);
                   final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('has_seen_desktop_warning', true);
+                  await _markDesktopWarningSeen(prefs);
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white54,
