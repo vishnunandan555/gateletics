@@ -24,10 +24,27 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
 
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
+  bool force_desk = false;
+#ifdef FORCE_DESK_UI
+  force_desk = true;
+#endif
+  char* env_buf = nullptr;
+  size_t env_size = 0;
+  if (_dupenv_s(&env_buf, &env_size, "FORCE_DESK_UI") == 0 && env_buf != nullptr) {
+    if (strcmp(env_buf, "true") == 0) {
+      force_desk = true;
+    }
+    free(env_buf);
+  }
+
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   // Phone aspect ratio: 9:16 (≈390×693 logical pixels)
   Win32Window::Size size(390, 693);
+  if (force_desk) {
+    size = Win32Window::Size(1280, 720);
+  }
+
   if (!window.Create(L"GATEletics", origin, size)) {
     return EXIT_FAILURE;
   }

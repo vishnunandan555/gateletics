@@ -50,24 +50,37 @@
       <div class="card">
         <h3>Windows Desktop</h3>
         <p>Native desktop application bundle. Simply extract the ZIP file and run gateletics.exe.</p>
-        <a href="#" id="win-download" class="btn-secondary">Download Windows (.zip)</a>
-        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link">Release notes</a>
+        <div class="download-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+          <a href="#" id="win-mobile-download" class="btn-secondary">Download Mobile UI (.zip)</a>
+          <a href="#" id="win-desktop-download" class="btn-secondary" style="border-color: var(--accent-color); color: var(--accent-color);">Download Desktop UI Beta (.zip)</a>
+        </div>
+        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link" style="margin-top: 12px; display: inline-block;">Release notes</a>
       </div>
 
       <!-- Linux -->
       <div class="card">
         <h3>Linux Desktop</h3>
         <p>Standalone AppImage executable (chmod +x and launch) or native tarball archive.</p>
-        <a href="#" id="linux-appimage-download" class="btn-secondary">Download AppImage</a>
-        <a href="#" id="linux-tarball-download" class="btn-secondary">Download Tarball (.tar.gz)</a>
+        <div class="download-group" style="display: flex; flex-direction: column; gap: 8px; margin-top: 16px;">
+          <div style="font-size: 11px; font-weight: bold; color: var(--text-color); opacity: 0.7;">MOBILE UI</div>
+          <div style="display: flex; gap: 8px;">
+            <a href="#" id="linux-mobile-appimage" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px;">AppImage</a>
+            <a href="#" id="linux-mobile-tarball" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px;">Tarball</a>
+          </div>
+          <div style="font-size: 11px; font-weight: bold; color: var(--accent-color); opacity: 0.9; margin-top: 8px;">DESKTOP UI BETA</div>
+          <div style="display: flex; gap: 8px;">
+            <a href="#" id="linux-desktop-appimage" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px; border-color: var(--accent-color); color: var(--accent-color);">AppImage</a>
+            <a href="#" id="linux-desktop-tarball" class="btn-secondary" style="flex: 1; font-size: 12px; padding: 10px; border-color: var(--accent-color); color: var(--accent-color);">Tarball</a>
+          </div>
+        </div>
       </div>
 
       <!-- Android -->
       <div class="card">
         <h3>Android Mobile</h3>
         <p>Direct APK package binary. Install and run GATEletics on any Android mobile device.</p>
-        <a href="#" id="android-apk-download" class="btn-secondary">Download APK Package</a>
-        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link">View other releases</a>
+        <a href="#" id="android-apk-download" class="btn-secondary" style="margin-top: 16px;">Download APK Package</a>
+        <a href="https://github.com/vishnunandan555/gateletics/releases" target="_blank" class="card-link" style="margin-top: 12px; display: inline-block;">View other releases</a>
       </div>
     </div>
 
@@ -137,24 +150,40 @@
       })
       .then(data => {
         const assets = data.assets || [];
+        const tag = data.tag_name;
         
-        const winAsset = assets.find(a => a.name.endsWith('.zip'));
-        const apkAsset = assets.find(a => a.name.endsWith('.apk'));
-        const appImageAsset = assets.find(a => a.name.endsWith('.AppImage'));
-        const tarAsset = assets.find(a => a.name.endsWith('.tar.gz'));
+        const winMobile = assets.find(a => a.name.includes('windows-mobileUI'));
+        const winDesktop = assets.find(a => a.name.includes('windows-deskUI-beta'));
+        
+        const linuxMobileAppImage = assets.find(a => a.name.includes('linux-mobileUI') && a.name.endsWith('.AppImage'));
+        const linuxMobileTarball = assets.find(a => a.name.includes('linux-mobileUI') && a.name.endsWith('.tar.gz'));
+        
+        const linuxDesktopAppImage = assets.find(a => a.name.includes('linux-deskUI-beta') && a.name.endsWith('.AppImage'));
+        const linuxDesktopTarball = assets.find(a => a.name.includes('linux-deskUI-beta') && a.name.endsWith('.tar.gz'));
+        
+        const apkAsset = assets.find(a => a.name.startsWith('gateletics-v') && a.name.endsWith('.apk')) || assets.find(a => a.name.endsWith('.apk'));
 
-        document.getElementById('win-download').href = winAsset ? winAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics-windows.zip`;
-        document.getElementById('android-apk-download').href = apkAsset ? apkAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics.apk`;
-        document.getElementById('linux-appimage-download').href = appImageAsset ? appImageAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics-linux.AppImage`;
-        document.getElementById('linux-tarball-download').href = tarAsset ? tarAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${data.tag_name}/gateletics-linux.tar.gz`;
+        document.getElementById('win-mobile-download').href = winMobile ? winMobile.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-windows-mobileUI-${tag}.zip`;
+        document.getElementById('win-desktop-download').href = winDesktop ? winDesktop.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-windows-deskUI-beta-${tag}.zip`;
+        
+        document.getElementById('linux-mobile-appimage').href = linuxMobileAppImage ? linuxMobileAppImage.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-mobileUI-${tag}.AppImage`;
+        document.getElementById('linux-mobile-tarball').href = linuxMobileTarball ? linuxMobileTarball.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-mobileUI-${tag}.tar.gz`;
+        
+        document.getElementById('linux-desktop-appimage').href = linuxDesktopAppImage ? linuxDesktopAppImage.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-deskUI-beta-${tag}.AppImage`;
+        document.getElementById('linux-desktop-tarball').href = linuxDesktopTarball ? linuxDesktopTarball.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-linux-deskUI-beta-${tag}.tar.gz`;
+        
+        document.getElementById('android-apk-download').href = apkAsset ? apkAsset.browser_download_url : `https://github.com/${user}/${repo}/releases/download/${tag}/gateletics-${tag}.apk`;
       })
       .catch(err => {
         console.warn('GitHub API failed, falling back to release page url:', err);
         const releasePage = `https://github.com/${user}/${repo}/releases/latest`;
-        document.getElementById('win-download').href = releasePage;
+        document.getElementById('win-mobile-download').href = releasePage;
+        document.getElementById('win-desktop-download').href = releasePage;
+        document.getElementById('linux-mobile-appimage').href = releasePage;
+        document.getElementById('linux-mobile-tarball').href = releasePage;
+        document.getElementById('linux-desktop-appimage').href = releasePage;
+        document.getElementById('linux-desktop-tarball').href = releasePage;
         document.getElementById('android-apk-download').href = releasePage;
-        document.getElementById('linux-appimage-download').href = releasePage;
-        document.getElementById('linux-tarball-download').href = releasePage;
       });
   </script>
 </body>

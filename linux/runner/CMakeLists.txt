@@ -19,6 +19,10 @@ apply_standard_settings(${BINARY_NAME})
 # Add preprocessor definitions for the application ID.
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 
+if(DEFINED ENV{FORCE_DESK_UI})
+  target_compile_definitions(${BINARY_NAME} PRIVATE FORCE_DESK_UI)
+endif()
+
 # Add dependency libraries. Add any application-specific dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)

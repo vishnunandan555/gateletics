@@ -8,6 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../providers/agreement_provider.dart';
+import '../../providers/setup_provider.dart';
 
 import '../../providers/subject_provider.dart';
 import '../../providers/completion_type_provider.dart';
@@ -198,6 +202,14 @@ class SettingsScreen extends ConsumerWidget {
       if (everything) {
         await ref.read(subjectControllerProvider.notifier).resetEverything();
         await ref.read(syllabusControllerProvider.notifier).resetEverything();
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('has_agreed_legal');
+        await prefs.remove('has_completed_setup');
+        await prefs.remove('completion_type');
+
+        ref.invalidate(agreementProvider);
+        ref.invalidate(setupCompletedProvider);
       } else {
         final currentType = ref.read(completionTypeProvider);
         if (currentType == CompletionType.syllabus) {
@@ -712,6 +724,47 @@ class SettingsScreen extends ConsumerWidget {
                 },
               ),
               const Divider(color: Colors.white12),
+            ] else if (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'CLOUD SYNC',
+                  style: TextStyle(
+                    color: accentColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withAlpha(8)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, color: Colors.cyanAccent),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "Cloud Sync is supported on Web & Android. To transfer data to/from this desktop app, please use the Local Backup & Restore tools below.",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Divider(color: Colors.white12),
             ],
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1122,7 +1175,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            if (kIsWeb &&
+            if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
                 defaultTargetPlatform != TargetPlatform.android &&
                 defaultTargetPlatform != TargetPlatform.iOS) ...[
               const Divider(color: Colors.white12),

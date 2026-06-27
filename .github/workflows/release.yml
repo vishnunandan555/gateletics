@@ -20,6 +20,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Extract Version
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9] ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            PUB_VERSION=$(grep '^version: ' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+            VERSION="v${PUB_VERSION}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Set up Java Development Kit (JDK)
         uses: actions/setup-java@v4
         with:
@@ -48,8 +58,8 @@ jobs:
       - name: Prepare Android Artifacts
         run: |
           mkdir -p artifacts
-          cp build/app/outputs/flutter-apk/app-release.apk artifacts/gateletics.apk
-          cp build/app/outputs/bundle/release/app-release.aab artifacts/gateletics.aab
+          cp build/app/outputs/flutter-apk/app-release.apk artifacts/gateletics-${{ env.VERSION }}.apk
+          cp build/app/outputs/bundle/release/app-release.aab artifacts/gateletics-${{ env.VERSION }}.aab
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -58,7 +68,7 @@ jobs:
           path: artifacts/
 
   # -------------------------------------------------------------------------
-  # Job 2: Build Windows Desktop App (ZIP)
+  # Job 2: Build Windows Desktop App (ZIP) - Mobile and Desktop UI
   # -------------------------------------------------------------------------
   build-windows:
     name: Build Windows Desktop
@@ -66,6 +76,17 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Extract Version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_name }}" -match "^v[0-9]") {
+            $VERSION = "${{ github.ref_name }}"
+          } else {
+            $PubLine = Get-Content pubspec.yaml | Select-String "^version:"
+            $VERSION = "v" + $PubLine.Line.Split(" ")[1].Split("+")[0]
+          }
+          echo "VERSION=$VERSION" >> $env:GITHUB_ENV
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -80,22 +101,42 @@ jobs:
       - name: Run Build Runner (Drift Models)
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
-      - name: Build Windows App
-        run: flutter build windows --release
+      - name: Run Flutter Config Only (Generate Platform Files)
+        run: flutter build windows --config-only
 
-      - name: Compress Windows Release Bundle (Executable + DLLs)
+      - name: Strip Firebase from Windows C++ Build
+        shell: bash
+        run: python scripts/strip_firebase.py
+
+      - name: Build Windows App (Mobile UI)
+        run: flutter build windows --release --no-pub
+
+      - name: Compress Windows Mobile UI Release Bundle
         shell: pwsh
         run: |
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath gateletics-windows.zip
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath gateletics-windows-mobileUI-${{ env.VERSION }}.zip
+
+      - name: Build Windows App (Desktop UI Beta)
+        shell: pwsh
+        run: |
+          $env:FORCE_DESK_UI="true"
+          flutter build windows --release --no-pub --dart-define=FORCE_DESK_UI=true
+
+      - name: Compress Windows Desktop UI Release Bundle
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath gateletics-windows-deskUI-beta-${{ env.VERSION }}.zip
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: gateletics-windows.zip
+          path: |
+            gateletics-windows-mobileUI-${{ env.VERSION }}.zip
+            gateletics-windows-deskUI-beta-${{ env.VERSION }}.zip
 
   # -------------------------------------------------------------------------
-  # Job 3: Build Linux Desktop App (TAR.GZ)
+  # Job 3: Build Linux Desktop App (TAR.GZ / AppImage) - Mobile and Desktop UI
   # -------------------------------------------------------------------------
   build-linux:
     name: Build Linux Desktop
@@ -103,6 +144,16 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Extract Version
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9] ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            PUB_VERSION=$(grep '^version: ' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+            VERSION="v${PUB_VERSION}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Install Linux Build Prerequisites
         run: |
@@ -122,34 +173,35 @@ jobs:
       - name: Run Build Runner (Drift Models)
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
-      - name: Build Linux App
+      # --- Build Mobile UI ---
+      - name: Build Linux App (Mobile UI)
         run: flutter build linux --release
 
-      - name: Compress Linux Release Bundle (Tarball)
+      - name: Compress Linux Mobile UI Release Bundle (Tarball)
         run: |
-          tar -czf gateletics-linux.tar.gz -C build/linux/x64/release/bundle .
+          tar -czf gateletics-linux-mobileUI-${{ env.VERSION }}.tar.gz -C build/linux/x64/release/bundle .
 
-      - name: Package Linux Desktop App as AppImage
+      - name: Package Linux Mobile UI App as AppImage
         run: |
-          # 1. Download official AppImage compiler tool
+          # Download official AppImage compiler tool
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
           
-          # 2. Build AppDir directory structure
+          # Build AppDir directory structure
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/lib
           mkdir -p AppDir/usr/share
           
-          # 3. Copy compiled files into AppDir
+          # Copy compiled files into AppDir
           cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
           
-          # 4. Create AppRun launch script (using echo to avoid heredoc indentation bugs)
+          # Create AppRun launch script
           echo '#!/bin/sh' > AppDir/AppRun
           echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
           echo 'exec "$HERE/usr/bin/gateletics" "$@"' >> AppDir/AppRun
           chmod +x AppDir/AppRun
           
-          # 5. Create desktop entry file
+          # Create desktop entry file
           echo '[Desktop Entry]' > AppDir/gateletics.desktop
           echo 'Name=GATEletics' >> AppDir/gateletics.desktop
           echo 'Exec=gateletics' >> AppDir/gateletics.desktop
@@ -157,19 +209,67 @@ jobs:
           echo 'Type=Application' >> AppDir/gateletics.desktop
           echo 'Categories=Utility;' >> AppDir/gateletics.desktop
           
-          # 6. Copy icon file
+          # Copy icon file
           cp icon.png AppDir/gateletics.png
           
-          # 7. Compile the AppImage
-          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gateletics-linux.AppImage
+          # Compile the AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gateletics-linux-mobileUI-${{ env.VERSION }}.AppImage
+          
+          # Clean up AppDir
+          rm -rf AppDir
+
+      # --- Build Desktop UI Beta ---
+      - name: Build Linux App (Desktop UI Beta)
+        run: |
+          export FORCE_DESK_UI=true
+          flutter build linux --release --dart-define=FORCE_DESK_UI=true
+
+      - name: Compress Linux Desktop UI Release Bundle (Tarball)
+        run: |
+          tar -czf gateletics-linux-deskUI-beta-${{ env.VERSION }}.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Package Linux Desktop UI App as AppImage
+        run: |
+          # Re-download/prepare tool if needed (should already be here)
+          chmod +x appimagetool-x86_64.AppImage
+          
+          # Build AppDir directory structure
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          mkdir -p AppDir/usr/share
+          
+          # Copy compiled files into AppDir
+          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          
+          # Create AppRun launch script
+          echo '#!/bin/sh' > AppDir/AppRun
+          echo 'HERE="$(dirname "$(readlink -f "${0}")")"' >> AppDir/AppRun
+          echo 'exec "$HERE/usr/bin/gateletics" "$@"' >> AppDir/AppRun
+          chmod +x AppDir/AppRun
+          
+          # Create desktop entry file
+          echo '[Desktop Entry]' > AppDir/gateletics.desktop
+          echo 'Name=GATEletics' >> AppDir/gateletics.desktop
+          echo 'Exec=gateletics' >> AppDir/gateletics.desktop
+          echo 'Icon=gateletics' >> AppDir/gateletics.desktop
+          echo 'Type=Application' >> AppDir/gateletics.desktop
+          echo 'Categories=Utility;' >> AppDir/gateletics.desktop
+          
+          # Copy icon file
+          cp icon.png AppDir/gateletics.png
+          
+          # Compile the AppImage
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gateletics-linux-deskUI-beta-${{ env.VERSION }}.AppImage
 
       - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
           path: |
-            gateletics-linux.tar.gz
-            gateletics-linux.AppImage
+            gateletics-linux-mobileUI-${{ env.VERSION }}.tar.gz
+            gateletics-linux-mobileUI-${{ env.VERSION }}.AppImage
+            gateletics-linux-deskUI-beta-${{ env.VERSION }}.tar.gz
+            gateletics-linux-deskUI-beta-${{ env.VERSION }}.AppImage
 
   # -------------------------------------------------------------------------
   # Job 4: Build Web App (ZIP Bundle)
@@ -180,6 +280,16 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Extract Version
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9] ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            PUB_VERSION=$(grep '^version: ' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+            VERSION="v${PUB_VERSION}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -210,14 +320,14 @@ jobs:
       - name: Compress Web Release Bundle (Zip)
         run: |
           cd build/web
-          zip -r ../../gateletics-web.zip .
+          zip -r ../../gateletics-web-${{ env.VERSION }}.zip .
           cd ../..
 
       - name: Upload Web Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: web-build
-          path: gateletics-web.zip
+          path: gateletics-web-${{ env.VERSION }}.zip
 
   # -------------------------------------------------------------------------
   # Job 5: Pull and Publish to GitHub Releases
@@ -227,6 +337,19 @@ jobs:
     needs: [build-android, build-windows, build-linux, build-web]
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Extract Version
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^v[0-9] ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            PUB_VERSION=$(grep '^version: ' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)
+            VERSION="v${PUB_VERSION}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Create Release Directory
         run: mkdir -p release-files
 
@@ -259,12 +382,15 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            release-files/gateletics.apk
-            release-files/gateletics.aab
-            release-files/gateletics-windows.zip
-            release-files/gateletics-linux.tar.gz
-            release-files/gateletics-linux.AppImage
-            release-files/gateletics-web.zip
+            release-files/gateletics-web-${{ env.VERSION }}.zip
+            release-files/gateletics-${{ env.VERSION }}.aab
+            release-files/gateletics-${{ env.VERSION }}.apk
+            release-files/gateletics-windows-mobileUI-${{ env.VERSION }}.zip
+            release-files/gateletics-linux-mobileUI-${{ env.VERSION }}.AppImage
+            release-files/gateletics-linux-mobileUI-${{ env.VERSION }}.tar.gz
+            release-files/gateletics-windows-deskUI-beta-${{ env.VERSION }}.zip
+            release-files/gateletics-linux-deskUI-beta-${{ env.VERSION }}.AppImage
+            release-files/gateletics-linux-deskUI-beta-${{ env.VERSION }}.tar.gz
           draft: false
           prerelease: ${{ startsWith(github.ref_name, 'v0.') || contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true

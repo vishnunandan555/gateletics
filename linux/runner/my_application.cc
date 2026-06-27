@@ -52,8 +52,23 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "GATEletics");
   }
 
-  // Phone aspect ratio: 9:16. Start at a comfortable phone-sized window.
-  gtk_window_set_default_size(window, 390, 693);
+  // Check if Desktop UI layout is forced
+  bool force_desk = false;
+#ifdef FORCE_DESK_UI
+  force_desk = true;
+#endif
+  const char* env_force_desk = getenv("FORCE_DESK_UI");
+  if (env_force_desk != nullptr && strcmp(env_force_desk, "true") == 0) {
+    force_desk = true;
+  }
+
+  if (force_desk) {
+    // Start at a comfortable desktop size
+    gtk_window_set_default_size(window, 1280, 720);
+  } else {
+    // Phone aspect ratio: 9:16. Start at a comfortable phone-sized window.
+    gtk_window_set_default_size(window, 390, 693);
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
@@ -68,21 +83,30 @@ static void my_application_activate(GApplication* application) {
   gtk_widget_show(GTK_WIDGET(view));
   gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(view));
 
-  // Ensure the window is resizable, then enforce 9:16 aspect ratio.
+  // Ensure the window is resizable.
   gtk_window_set_resizable(window, TRUE);
 
-  GdkGeometry geometry;
-  // Min/max bounds
-  geometry.min_width   = 200;
-  geometry.min_height  = 355;
-  geometry.max_width   = 900;
-  geometry.max_height  = 1600;
-  geometry.min_aspect  = 9.0 / 16.0;
-  geometry.max_aspect  = 9.0 / 16.0;
+  if (!force_desk) {
+    GdkGeometry geometry;
+    // Min/max bounds
+    geometry.min_width   = 200;
+    geometry.min_height  = 355;
+    geometry.max_width   = 900;
+    geometry.max_height  = 1600;
+    geometry.min_aspect  = 9.0 / 16.0;
+    geometry.max_aspect  = 9.0 / 16.0;
 
-  gtk_window_set_geometry_hints(
-      window, nullptr, &geometry,
-      static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE | GDK_HINT_ASPECT));
+    gtk_window_set_geometry_hints(
+        window, nullptr, &geometry,
+        static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE | GDK_HINT_ASPECT));
+  } else {
+    GdkGeometry geometry;
+    geometry.min_width   = 600;
+    geometry.min_height  = 400;
+    gtk_window_set_geometry_hints(
+        window, nullptr, &geometry,
+        static_cast<GdkWindowHints>(GDK_HINT_MIN_SIZE));
+  }
 
   // Show the window when Flutter renders.
   // Requires the view to be realized so we can start rendering.

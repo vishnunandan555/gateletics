@@ -111,23 +111,23 @@ class _DeskSidebar extends StatelessWidget {
           Padding(
             padding: isCompact
                 ? const EdgeInsets.symmetric(vertical: 24)
-                : const EdgeInsets.fromLTRB(20, 28, 20, 24),
+                : const EdgeInsets.fromLTRB(16, 28, 12, 24),
             child: Row(
               mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
                 Image.asset('logo_trans_cropped.png', width: 28, height: 28),
                 if (!isCompact) ...[
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Text(
                     'GATEletics',
                     style: GoogleFonts.outfit(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                     decoration: BoxDecoration(

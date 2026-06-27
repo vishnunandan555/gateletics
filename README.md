@@ -94,6 +94,20 @@ To build a release binary (e.g., for Linux):
 flutter build linux
 ```
 
+## 📦 Compiled Releases & Artifact Naming
+
+All production releases are automatically compiled, versioned, and packaged via GitHub Actions CI/CD on tag pushes. The following files are attached to each release in the exact order below:
+
+1. **Web App Archive** (`gateletics-web-v1.x.x.zip`): Deployable static web assets.
+2. **Android App Bundle** (`gateletics-v1.x.x.aab`): Production bundle for Google Play Store.
+3. **Android APK** (`gateletics-v1.x.x.apk`): Direct standalone mobile installer.
+4. **Windows (Mobile UI)** (`gateletics-windows-mobileUI-v1.x.x.zip`): Desktop port with mobile-ratio locked layout.
+5. **Linux (Mobile UI - AppImage)** (`gateletics-linux-mobileUI-v1.x.x.AppImage`): Portable Linux binary with mobile-ratio locked layout.
+6. **Linux (Mobile UI - Tarball)** (`gateletics-linux-mobileUI-v1.x.x.tar.gz`): Compressed Linux files with mobile-ratio locked layout.
+7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
+8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
+9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
 ## 🌟 Version 1.2.2 Highlights
 
 - **Web Compatibility & Google Login Fixes**: Replaced the deprecated and cookie-blocked `google_sign_in_web` package flow on Web targets with Firebase Auth's native `signInWithPopup`, resolving critical cross-origin iframe security issues and `popup_closed` errors on non-Chrome browsers (like Firefox and Safari).

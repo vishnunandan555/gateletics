@@ -14,6 +14,22 @@ static constexpr int kMaxHeightLogical = 1600;
 
 namespace {
 
+bool IsForceDeskUI() {
+  bool force_desk = false;
+#ifdef FORCE_DESK_UI
+  force_desk = true;
+#endif
+  char* env_buf = nullptr;
+  size_t env_size = 0;
+  if (_dupenv_s(&env_buf, &env_size, "FORCE_DESK_UI") == 0 && env_buf != nullptr) {
+    if (strcmp(env_buf, "true") == 0) {
+      force_desk = true;
+    }
+    free(env_buf);
+  }
+  return force_desk;
+}
+
 /// Window attribute that enables dark mode window decorations.
 ///
 /// Redefined in case the developer's machine has a Windows SDK older than
@@ -215,6 +231,23 @@ Win32Window::MessageHandler(HWND hwnd,
     }
 
     case WM_GETMINMAXINFO: {
+      if (IsForceDeskUI()) {
+        UINT dpi = GetDpiForWindow(hwnd);
+        double scale = dpi / 96.0;
+        int minW = static_cast<int>(600 * scale);
+        int minH = static_cast<int>(400 * scale);
+
+        RECT ncRect = {0, 0, minW, minH};
+        AdjustWindowRect(&ncRect, WS_OVERLAPPEDWINDOW, FALSE);
+        int ncW = (ncRect.right - ncRect.left) - minW;
+        int ncH = (ncRect.bottom - ncRect.top) - minH;
+
+        auto* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
+        mmi->ptMinTrackSize.x = minW + ncW;
+        mmi->ptMinTrackSize.y = minH + ncH;
+        return 0;
+      }
+
       // Enforce min/max window size in physical pixels.
       UINT dpi = GetDpiForWindow(hwnd);
       double scale = dpi / 96.0;
@@ -238,6 +271,9 @@ Win32Window::MessageHandler(HWND hwnd,
     }
 
     case WM_SIZING: {
+      if (IsForceDeskUI()) {
+        break; // Skip ratio lock
+      }
       // Lock to phone aspect ratio during resize.
       auto* r = reinterpret_cast<RECT*>(lparam);
 
