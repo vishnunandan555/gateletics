@@ -115,7 +115,7 @@ class _DeskSidebar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
-                Icon(Icons.school_rounded, color: progressColor, size: 28),
+                Image.asset('logo_trans_cropped.png', width: 28, height: 28),
                 if (!isCompact) ...[
                   const SizedBox(width: 10),
                   Text(
@@ -125,6 +125,24 @@ class _DeskSidebar extends StatelessWidget {
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.cyanAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
+                    ),
+                    child: Text(
+                      'BETA',
+                      style: GoogleFonts.outfit(
+                        color: Colors.cyanAccent,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ],

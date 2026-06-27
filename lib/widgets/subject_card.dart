@@ -349,7 +349,7 @@ class SubjectCard extends ConsumerWidget {
         onLongPress: () => _showEditDialog(context, ref),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(14.0),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Opacity(
             opacity: isNotReady ? 0.4 : 1.0,
             child: Row(
@@ -386,7 +386,7 @@ class SubjectCard extends ConsumerWidget {
                         ],
                       ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
                       // Row 2: progress bar
                       ProgressBar(
@@ -397,7 +397,7 @@ class SubjectCard extends ConsumerWidget {
                         tickCount: 10,
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
 
                       // Row 3: source label (left) + counter buttons (right)
                       Row(
@@ -437,7 +437,7 @@ class SubjectCard extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 6),
 
                 // ── RIGHT: big % + completion info ──────────
                 Container(
@@ -450,7 +450,7 @@ class SubjectCard extends ConsumerWidget {
                       Text(
                         '${percentage.toStringAsFixed(0)}%',
                         style: TextStyle(
-                          fontSize: (screenWidth * 0.08).clamp(24.0, 34.0) * topicScaleFactor,
+                          fontSize: (screenWidth * 1).clamp(28.0, 38.0) * topicScaleFactor,
                           fontWeight: FontWeight.w900,
                           color: color,
                           letterSpacing: -1.5,
@@ -485,7 +485,7 @@ class SubjectCard extends ConsumerWidget {
 
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: const Color(0xFF18181B),
         borderRadius: BorderRadius.circular(20),

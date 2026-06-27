@@ -12,11 +12,12 @@ import '../../providers/completion_type_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import '../dashboard/widgets/syllabus_category_header.dart';
 import '../dashboard/widgets/syllabus_topic_card.dart';
+import '../../providers/category_font_size_provider.dart';
 
 class DeskDashboardScreen extends ConsumerWidget {
   const DeskDashboardScreen({super.key});
 
-  static const double _maxContentWidth = 1400;
+  static const double _maxContentWidth = 1600;
 
   Widget _buildConstrainedBody(Widget child) {
     return Center(
@@ -28,7 +29,7 @@ class DeskDashboardScreen extends ConsumerWidget {
   }
 
   int _gridCrossAxisCount(double width) {
-    if (width >= 1200) return 3;
+    if (width >= 1500) return 3;
     if (width >= 900) return 2;
     return 1;
   }
@@ -39,6 +40,16 @@ class DeskDashboardScreen extends ConsumerWidget {
     final completionType = ref.watch(completionTypeProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final crossAxisCount = _gridCrossAxisCount(screenWidth);
+    final topicScaleFactor = ref.watch(categoryFontSizeProvider).topicScaleFactor;
+
+    // Calculate dynamic child aspect ratio for SubjectCard to target a constant height of 132px * scale factor
+    final double sidebarWidth = screenWidth < 768 ? 76.0 : 220.0;
+    final double availableWidth = (screenWidth - sidebarWidth).clamp(0.0, 1600.0);
+    final double gridWidth = availableWidth - 32.0; // horizontal margins
+    final double spacingTotal = (crossAxisCount - 1) * 8.0;
+    final double cardWidth = (gridWidth - spacingTotal) / crossAxisCount;
+    final double targetCardHeight = 120.0 * topicScaleFactor;
+    final double childAspectRatio = (cardWidth / targetCardHeight).clamp(1.5, 4.0);
 
     if (completionType == CompletionType.syllabus) {
       final syllabusAsync = ref.watch(syllabusProvider);
@@ -220,7 +231,7 @@ class DeskDashboardScreen extends ConsumerWidget {
                               crossAxisCount: crossAxisCount,
                               mainAxisSpacing: 8,
                               crossAxisSpacing: 8,
-                              childAspectRatio: crossAxisCount >= 2 ? 2.8 : 2.2,
+                              childAspectRatio: childAspectRatio,
                             ),
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {

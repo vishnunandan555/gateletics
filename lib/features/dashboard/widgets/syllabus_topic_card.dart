@@ -41,7 +41,7 @@ class SyllabusTopicCard extends ConsumerWidget {
     late TapDownDetails topicTapDetails;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E22),
         borderRadius: BorderRadius.circular(12),

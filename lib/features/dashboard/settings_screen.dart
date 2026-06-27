@@ -1145,10 +1145,39 @@ class SettingsScreen extends ConsumerWidget {
                       : Icons.desktop_windows_rounded,
                   color: Colors.cyanAccent,
                 ),
-                title: Text(
-                  GoRouterState.of(context).uri.path.startsWith('/desk')
-                      ? 'Switch to Mobile UI'
-                      : 'Switch to Desktop UI [beta]',
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      GoRouterState.of(context).uri.path.startsWith('/desk')
+                          ? 'Switch to Mobile UI'
+                          : 'Switch to Desktop UI',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.cyanAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
+                        ),
+                        child: Text(
+                          'BETA',
+                          style: GoogleFonts.outfit(
+                            color: Colors.cyanAccent,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 subtitle: Text(
                   GoRouterState.of(context).uri.path.startsWith('/desk')
