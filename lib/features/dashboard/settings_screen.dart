@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../providers/subject_provider.dart';
 import '../../providers/completion_type_provider.dart';
@@ -1121,6 +1122,49 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
+            if (kIsWeb &&
+                defaultTargetPlatform != TargetPlatform.android &&
+                defaultTargetPlatform != TargetPlatform.iOS) ...[
+              const Divider(color: Colors.white12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'LAYOUT',
+                  style: TextStyle(
+                    color: accentColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: Icon(
+                  GoRouterState.of(context).uri.path.startsWith('/desk')
+                      ? Icons.phone_android_rounded
+                      : Icons.desktop_windows_rounded,
+                  color: Colors.cyanAccent,
+                ),
+                title: Text(
+                  GoRouterState.of(context).uri.path.startsWith('/desk')
+                      ? 'Switch to Mobile UI'
+                      : 'Switch to Desktop UI [beta]',
+                ),
+                subtitle: Text(
+                  GoRouterState.of(context).uri.path.startsWith('/desk')
+                      ? 'Return to the mobile-optimized layout'
+                      : 'Experience the desktop layout on your web browser',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                onTap: () {
+                  if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
+                    context.go('/');
+                  } else {
+                    context.go('/desk');
+                  }
+                },
+              ),
+            ],
             const Divider(color: Colors.white12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

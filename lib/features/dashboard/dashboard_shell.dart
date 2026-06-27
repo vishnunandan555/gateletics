@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
@@ -9,6 +10,7 @@ import '../../providers/subject_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import 'dashboard_screen.dart';
 import 'widgets/future_feature_screen.dart';
+import 'widgets/shell_common.dart';
 import 'settings_screen.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
@@ -54,7 +56,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
 
     ref.listen<SyncState>(syncProvider, (previous, next) {
       if (next.status == SyncStatus.requiresAction && next.pendingCloudData != null) {
-        _showSyncConflictDialog(context, ref, progressColor);
+        showSyncConflictDialog(context, ref, progressColor);
       }
     });
 
@@ -164,132 +166,9 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     );
   }
 
-  void _showSyncConflictDialog(BuildContext context, WidgetRef ref, Color accentColor) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(
-          "Sync Conflict Detected",
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18),
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                "Both your local device and cloud backup contain study tracking progress. How would you like to resolve this conflict?",
-                style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
-              ),
-              const SizedBox(height: 20),
-              _buildDialogOption(
-                context: context,
-                title: "Merge Progress (Recommended)",
-                subtitle: "Combine local and cloud progress (no data lost)",
-                icon: Icons.merge_type_rounded,
-                color: Colors.cyanAccent,
-                onTap: () async {
-                  Navigator.pop(context);
-                  await ref.read(syncProvider.notifier).mergeCloudAndLocal();
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDialogOption(
-                context: context,
-                title: "Use Cloud Backup",
-                subtitle: "Overwrite local data with your cloud backup",
-                icon: Icons.cloud_download_rounded,
-                color: Colors.greenAccent,
-                onTap: () async {
-                  Navigator.pop(context);
-                  await ref.read(syncProvider.notifier).downloadCloudToLocal();
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildDialogOption(
-                context: context,
-                title: "Keep Local Progress",
-                subtitle: "Overwrite cloud data with your local progress",
-                icon: Icons.cloud_upload_rounded,
-                color: Colors.orangeAccent,
-                onTap: () async {
-                  Navigator.pop(context);
-                  await ref.read(syncProvider.notifier).uploadLocalToCloud();
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDialogOption({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white.withAlpha(5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withAlpha(8)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withAlpha(20),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white30,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _checkDesktopWarning() async {
     if (!kIsWeb) return;
 
-    // Check if screen width is large (e.g. > 600)
     final width = MediaQuery.of(context).size.width;
     if (width <= 600) return;
 
@@ -305,8 +184,8 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B), // Zinc 900
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         icon: const Icon(
           Icons.phonelink_setup_rounded,
@@ -338,7 +217,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
               ),
               const SizedBox(height: 12),
               Text(
-                "💡 Tip: For the best visual experience on your computer, try resizing this browser window to make it narrower, or access it directly from your mobile phone!",
+                "We also offer a desktop UI [beta] designed for wider screens. Try it for a layout that makes better use of your screen space.",
                 style: GoogleFonts.outfit(
                   color: Colors.cyanAccent.withAlpha(200),
                   fontSize: 12,
@@ -352,51 +231,57 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('has_seen_desktop_warning', true);
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.black,
-              backgroundColor: Colors.cyanAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('has_seen_desktop_warning', true);
+                  if (mounted) {
+                    context.go('/desk');
+                  }
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.cyanAccent,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  "TRY DESKTOP UI [BETA]",
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              "GOT IT",
-              style: GoogleFonts.outfit(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('has_seen_desktop_warning', true);
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white54,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text(
+                  "STAY ON MOBILE UI",
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
-}
-
-class KeepAliveWrapper extends StatefulWidget {
-  final Widget child;
-
-  const KeepAliveWrapper({super.key, required this.child});
-
-  @override
-  State<KeepAliveWrapper> createState() => _KeepAliveWrapperState();
-}
-
-class _KeepAliveWrapperState extends State<KeepAliveWrapper>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
-  }
-
-  @override
-  bool get wantKeepAlive => true;
 }
