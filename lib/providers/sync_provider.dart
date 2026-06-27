@@ -450,6 +450,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       // Deep data comparison: if local and cloud are identical, bypass conflict check
       if (hasLocalData) {
         final localData = await _exportLocalData();
+        localData['completionType'] = ref.read(completionTypeProvider).name;
         if (_areDataEqual(localData, cloudData)) {
           await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
           return false;
@@ -465,7 +466,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         if (compTypeStr != null) {
           final compType = CompletionType.values.firstWhere(
             (e) => e.name == compTypeStr,
-            orElse: () => CompletionType.resource,
+            orElse: () => CompletionType.syllabus,
           );
           await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
         }
@@ -528,7 +529,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         if (compTypeStr != null) {
           final compType = CompletionType.values.firstWhere(
             (e) => e.name == compTypeStr,
-            orElse: () => CompletionType.resource,
+            orElse: () => CompletionType.syllabus,
           );
           await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
         }
@@ -576,7 +577,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         if (compTypeStr != null) {
           final compType = CompletionType.values.firstWhere(
             (e) => e.name == compTypeStr,
-            orElse: () => CompletionType.resource,
+            orElse: () => CompletionType.syllabus,
           );
           await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
         }

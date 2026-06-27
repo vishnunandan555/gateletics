@@ -10,7 +10,7 @@ class CompletionTypeNotifier extends Notifier<CompletionType> {
   @override
   CompletionType build() {
     _load();
-    return CompletionType.resource;
+    return CompletionType.syllabus;
   }
 
   Future<void> _load() async {
@@ -19,7 +19,7 @@ class CompletionTypeNotifier extends Notifier<CompletionType> {
     if (val != null) {
       state = CompletionType.values.firstWhere(
         (e) => e.name == val,
-        orElse: () => CompletionType.resource,
+        orElse: () => CompletionType.syllabus,
       );
     }
   }

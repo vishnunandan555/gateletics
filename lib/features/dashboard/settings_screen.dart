@@ -365,6 +365,975 @@ class SettingsScreen extends ConsumerWidget {
     final packageInfo = ref.watch(packageInfoProvider);
     final accentColor = ref.watch(overallProgressColorProvider);
     final autoSort = ref.watch(categoryAutoSortProvider);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = screenWidth > 900;
+
+    final cloudSyncHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'CLOUD SYNC',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final cloudSyncContent = isFirebaseSupported()
+        ? Consumer(
+            builder: (context, ref, _) {
+              final authAsync = ref.watch(authProvider);
+              final syncState = ref.watch(syncProvider);
+
+              return authAsync.when(
+                data: (authState) {
+                  final user = authState.user;
+                  final isOffline = authState.isOfflineMode;
+
+                  if (user == null || isOffline) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(5),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withAlpha(8)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.cloud_off_rounded, color: Colors.white60),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    "Offline Mode Enabled",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Your progress is stored locally on this device. Sign in with Google to enable automatic cloud sync and backups.",
+                              style: GoogleFonts.outfit(
+                                color: Colors.white30,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: () async {
+                                try {
+                                  await ref.read(authProvider.notifier).signInWithGoogle();
+                                  final needsAction = await ref.read(syncProvider.notifier).initializeSync();
+                                  if (needsAction && context.mounted) {
+                                    _showSyncConflictDialog(context, ref);
+                                  } else if (context.mounted) {
+                                    final finalState = ref.read(syncProvider);
+                                    if (finalState.status == SyncStatus.success) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('✓ Sync initialized successfully!'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Google Sign-in failed: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              icon: const Icon(Icons.login_rounded, size: 18),
+                              label: Text(
+                                "SIGN IN WITH GOOGLE",
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withAlpha(8)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+                                backgroundColor: accentColor.withValues(alpha: 0.2),
+                                child: user.photoURL == null ? const Icon(Icons.person, color: Colors.white) : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      user.displayName ?? "GATEletics User",
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      user.email ?? "",
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white30,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(color: Colors.white10),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Sync Status:",
+                                      style: GoogleFonts.outfit(color: Colors.white54, fontSize: 11),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      syncState.status == SyncStatus.syncing
+                                          ? "Syncing..."
+                                          : syncState.status == SyncStatus.error
+                                              ? "Sync Error"
+                                              : syncState.lastSyncedAt != null
+                                                  ? "Last Synced: ${_formatSyncTime(syncState.lastSyncedAt!)}"
+                                                  : "Not synced",
+                                      style: GoogleFonts.outfit(
+                                        color: syncState.status == SyncStatus.error
+                                            ? Colors.redAccent
+                                            : accentColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (syncState.status == SyncStatus.syncing)
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: accentColor),
+                                )
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: syncState.status == SyncStatus.syncing
+                                      ? null
+                                      : () async {
+                                          await ref.read(syncProvider.notifier).uploadLocalToCloud();
+                                          if (context.mounted) {
+                                            final finalState = ref.read(syncProvider);
+                                            if (finalState.status == SyncStatus.success) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('✓ Progress successfully saved to cloud!'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            } else if (finalState.status == SyncStatus.error) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('✗ Cloud upload failed: ${finalState.errorMessage ?? "Unknown error"}'),
+                                                  backgroundColor: Colors.redAccent,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: accentColor,
+                                    foregroundColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  icon: const Icon(Icons.cloud_upload_rounded, size: 16),
+                                  label: Text(
+                                    "Sync",
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: syncState.status == SyncStatus.syncing
+                                      ? null
+                                      : () async {
+                                          final confirmed = await showDialog<bool>(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              backgroundColor: const Color(0xFF18181B),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                              title: const Text("Restore Data from Cloud?"),
+                                              content: const Text(
+                                                "This will overwrite your local device progress with the cloud backup. This cannot be undone.",
+                                                style: TextStyle(color: Colors.white70),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(ctx, false),
+                                                  child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                                                ),
+                                                FilledButton(
+                                                  onPressed: () => Navigator.pop(ctx, true),
+                                                  style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.black),
+                                                  child: const Text('Restore'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirmed != true) return;
+
+                                          await ref.read(syncProvider.notifier).downloadCloudToLocal();
+                                          if (context.mounted) {
+                                            final finalState = ref.read(syncProvider);
+                                            if (finalState.status == SyncStatus.success) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text('✓ Cloud data successfully restored!'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            } else if (finalState.status == SyncStatus.error) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('✗ Cloud download failed: ${finalState.errorMessage ?? "Unknown error"}'),
+                                                  backgroundColor: Colors.redAccent,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: accentColor),
+                                    foregroundColor: accentColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                  ),
+                                  icon: const Icon(Icons.cloud_download_rounded, size: 16),
+                                  label: Text(
+                                    "Restore Data",
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              await ref.read(authProvider.notifier).signOut();
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24),
+                              foregroundColor: Colors.white70,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.logout_rounded, size: 16),
+                            label: Text(
+                              "SIGN OUT",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                loading: () => Center(
+                  child: CircularProgressIndicator(color: accentColor),
+                ),
+                error: (err, _) => Text(
+                  'Auth Error: $err',
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              );
+            },
+          )
+        : Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(5),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withAlpha(8)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Colors.cyanAccent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Cloud Sync is supported on Web & Android. To transfer data to/from this desktop app, please use the Local Backup & Restore tools below.",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+
+    final localBackupsHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'LOCAL BACKUPS',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final localBackupsContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
+          title: const Text('Export Data'),
+          subtitle: const Text(
+            'Save progress to JSON',
+            style: TextStyle(color: Colors.grey),
+          ),
+          onTap: () => _exportData(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
+          title: const Text('Import Data'),
+          subtitle: const Text(
+            'Restore from JSON file',
+            style: TextStyle(color: Colors.grey),
+          ),
+          onTap: () => _importData(context, ref),
+        ),
+      ],
+    );
+
+    final completionTypeHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'COMPLETION TYPE',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final completionTypeContent = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Consumer(
+        builder: (context, ref, _) {
+          final currentType = ref.watch(completionTypeProvider);
+
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => ref
+                          .read(completionTypeProvider.notifier)
+                          .setCompletionType(CompletionType.resource),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: currentType == CompletionType.resource
+                              ? accentColor.withValues(alpha: 0.2)
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: currentType == CompletionType.resource
+                                ? accentColor
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Resource Based',
+                            style: TextStyle(
+                              color: currentType == CompletionType.resource
+                                  ? accentColor
+                                  : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => ref
+                          .read(completionTypeProvider.notifier)
+                          .setCompletionType(CompletionType.syllabus),
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: currentType == CompletionType.syllabus
+                              ? accentColor.withValues(alpha: 0.2)
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: currentType == CompletionType.syllabus
+                                ? accentColor
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Syllabus Based',
+                            style: TextStyle(
+                              color: currentType == CompletionType.syllabus
+                                  ? accentColor
+                                  : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+                title: Text(currentType == CompletionType.resource
+                    ? 'Apply Resource Preset'
+                    : 'Apply Syllabus Preset'),
+                subtitle: Text(
+                  currentType == CompletionType.resource
+                      ? 'Apply default GoClasses/YouTube sources'
+                      : 'Restore the default GATE CSE checklist',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: const Color(0xFF18181B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      title: Text(currentType == CompletionType.resource
+                          ? 'Apply Resource Preset'
+                          : 'Apply Syllabus Preset'),
+                      content: Text(
+                        currentType == CompletionType.resource
+                            ? 'This will overwrite current sources and counts for some subjects. Continue?'
+                            : 'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel',
+                              style: TextStyle(color: Colors.grey)),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.amberAccent,
+                            foregroundColor: Colors.black,
+                          ),
+                          child: const Text('Apply'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true) {
+                    if (currentType == CompletionType.resource) {
+                      await ref
+                          .read(subjectControllerProvider.notifier)
+                          .applyPreset();
+                    } else {
+                      await ref
+                          .read(syllabusControllerProvider.notifier)
+                          .applyPreset();
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final categoryOrderingHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'CATEGORY ORDERING',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final categoryOrderingContent = SwitchListTile(
+      activeColor: accentColor,
+      title: const Text('Auto-Sort Categories'),
+      subtitle: const Text(
+        'Move last interacted category to the top automatically',
+        style: TextStyle(color: Colors.grey, fontSize: 11),
+      ),
+      value: autoSort,
+      onChanged: (val) {
+        ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
+      },
+    );
+
+    final fontHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'ACCENT & CATEGORY FONT',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final fontContent = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Consumer(
+        builder: (context, ref, _) {
+          final currentFont = ref.watch(progressFontProvider);
+
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
+            children: ProgressFont.values.map((font) {
+              String label;
+              switch (font) {
+                case ProgressFont.orbitron:
+                  label = 'Orbitron';
+                  break;
+                case ProgressFont.jersey15:
+                  label = 'Jersey 15';
+                  break;
+                case ProgressFont.jersey10:
+                  label = 'Jersey 10';
+                  break;
+                case ProgressFont.tektur:
+                  label = 'Tektur';
+                  break;
+                case ProgressFont.odibeeSans:
+                  label = 'Odibee Sans';
+                  break;
+                case ProgressFont.pressStart2P:
+                  label = 'Press Start 2P';
+                  break;
+                case ProgressFont.boldonse:
+                  label = 'Boldonse';
+                  break;
+              }
+
+              final isSelected = currentFont == font;
+
+              return InkWell(
+                onTap: () => ref
+                    .read(progressFontProvider.notifier)
+                    .setProgressFont(font),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? accentColor.withValues(alpha: 0.2)
+                        : Colors.white10,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? accentColor
+                          : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: isSelected
+                          ? accentColor
+                          : Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+
+    final fontSizeHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'CATEGORY FONT SIZE',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final fontSizeContent = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Consumer(
+        builder: (context, ref, _) {
+          final currentSize = ref.watch(categoryFontSizeProvider);
+
+          String getFontLevelLabel(CategoryFontSize size) {
+            switch (size) {
+              case CategoryFontSize.level1:
+                return 'XS';
+              case CategoryFontSize.level2:
+                return 'S';
+              case CategoryFontSize.level3:
+                return 'Normal';
+              case CategoryFontSize.level4:
+                return 'L';
+              case CategoryFontSize.level5:
+                return 'XL';
+            }
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    getFontLevelLabel(currentSize),
+                    style: GoogleFonts.outfit(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (currentSize == CategoryFontSize.level3)
+                    Text(
+                      'DEFAULT',
+                      style: GoogleFonts.outfit(
+                        color: accentColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: accentColor,
+                  inactiveTrackColor: Colors.white.withAlpha(20),
+                  thumbColor: accentColor,
+                  overlayColor: accentColor.withAlpha(40),
+                  valueIndicatorColor: accentColor,
+                  tickMarkShape: const RoundSliderTickMarkShape(),
+                  activeTickMarkColor: Colors.black,
+                  inactiveTickMarkColor: Colors.white30,
+                ),
+                child: Slider(
+                  value: CategoryFontSize.values.indexOf(currentSize).toDouble(),
+                  min: 0,
+                  max: 4,
+                  divisions: 4,
+                  label: getFontLevelLabel(currentSize),
+                  onChanged: (val) {
+                    final newSize = CategoryFontSize.values[val.toInt()];
+                    ref.read(categoryFontSizeProvider.notifier).setFontSize(newSize);
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('XS', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
+                    Text('S', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
+                    Text('Normal (Def)', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold)),
+                    Text('L', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
+                    Text('XL', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final uiSwitchHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'LAYOUT',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final uiSwitchContent = ListTile(
+      leading: Icon(
+        GoRouterState.of(context).uri.path.startsWith('/desk')
+            ? Icons.phone_android_rounded
+            : Icons.desktop_windows_rounded,
+        color: Colors.cyanAccent,
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            GoRouterState.of(context).uri.path.startsWith('/desk')
+                ? 'Switch to Mobile UI'
+                : 'Switch to Desktop UI',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.cyanAccent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
+              ),
+              child: Text(
+                'BETA',
+                style: GoogleFonts.outfit(
+                  color: Colors.cyanAccent,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Text(
+        GoRouterState.of(context).uri.path.startsWith('/desk')
+            ? 'Return to the mobile-optimized layout'
+            : 'Experience the desktop layout on your web browser',
+        style: const TextStyle(color: Colors.grey, fontSize: 11),
+      ),
+      onTap: () {
+        if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
+          context.go('/');
+        } else {
+          context.go('/desk');
+        }
+      },
+    );
+
+    final resetDataHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'RESET DATA',
+        style: TextStyle(
+          color: Colors.redAccent.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final resetDataContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
+          title: const Text('Reset Tracking Data'),
+          subtitle: const Text(
+            'Set all progress counts to zero',
+            style: TextStyle(color: Colors.grey),
+          ),
+          onTap: () => _performReset(context, ref, everything: false),
+        ),
+        ListTile(
+          leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+          title: const Text('Reset Everything'),
+          subtitle: const Text(
+            'Clear sources, links, and progress',
+            style: TextStyle(color: Colors.grey),
+          ),
+          onTap: () => _performReset(context, ref, everything: true),
+        ),
+      ],
+    );
+
+    final advancedOptionsContent = Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        iconColor: accentColor,
+        collapsedIconColor: Colors.white30,
+        leading: Icon(Icons.settings_suggest_rounded, color: accentColor),
+        title: const Text(
+          'Advanced Options',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final freq = ref.watch(syncFrequencyProvider);
+              String label;
+              switch (freq) {
+                case SyncFrequency.instant:
+                  label = 'Instant';
+                  break;
+                case SyncFrequency.fiveMinutes:
+                  label = 'Every 5 Minutes';
+                  break;
+                case SyncFrequency.appClose:
+                  label = 'On App Close';
+                  break;
+                case SyncFrequency.manual:
+                  label = 'Manual';
+                  break;
+              }
+              return ListTile(
+                leading: Icon(Icons.sync_lock_rounded, color: accentColor),
+                title: const Text('Background Sync Frequency'),
+                subtitle: Text(
+                  label,
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
+                onTap: () => _showSyncFrequencyDialog(context, ref, freq, accentColor),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+
+    final aboutAppContent = ListTile(
+      leading: Icon(Icons.info_outline_rounded, color: accentColor),
+      title: const Text('About App'),
+      subtitle: const Text(
+        'Show Info about App, Developer and Repository',
+        style: TextStyle(color: Colors.grey),
+      ),
+      onTap: () {
+        showAboutTrackerDialog(context, ref);
+      },
+    );
+
+    final versionText = Center(
+      child: Text(
+        'GATEletics v${packageInfo.version}',
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.3),
+          fontSize: 10,
+        ),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -379,987 +1348,133 @@ class SettingsScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          children: [
-            if (isFirebaseSupported()) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'CLOUD SYNC',
-                  style: TextStyle(
-                    color: accentColor.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              Consumer(
-                builder: (context, ref, _) {
-                  final authAsync = ref.watch(authProvider);
-                  final syncState = ref.watch(syncProvider);
-
-                  return authAsync.when(
-                    data: (authState) {
-                      final user = authState.user;
-                      final isOffline = authState.isOfflineMode;
-
-                      if (user == null || isOffline) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(5),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.white.withAlpha(8)),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.cloud_off_rounded, color: Colors.white60),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        "Offline Mode Enabled",
-                                        style: GoogleFonts.outfit(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Your progress is stored locally on this device. Sign in with Google to enable automatic cloud sync and backups.",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white30,
-                                    fontSize: 12,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                FilledButton.icon(
-                                  onPressed: () async {
-                                    try {
-                                      await ref.read(authProvider.notifier).signInWithGoogle();
-                                      final needsAction = await ref.read(syncProvider.notifier).initializeSync();
-                                      if (needsAction && context.mounted) {
-                                        _showSyncConflictDialog(context, ref);
-                                      } else if (context.mounted) {
-                                        final finalState = ref.read(syncProvider);
-                                        if (finalState.status == SyncStatus.success) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('✓ Sync initialized successfully!'),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Google Sign-in failed: $e')),
-                                        );
-                                      }
-                                    }
-                                  },
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: accentColor,
-                                    foregroundColor: Colors.black,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                  icon: const Icon(Icons.login_rounded, size: 18),
-                                  label: Text(
-                                    "SIGN IN WITH GOOGLE",
-                                    style: GoogleFonts.outfit(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(5),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withAlpha(8)),
-                          ),
+        child: isDesktop
+            ? SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 16,
-                                    backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
-                                    backgroundColor: accentColor.withValues(alpha: 0.2),
-                                    child: user.photoURL == null ? const Icon(Icons.person, color: Colors.white) : null,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          user.displayName ?? "GATEletics User",
-                                          style: GoogleFonts.outfit(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Text(
-                                          user.email ?? "",
-                                          style: GoogleFonts.outfit(
-                                            color: Colors.white30,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              const Divider(color: Colors.white10),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Sync Status:",
-                                          style: GoogleFonts.outfit(color: Colors.white54, fontSize: 11),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          syncState.status == SyncStatus.syncing
-                                              ? "Syncing..."
-                                              : syncState.status == SyncStatus.error
-                                                  ? "Sync Error"
-                                                  : syncState.lastSyncedAt != null
-                                                      ? "Last Synced: ${_formatSyncTime(syncState.lastSyncedAt!)}"
-                                                      : "Not synced",
-                                          style: GoogleFonts.outfit(
-                                            color: syncState.status == SyncStatus.error
-                                                ? Colors.redAccent
-                                                : accentColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (syncState.status == SyncStatus.syncing)
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2, color: accentColor),
-                                    )
-                                ],
-                              ),
+                              cloudSyncHeader,
+                              cloudSyncContent,
                               const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      onPressed: syncState.status == SyncStatus.syncing
-                                          ? null
-                                          : () async {
-                                              await ref.read(syncProvider.notifier).uploadLocalToCloud();
-                                              if (context.mounted) {
-                                                final finalState = ref.read(syncProvider);
-                                                if (finalState.status == SyncStatus.success) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('✓ Progress successfully saved to cloud!'),
-                                                      backgroundColor: Colors.green,
-                                                    ),
-                                                  );
-                                                } else if (finalState.status == SyncStatus.error) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('✗ Cloud upload failed: ${finalState.errorMessage ?? "Unknown error"}'),
-                                                      backgroundColor: Colors.redAccent,
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            },
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: accentColor,
-                                        foregroundColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                      ),
-                                      icon: const Icon(Icons.cloud_upload_rounded, size: 16),
-                                      label: Text(
-                                        "Sync",
-                                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: syncState.status == SyncStatus.syncing
-                                          ? null
-                                          : () async {
-                                              final confirmed = await showDialog<bool>(
-                                                context: context,
-                                                builder: (ctx) => AlertDialog(
-                                                  backgroundColor: const Color(0xFF18181B),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                                                  title: const Text("Restore Data from Cloud?"),
-                                                  content: const Text(
-                                                    "This will overwrite your local device progress with the cloud backup. This cannot be undone.",
-                                                    style: TextStyle(color: Colors.white70),
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(ctx, false),
-                                                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                                                    ),
-                                                    FilledButton(
-                                                      onPressed: () => Navigator.pop(ctx, true),
-                                                      style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.black),
-                                                      child: const Text('Restore'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                              if (confirmed != true) return;
-
-                                              await ref.read(syncProvider.notifier).downloadCloudToLocal();
-                                              if (context.mounted) {
-                                                final finalState = ref.read(syncProvider);
-                                                if (finalState.status == SyncStatus.success) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text('✓ Cloud data successfully restored!'),
-                                                      backgroundColor: Colors.green,
-                                                    ),
-                                                  );
-                                                } else if (finalState.status == SyncStatus.error) {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(
-                                                      content: Text('✗ Cloud download failed: ${finalState.errorMessage ?? "Unknown error"}'),
-                                                      backgroundColor: Colors.redAccent,
-                                                    ),
-                                                  );
-                                                }
-                                              }
-                                            },
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(color: accentColor),
-                                        foregroundColor: accentColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                      ),
-                                      icon: const Icon(Icons.cloud_download_rounded, size: 16),
-                                      label: Text(
-                                        "Restore Data",
-                                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: () async {
-                                  await ref.read(authProvider.notifier).signOut();
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.white24),
-                                  foregroundColor: Colors.white70,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                icon: const Icon(Icons.logout_rounded, size: 16),
-                                label: Text(
-                                  "SIGN OUT",
-                                  style: GoogleFonts.outfit(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              localBackupsHeader,
+                              localBackupsContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              completionTypeHeader,
+                              completionTypeContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              resetDataHeader,
+                              resetDataContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              aboutAppContent,
                             ],
                           ),
                         ),
-                      );
-                    },
-                    loading: () => Center(
-                      child: CircularProgressIndicator(color: accentColor),
-                    ),
-                    error: (err, _) => Text(
-                      'Auth Error: $err',
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  );
-                },
-              ),
-              const Divider(color: Colors.white12),
-            ] else if (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'CLOUD SYNC',
-                  style: TextStyle(
-                    color: accentColor.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(5),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withAlpha(8)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline_rounded, color: Colors.cyanAccent),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          "Cloud Sync is supported on Web & Android. To transfer data to/from this desktop app, please use the Local Backup & Restore tools below.",
-                          style: GoogleFonts.outfit(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Divider(color: Colors.white12),
-            ],
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'LOCAL BACKUPS',
-                style: TextStyle(
-                  color: accentColor.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
-              title: const Text('Export Data'),
-              subtitle: const Text(
-                'Save progress to JSON',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () => _exportData(context, ref),
-            ),
-            ListTile(
-              leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
-              title: const Text('Import Data'),
-              subtitle: const Text(
-                'Restore from JSON file',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () => _importData(context, ref),
-            ),
-            const Divider(color: Colors.white12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'COMPLETION TYPE',
-                style: TextStyle(
-                  color: accentColor.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Consumer(
-                builder: (context, ref, _) {
-                  final currentType = ref.watch(completionTypeProvider);
-
-                  return Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => ref
-                                  .read(completionTypeProvider.notifier)
-                                  .setCompletionType(CompletionType.resource),
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: currentType == CompletionType.resource
-                                      ? accentColor.withValues(alpha: 0.2)
-                                      : Colors.white10,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: currentType == CompletionType.resource
-                                        ? accentColor
-                                        : Colors.transparent,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Resource Based',
-                                    style: TextStyle(
-                                      color: currentType == CompletionType.resource
-                                          ? accentColor
-                                          : Colors.white70,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => ref
-                                  .read(completionTypeProvider.notifier)
-                                  .setCompletionType(CompletionType.syllabus),
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: currentType == CompletionType.syllabus
-                                      ? accentColor.withValues(alpha: 0.2)
-                                      : Colors.white10,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: currentType == CompletionType.syllabus
-                                        ? accentColor
-                                        : Colors.transparent,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Syllabus Based',
-                                    style: TextStyle(
-                                      color: currentType == CompletionType.syllabus
-                                          ? accentColor
-                                          : Colors.white70,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                        title: Text(currentType == CompletionType.resource
-                            ? 'Apply Resource Preset'
-                            : 'Apply Syllabus Preset'),
-                        subtitle: Text(
-                          currentType == CompletionType.resource
-                              ? 'Apply default GoClasses/YouTube sources'
-                              : 'Restore the default GATE CSE checklist',
-                          style: const TextStyle(color: Colors.grey, fontSize: 11),
-                        ),
-                        onTap: () async {
-                          final confirmed = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              backgroundColor: const Color(0xFF18181B),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              title: Text(currentType == CompletionType.resource
-                                  ? 'Apply Resource Preset'
-                                  : 'Apply Syllabus Preset'),
-                              content: Text(
-                                currentType == CompletionType.resource
-                                    ? 'This will overwrite current sources and counts for some subjects. Continue?'
-                                    : 'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
-                                style: const TextStyle(color: Colors.white70),
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Cancel',
-                                      style: TextStyle(color: Colors.grey)),
-                                ),
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: Colors.amberAccent,
-                                    foregroundColor: Colors.black,
-                                  ),
-                                  child: const Text('Apply'),
-                                ),
+                        const SizedBox(width: 32),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              categoryOrderingHeader,
+                              categoryOrderingContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              fontHeader,
+                              fontContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              fontSizeHeader,
+                              fontSizeContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
+                              advancedOptionsContent,
+                              if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
+                                  defaultTargetPlatform != TargetPlatform.android &&
+                                  defaultTargetPlatform != TargetPlatform.iOS) ...[
+                                const SizedBox(height: 16),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 8),
+                                uiSwitchHeader,
+                                uiSwitchContent,
                               ],
-                            ),
-                          );
-
-                          if (confirmed == true) {
-                            if (currentType == CompletionType.resource) {
-                              await ref
-                                  .read(subjectControllerProvider.notifier)
-                                  .applyPreset();
-                            } else {
-                              await ref
-                                  .read(syllabusControllerProvider.notifier)
-                                  .applyPreset();
-                            }
-                          }
-                        },
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(color: Colors.white12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'CATEGORY ORDERING',
-                style: TextStyle(
-                  color: accentColor.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            SwitchListTile(
-              activeColor: accentColor,
-              title: const Text('Auto-Sort Categories'),
-              subtitle: const Text(
-                'Move last interacted category to the top automatically',
-                style: TextStyle(color: Colors.grey, fontSize: 11),
-              ),
-              value: autoSort,
-              onChanged: (val) {
-                ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
-              },
-            ),
-            const SizedBox(height: 8),
-            const Divider(color: Colors.white12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'ACCENT & CATEGORY FONT',
-                style: TextStyle(
-                  color: accentColor.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Consumer(
-                builder: (context, ref, _) {
-                  final currentFont = ref.watch(progressFontProvider);
-
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.start,
-                    children: ProgressFont.values.map((font) {
-                      String label;
-                      switch (font) {
-                        case ProgressFont.orbitron:
-                          label = 'Orbitron';
-                          break;
-                        case ProgressFont.jersey15:
-                          label = 'Jersey 15';
-                          break;
-                        case ProgressFont.jersey10:
-                          label = 'Jersey 10';
-                          break;
-                        case ProgressFont.tektur:
-                          label = 'Tektur';
-                          break;
-                        case ProgressFont.odibeeSans:
-                          label = 'Odibee Sans';
-                          break;
-                        case ProgressFont.pressStart2P:
-                          label = 'Press Start 2P';
-                          break;
-                        case ProgressFont.boldonse:
-                          label = 'Boldonse';
-                          break;
-                      }
-
-                      final isSelected = currentFont == font;
-
-                      return InkWell(
-                        onTap: () => ref
-                            .read(progressFontProvider.notifier)
-                            .setProgressFont(font),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? accentColor.withValues(alpha: 0.2)
-                                : Colors.white10,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: isSelected
-                                  ? accentColor
-                                  : Colors.transparent,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: isSelected
-                                  ? accentColor
-                                  : Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
+                            ],
                           ),
                         ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(color: Colors.white12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'CATEGORY FONT SIZE',
-                style: TextStyle(
-                  color: accentColor.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Consumer(
-                builder: (context, ref, _) {
-                  final currentSize = ref.watch(categoryFontSizeProvider);
-
-                  String getFontLevelLabel(CategoryFontSize size) {
-                    switch (size) {
-                      case CategoryFontSize.level1:
-                        return 'XS';
-                      case CategoryFontSize.level2:
-                        return 'S';
-                      case CategoryFontSize.level3:
-                        return 'Normal';
-                      case CategoryFontSize.level4:
-                        return 'L';
-                      case CategoryFontSize.level5:
-                        return 'XL';
-                    }
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            getFontLevelLabel(currentSize),
-                            style: GoogleFonts.outfit(
-                              color: Colors.white70,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (currentSize == CategoryFontSize.level3)
-                            Text(
-                              'DEFAULT',
-                              style: GoogleFonts.outfit(
-                                color: accentColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: accentColor,
-                          inactiveTrackColor: Colors.white.withAlpha(20),
-                          thumbColor: accentColor,
-                          overlayColor: accentColor.withAlpha(40),
-                          valueIndicatorColor: accentColor,
-                          tickMarkShape: const RoundSliderTickMarkShape(),
-                          activeTickMarkColor: Colors.black,
-                          inactiveTickMarkColor: Colors.white30,
-                        ),
-                        child: Slider(
-                          value: CategoryFontSize.values.indexOf(currentSize).toDouble(),
-                          min: 0,
-                          max: 4,
-                          divisions: 4,
-                          label: getFontLevelLabel(currentSize),
-                          onChanged: (val) {
-                            final newSize = CategoryFontSize.values[val.toInt()];
-                            ref.read(categoryFontSizeProvider.notifier).setFontSize(newSize);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('XS', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                            Text('S', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                            Text('Normal (Def)', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold)),
-                            Text('L', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                            Text('XL', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-            if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
-                defaultTargetPlatform != TargetPlatform.android &&
-                defaultTargetPlatform != TargetPlatform.iOS) ...[
-              const Divider(color: Colors.white12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'LAYOUT',
-                  style: TextStyle(
-                    color: accentColor.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              ListTile(
-                leading: Icon(
-                  GoRouterState.of(context).uri.path.startsWith('/desk')
-                      ? Icons.phone_android_rounded
-                      : Icons.desktop_windows_rounded,
-                  color: Colors.cyanAccent,
-                ),
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      GoRouterState.of(context).uri.path.startsWith('/desk')
-                          ? 'Switch to Mobile UI'
-                          : 'Switch to Desktop UI',
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                      ],
                     ),
-                    if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.cyanAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
-                        ),
-                        child: Text(
-                          'BETA',
-                          style: GoogleFonts.outfit(
-                            color: Colors.cyanAccent,
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
+                    const SizedBox(height: 48),
+                    const Divider(color: Colors.white10),
+                    const SizedBox(height: 16),
+                    versionText,
+                    const SizedBox(height: 24),
                   ],
                 ),
-                subtitle: Text(
-                  GoRouterState.of(context).uri.path.startsWith('/desk')
-                      ? 'Return to the mobile-optimized layout'
-                      : 'Experience the desktop layout on your web browser',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                onTap: () {
-                  if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
-                    context.go('/');
-                  } else {
-                    context.go('/desk');
-                  }
-                },
-              ),
-            ],
-            const Divider(color: Colors.white12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Text(
-                'RESET DATA',
-                style: TextStyle(
-                  color: Colors.redAccent.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
-              title: const Text('Reset Tracking Data'),
-              subtitle: const Text(
-                'Set all progress counts to zero',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () => _performReset(context, ref, everything: false),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-              title: const Text('Reset Everything'),
-              subtitle: const Text(
-                'Clear sources, links, and progress',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () => _performReset(context, ref, everything: true),
-            ),
-            const SizedBox(height: 8),
-            const Divider(color: Colors.white10),
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                iconColor: accentColor,
-                collapsedIconColor: Colors.white30,
-                leading: Icon(Icons.settings_suggest_rounded, color: accentColor),
-                title: const Text(
-                  'Advanced Options',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
+              )
+            : ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 children: [
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final freq = ref.watch(syncFrequencyProvider);
-                      String label;
-                      switch (freq) {
-                        case SyncFrequency.instant:
-                          label = 'Instant';
-                          break;
-                        case SyncFrequency.fiveMinutes:
-                          label = 'Every 5 Minutes';
-                          break;
-                        case SyncFrequency.appClose:
-                          label = 'On App Close';
-                          break;
-                        case SyncFrequency.manual:
-                          label = 'Manual';
-                          break;
-                      }
-                      return ListTile(
-                        leading: Icon(Icons.sync_lock_rounded, color: accentColor),
-                        title: const Text('Background Sync Frequency'),
-                        subtitle: Text(
-                          label,
-                          style: const TextStyle(color: Colors.grey, fontSize: 11),
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
-                        onTap: () => _showSyncFrequencyDialog(context, ref, freq, accentColor),
-                      );
-                    },
-                  ),
+                  cloudSyncHeader,
+                  cloudSyncContent,
+                  const Divider(color: Colors.white12),
+                  localBackupsHeader,
+                  localBackupsContent,
+                  const Divider(color: Colors.white12),
+                  completionTypeHeader,
+                  completionTypeContent,
                   const SizedBox(height: 8),
+                  const Divider(color: Colors.white12),
+                  categoryOrderingHeader,
+                  categoryOrderingContent,
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white12),
+                  fontHeader,
+                  fontContent,
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white12),
+                  fontSizeHeader,
+                  fontSizeContent,
+                  if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
+                      defaultTargetPlatform != TargetPlatform.android &&
+                      defaultTargetPlatform != TargetPlatform.iOS) ...[
+                    const Divider(color: Colors.white12),
+                    uiSwitchHeader,
+                    uiSwitchContent,
+                  ],
+                  const Divider(color: Colors.white12),
+                  resetDataHeader,
+                  resetDataContent,
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white10),
+                  advancedOptionsContent,
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white10),
+                  aboutAppContent,
+                  const SizedBox(height: 16),
+                  const Divider(color: Colors.white10),
+                  const SizedBox(height: 16),
+                  versionText,
+                  const SizedBox(height: 24),
                 ],
               ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(color: Colors.white10),
-            ListTile(
-              leading: Icon(Icons.info_outline_rounded, color: accentColor),
-              title: const Text('About App'),
-              subtitle: const Text(
-                'Show Info about App, Developer and Repository',
-                style: TextStyle(color: Colors.grey),
-              ),
-              onTap: () {
-                showAboutTrackerDialog(context, ref);
-              },
-            ),
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white10),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'GATEletics v${packageInfo.version}',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  fontSize: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
       ),
     );
   }
