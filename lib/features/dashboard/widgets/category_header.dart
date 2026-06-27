@@ -151,22 +151,28 @@ class CategoryHeader extends ConsumerWidget {
     );
 
     if (isCollapsed) {
-      headerContent = GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: color.withValues(alpha: 0.8),
-              width: 1.5,
+      headerContent = Align(
+        alignment: Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: color.withValues(alpha: 0.8),
+                  width: 1.5,
+                ),
+              ),
+              child: headerContent,
             ),
           ),
-          child: headerContent,
         ),
       );
     }

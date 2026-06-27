@@ -1363,6 +1363,15 @@ class SettingsScreen extends ConsumerWidget {
                             children: [
                               cloudSyncHeader,
                               cloudSyncContent,
+                              if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
+                                  defaultTargetPlatform != TargetPlatform.android &&
+                                  defaultTargetPlatform != TargetPlatform.iOS) ...[
+                                const SizedBox(height: 16),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 8),
+                                uiSwitchHeader,
+                                uiSwitchContent,
+                              ],
                               const SizedBox(height: 16),
                               const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
@@ -1406,15 +1415,6 @@ class SettingsScreen extends ConsumerWidget {
                               const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
                               advancedOptionsContent,
-                              if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
-                                  defaultTargetPlatform != TargetPlatform.android &&
-                                  defaultTargetPlatform != TargetPlatform.iOS) ...[
-                                const SizedBox(height: 16),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 8),
-                                uiSwitchHeader,
-                                uiSwitchContent,
-                              ],
                             ],
                           ),
                         ),
@@ -1434,6 +1434,13 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   cloudSyncHeader,
                   cloudSyncContent,
+                  if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
+                      defaultTargetPlatform != TargetPlatform.android &&
+                      defaultTargetPlatform != TargetPlatform.iOS) ...[
+                    const Divider(color: Colors.white12),
+                    uiSwitchHeader,
+                    uiSwitchContent,
+                  ],
                   const Divider(color: Colors.white12),
                   localBackupsHeader,
                   localBackupsContent,
@@ -1452,13 +1459,6 @@ class SettingsScreen extends ConsumerWidget {
                   const Divider(color: Colors.white12),
                   fontSizeHeader,
                   fontSizeContent,
-                  if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
-                      defaultTargetPlatform != TargetPlatform.android &&
-                      defaultTargetPlatform != TargetPlatform.iOS) ...[
-                    const Divider(color: Colors.white12),
-                    uiSwitchHeader,
-                    uiSwitchContent,
-                  ],
                   const Divider(color: Colors.white12),
                   resetDataHeader,
                   resetDataContent,
