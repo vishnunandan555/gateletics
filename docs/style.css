@@ -389,3 +389,32 @@ footer {
   height: 28px;
   object-fit: contain;
 }
+
+/* Markdown styling inside release body */
+#release-body h1, #release-body h2, #release-body h3, #release-body h4 {
+  color: var(--accent-color);
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+#release-body ul, #release-body ol {
+  padding-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+#release-body li {
+  margin-bottom: 4px;
+}
+#release-body code {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+#release-body a {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+#release-body a:hover {
+  color: var(--accent-hover);
+}
