@@ -1,1 +1,1 @@
-const appSchemaVersion = 3;
+const appSchemaVersion = 4;

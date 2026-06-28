@@ -2015,6 +2015,374 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
   }
 }
 
+class $FocusSessionsTable extends FocusSessions
+    with TableInfo<$FocusSessionsTable, FocusSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FocusSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 50,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startTimeMeta = const VerificationMeta(
+    'startTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startTime = GeneratedColumn<DateTime>(
+    'start_time',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
+    'durationSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+    'duration_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accomplishmentsMeta = const VerificationMeta(
+    'accomplishments',
+  );
+  @override
+  late final GeneratedColumn<String> accomplishments = GeneratedColumn<String>(
+    'accomplishments',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    method,
+    startTime,
+    durationSeconds,
+    accomplishments,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'focus_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FocusSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_methodMeta);
+    }
+    if (data.containsKey('start_time')) {
+      context.handle(
+        _startTimeMeta,
+        startTime.isAcceptableOrUnknown(data['start_time']!, _startTimeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startTimeMeta);
+    }
+    if (data.containsKey('duration_seconds')) {
+      context.handle(
+        _durationSecondsMeta,
+        durationSeconds.isAcceptableOrUnknown(
+          data['duration_seconds']!,
+          _durationSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_durationSecondsMeta);
+    }
+    if (data.containsKey('accomplishments')) {
+      context.handle(
+        _accomplishmentsMeta,
+        accomplishments.isAcceptableOrUnknown(
+          data['accomplishments']!,
+          _accomplishmentsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FocusSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FocusSession(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      )!,
+      startTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_time'],
+      )!,
+      durationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_seconds'],
+      )!,
+      accomplishments: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}accomplishments'],
+      ),
+    );
+  }
+
+  @override
+  $FocusSessionsTable createAlias(String alias) {
+    return $FocusSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class FocusSession extends DataClass implements Insertable<FocusSession> {
+  final int id;
+  final String method;
+  final DateTime startTime;
+  final int durationSeconds;
+  final String? accomplishments;
+  const FocusSession({
+    required this.id,
+    required this.method,
+    required this.startTime,
+    required this.durationSeconds,
+    this.accomplishments,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['method'] = Variable<String>(method);
+    map['start_time'] = Variable<DateTime>(startTime);
+    map['duration_seconds'] = Variable<int>(durationSeconds);
+    if (!nullToAbsent || accomplishments != null) {
+      map['accomplishments'] = Variable<String>(accomplishments);
+    }
+    return map;
+  }
+
+  FocusSessionsCompanion toCompanion(bool nullToAbsent) {
+    return FocusSessionsCompanion(
+      id: Value(id),
+      method: Value(method),
+      startTime: Value(startTime),
+      durationSeconds: Value(durationSeconds),
+      accomplishments: accomplishments == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accomplishments),
+    );
+  }
+
+  factory FocusSession.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FocusSession(
+      id: serializer.fromJson<int>(json['id']),
+      method: serializer.fromJson<String>(json['method']),
+      startTime: serializer.fromJson<DateTime>(json['startTime']),
+      durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
+      accomplishments: serializer.fromJson<String?>(json['accomplishments']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'method': serializer.toJson<String>(method),
+      'startTime': serializer.toJson<DateTime>(startTime),
+      'durationSeconds': serializer.toJson<int>(durationSeconds),
+      'accomplishments': serializer.toJson<String?>(accomplishments),
+    };
+  }
+
+  FocusSession copyWith({
+    int? id,
+    String? method,
+    DateTime? startTime,
+    int? durationSeconds,
+    Value<String?> accomplishments = const Value.absent(),
+  }) => FocusSession(
+    id: id ?? this.id,
+    method: method ?? this.method,
+    startTime: startTime ?? this.startTime,
+    durationSeconds: durationSeconds ?? this.durationSeconds,
+    accomplishments: accomplishments.present
+        ? accomplishments.value
+        : this.accomplishments,
+  );
+  FocusSession copyWithCompanion(FocusSessionsCompanion data) {
+    return FocusSession(
+      id: data.id.present ? data.id.value : this.id,
+      method: data.method.present ? data.method.value : this.method,
+      startTime: data.startTime.present ? data.startTime.value : this.startTime,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
+      accomplishments: data.accomplishments.present
+          ? data.accomplishments.value
+          : this.accomplishments,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FocusSession(')
+          ..write('id: $id, ')
+          ..write('method: $method, ')
+          ..write('startTime: $startTime, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('accomplishments: $accomplishments')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, method, startTime, durationSeconds, accomplishments);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FocusSession &&
+          other.id == this.id &&
+          other.method == this.method &&
+          other.startTime == this.startTime &&
+          other.durationSeconds == this.durationSeconds &&
+          other.accomplishments == this.accomplishments);
+}
+
+class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
+  final Value<int> id;
+  final Value<String> method;
+  final Value<DateTime> startTime;
+  final Value<int> durationSeconds;
+  final Value<String?> accomplishments;
+  const FocusSessionsCompanion({
+    this.id = const Value.absent(),
+    this.method = const Value.absent(),
+    this.startTime = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
+    this.accomplishments = const Value.absent(),
+  });
+  FocusSessionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String method,
+    required DateTime startTime,
+    required int durationSeconds,
+    this.accomplishments = const Value.absent(),
+  }) : method = Value(method),
+       startTime = Value(startTime),
+       durationSeconds = Value(durationSeconds);
+  static Insertable<FocusSession> custom({
+    Expression<int>? id,
+    Expression<String>? method,
+    Expression<DateTime>? startTime,
+    Expression<int>? durationSeconds,
+    Expression<String>? accomplishments,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (method != null) 'method': method,
+      if (startTime != null) 'start_time': startTime,
+      if (durationSeconds != null) 'duration_seconds': durationSeconds,
+      if (accomplishments != null) 'accomplishments': accomplishments,
+    });
+  }
+
+  FocusSessionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? method,
+    Value<DateTime>? startTime,
+    Value<int>? durationSeconds,
+    Value<String?>? accomplishments,
+  }) {
+    return FocusSessionsCompanion(
+      id: id ?? this.id,
+      method: method ?? this.method,
+      startTime: startTime ?? this.startTime,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
+      accomplishments: accomplishments ?? this.accomplishments,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (startTime.present) {
+      map['start_time'] = Variable<DateTime>(startTime.value);
+    }
+    if (durationSeconds.present) {
+      map['duration_seconds'] = Variable<int>(durationSeconds.value);
+    }
+    if (accomplishments.present) {
+      map['accomplishments'] = Variable<String>(accomplishments.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FocusSessionsCompanion(')
+          ..write('id: $id, ')
+          ..write('method: $method, ')
+          ..write('startTime: $startTime, ')
+          ..write('durationSeconds: $durationSeconds, ')
+          ..write('accomplishments: $accomplishments')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2024,6 +2392,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $SyllabusCategoriesTable(this);
   late final $SyllabusTopicsTable syllabusTopics = $SyllabusTopicsTable(this);
   late final $SyllabusTasksTable syllabusTasks = $SyllabusTasksTable(this);
+  late final $FocusSessionsTable focusSessions = $FocusSessionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2034,6 +2403,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syllabusCategories,
     syllabusTopics,
     syllabusTasks,
+    focusSessions,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3812,6 +4182,204 @@ typedef $$SyllabusTasksTableProcessedTableManager =
       SyllabusTask,
       PrefetchHooks Function({bool topicId})
     >;
+typedef $$FocusSessionsTableCreateCompanionBuilder =
+    FocusSessionsCompanion Function({
+      Value<int> id,
+      required String method,
+      required DateTime startTime,
+      required int durationSeconds,
+      Value<String?> accomplishments,
+    });
+typedef $$FocusSessionsTableUpdateCompanionBuilder =
+    FocusSessionsCompanion Function({
+      Value<int> id,
+      Value<String> method,
+      Value<DateTime> startTime,
+      Value<int> durationSeconds,
+      Value<String?> accomplishments,
+    });
+
+class $$FocusSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $FocusSessionsTable> {
+  $$FocusSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startTime => $composableBuilder(
+    column: $table.startTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accomplishments => $composableBuilder(
+    column: $table.accomplishments,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FocusSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FocusSessionsTable> {
+  $$FocusSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startTime => $composableBuilder(
+    column: $table.startTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accomplishments => $composableBuilder(
+    column: $table.accomplishments,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FocusSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FocusSessionsTable> {
+  $$FocusSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startTime =>
+      $composableBuilder(column: $table.startTime, builder: (column) => column);
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get accomplishments => $composableBuilder(
+    column: $table.accomplishments,
+    builder: (column) => column,
+  );
+}
+
+class $$FocusSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FocusSessionsTable,
+          FocusSession,
+          $$FocusSessionsTableFilterComposer,
+          $$FocusSessionsTableOrderingComposer,
+          $$FocusSessionsTableAnnotationComposer,
+          $$FocusSessionsTableCreateCompanionBuilder,
+          $$FocusSessionsTableUpdateCompanionBuilder,
+          (
+            FocusSession,
+            BaseReferences<_$AppDatabase, $FocusSessionsTable, FocusSession>,
+          ),
+          FocusSession,
+          PrefetchHooks Function()
+        > {
+  $$FocusSessionsTableTableManager(_$AppDatabase db, $FocusSessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FocusSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FocusSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FocusSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<DateTime> startTime = const Value.absent(),
+                Value<int> durationSeconds = const Value.absent(),
+                Value<String?> accomplishments = const Value.absent(),
+              }) => FocusSessionsCompanion(
+                id: id,
+                method: method,
+                startTime: startTime,
+                durationSeconds: durationSeconds,
+                accomplishments: accomplishments,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String method,
+                required DateTime startTime,
+                required int durationSeconds,
+                Value<String?> accomplishments = const Value.absent(),
+              }) => FocusSessionsCompanion.insert(
+                id: id,
+                method: method,
+                startTime: startTime,
+                durationSeconds: durationSeconds,
+                accomplishments: accomplishments,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FocusSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FocusSessionsTable,
+      FocusSession,
+      $$FocusSessionsTableFilterComposer,
+      $$FocusSessionsTableOrderingComposer,
+      $$FocusSessionsTableAnnotationComposer,
+      $$FocusSessionsTableCreateCompanionBuilder,
+      $$FocusSessionsTableUpdateCompanionBuilder,
+      (
+        FocusSession,
+        BaseReferences<_$AppDatabase, $FocusSessionsTable, FocusSession>,
+      ),
+      FocusSession,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3826,4 +4394,6 @@ class $AppDatabaseManager {
       $$SyllabusTopicsTableTableManager(_db, _db.syllabusTopics);
   $$SyllabusTasksTableTableManager get syllabusTasks =>
       $$SyllabusTasksTableTableManager(_db, _db.syllabusTasks);
+  $$FocusSessionsTableTableManager get focusSessions =>
+      $$FocusSessionsTableTableManager(_db, _db.focusSessions);
 }

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,8 @@ import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import 'dashboard_screen.dart';
-import 'widgets/future_feature_screen.dart';
+import 'widgets/focus_screen.dart';
+import '../../providers/focus_provider.dart';
 import 'widgets/shell_common.dart';
 import 'settings_screen.dart';
 import '../../providers/package_info_provider.dart';
@@ -76,7 +78,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         },
         children: [
           const KeepAliveWrapper(child: DashboardScreen()),
-          KeepAliveWrapper(child: FutureFeatureScreen(progressColor: progressColor)),
+          KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
           const KeepAliveWrapper(child: SettingsScreen()),
         ],
       ),
@@ -107,10 +109,8 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                   label: 'Completion',
                   color: progressColor,
                 ),
-                _buildNavItem(
+                _buildFocusNavItem(
                   index: 1,
-                  icon: Icons.auto_awesome_rounded,
-                  label: 'Future',
                   color: progressColor,
                 ),
                 _buildNavItem(
@@ -166,6 +166,106 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         ],
       ),
     );
+  }
+
+  Widget _buildFocusNavItem({
+    required int index,
+    required Color color,
+  }) {
+    final sessionState = ref.watch(focusProvider);
+    final isSelected = _currentIndex == index;
+    final hasActiveSession = sessionState.status != FocusStatus.idle;
+
+    Color itemColor = isSelected ? color : Colors.white30;
+    if (hasActiveSession) {
+      if (sessionState.status == FocusStatus.focusing) {
+        itemColor = color;
+      } else {
+        itemColor = Colors.white;
+      }
+    }
+
+    final isCountUp = sessionState.details.isCountUp;
+    final displaySeconds = isCountUp
+        ? sessionState.totalSecondsFocused
+        : (sessionState.status == FocusStatus.breakTime
+            ? max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds)
+            : max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds));
+
+    final timeStr = formatNavDuration(displaySeconds, isCountUp);
+
+    return InkWell(
+      onTap: () {
+        if (index == 0 && _currentIndex != 0) {
+          ref.read(resourceCategoriesOrderProvider.notifier).clear();
+          ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+        }
+        _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.fastOutSlowIn,
+        );
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.hourglass_empty_rounded,
+                color: itemColor,
+                size: 26,
+              ),
+              if (hasActiveSession) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: itemColor, width: 1),
+                  ),
+                  child: Text(
+                    timeStr,
+                    style: GoogleFonts.outfit(
+                      color: itemColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Focus',
+            style: GoogleFonts.outfit(
+              color: isSelected ? (hasActiveSession ? itemColor : color) : Colors.white30,
+              fontSize: 10,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String formatNavDuration(int seconds, bool isCountUp) {
+    if (isCountUp) {
+      final h = (seconds / 3600).floor();
+      final m = ((seconds % 3600) / 60).floor();
+      final s = seconds % 60;
+      if (h > 0) {
+        return "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+      }
+      return "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
+    } else {
+      final m = (seconds / 60).floor();
+      final s = seconds % 60;
+      return "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
+    }
   }
 
   Future<void> _checkDesktopWarning() async {

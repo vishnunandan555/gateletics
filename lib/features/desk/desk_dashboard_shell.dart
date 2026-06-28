@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +8,8 @@ import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import '../dashboard/settings_screen.dart';
-import '../dashboard/widgets/future_feature_screen.dart';
+import '../dashboard/widgets/focus_screen.dart';
+import '../../providers/focus_provider.dart';
 import '../dashboard/widgets/shell_common.dart';
 import 'desk_dashboard_screen.dart';
 
@@ -72,7 +74,7 @@ class _DeskDashboardShellState extends ConsumerState<DeskDashboardShell> {
               index: _currentIndex,
               children: [
                 const KeepAliveWrapper(child: DeskDashboardScreen()),
-                KeepAliveWrapper(child: FutureFeatureScreen(progressColor: progressColor)),
+                KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
                 const KeepAliveWrapper(child: SettingsScreen()),
               ],
             ),
@@ -226,7 +228,7 @@ class _DeskSidebar extends StatelessWidget {
   }
 }
 
-class _SidebarNavItem extends StatelessWidget {
+class _SidebarNavItem extends ConsumerWidget {
   final int index;
   final int currentIndex;
   final IconData icon;
@@ -246,8 +248,56 @@ class _SidebarNavItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isSelected = currentIndex == index;
+
+    IconData displayIcon = icon;
+    String displayLabel = label;
+    Color displayColor = isSelected ? color : Colors.white30;
+
+    Widget? timerBadge;
+
+    if (index == 1) {
+      final sessionState = ref.watch(focusProvider);
+      final hasActiveSession = sessionState.status != FocusStatus.idle;
+      displayIcon = Icons.hourglass_empty_rounded;
+      displayLabel = 'Focus';
+
+      if (hasActiveSession) {
+        if (sessionState.status == FocusStatus.focusing) {
+          displayColor = color;
+        } else {
+          displayColor = Colors.white;
+        }
+
+        final isCountUp = sessionState.details.isCountUp;
+        final displaySeconds = isCountUp
+            ? sessionState.totalSecondsFocused
+            : (sessionState.status == FocusStatus.breakTime
+                ? max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds)
+                : max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds));
+
+        final timeStr = formatDuration(displaySeconds, isCountUp);
+        timerBadge = Container(
+          margin: const EdgeInsets.only(left: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: displayColor, width: 1),
+          ),
+          child: Text(
+            timeStr,
+            style: GoogleFonts.outfit(
+              color: displayColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      }
+    }
+
     return Padding(
       padding: isCompact
           ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
@@ -272,20 +322,24 @@ class _SidebarNavItem extends StatelessWidget {
               mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
                 Icon(
-                  icon,
-                  color: isSelected ? color : Colors.white30,
+                  displayIcon,
+                  color: isSelected ? (index == 1 ? displayColor : color) : (index == 1 ? displayColor.withAlpha(150) : Colors.white30),
                   size: 22,
                 ),
                 if (!isCompact) ...[
                   const SizedBox(width: 14),
-                  Text(
-                    label,
-                    style: GoogleFonts.outfit(
-                      color: isSelected ? color : Colors.white30,
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  Expanded(
+                    child: Text(
+                      displayLabel,
+                      style: GoogleFonts.outfit(
+                        color: isSelected ? (index == 1 ? displayColor : color) : (index == 1 ? displayColor.withAlpha(150) : Colors.white30),
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (timerBadge case final badge?) badge,
                 ],
               ],
             ),
@@ -293,5 +347,21 @@ class _SidebarNavItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String formatDuration(int seconds, bool isCountUp) {
+    if (isCountUp) {
+      final h = (seconds / 3600).floor();
+      final m = ((seconds % 3600) / 60).floor();
+      final s = seconds % 60;
+      if (h > 0) {
+        return "${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}";
+      }
+      return "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
+    } else {
+      final m = (seconds / 60).floor();
+      final s = seconds % 60;
+      return "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}";
+    }
   }
 }

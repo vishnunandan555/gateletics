@@ -59,6 +59,14 @@ class SyllabusTasks extends Table {
   IntColumn get position => integer()();
 }
 
+class FocusSessions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get method => text().withLength(min: 1, max: 50)();
+  DateTimeColumn get startTime => dateTime()();
+  IntColumn get durationSeconds => integer()();
+  TextColumn get accomplishments => text().nullable()();
+}
+
 class SyllabusTopicWithTasks {
   final SyllabusTopic topic;
   final List<SyllabusTask> tasks;
@@ -79,7 +87,7 @@ class SyllabusCategoryWithTopics {
   });
 }
 
-@DriftDatabase(tables: [Categories, Subjects, SyllabusCategories, SyllabusTopics, SyllabusTasks])
+@DriftDatabase(tables: [Categories, Subjects, SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
   AppDatabase.forTesting(super.executor);
@@ -454,6 +462,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(categories, categories.lastInteractedAt);
             await m.addColumn(syllabusCategories, syllabusCategories.lastInteractedAt);
           }
+          if (from < 4) {
+            await m.createTable(focusSessions);
+          }
         },
       );
 
@@ -750,6 +761,70 @@ class AppDatabase extends _$AppDatabase {
       await updateSyllabusCategoryInteractionByTopicId(topicId);
     });
   }
+
+  // ----------------------------------------------------
+  // Focus Session Operations & Midnight Rollover Logic
+  // ----------------------------------------------------
+
+  DateTime getStudyDayStartInstance(DateTime now) => DateTime(
+    now.hour < 4 ? now.subtract(const Duration(days: 1)).year : now.year,
+    now.hour < 4 ? now.subtract(const Duration(days: 1)).month : now.month,
+    now.hour < 4 ? now.subtract(const Duration(days: 1)).day : now.day,
+    4,
+  );
+
+  Future<int> addFocusSession(FocusSessionsCompanion companion) async {
+    return into(focusSessions).insert(companion);
+  }
+
+  /// Convenience helper for testing and provider use.
+  Future<int> insertFocusSession({
+    required String method,
+    required DateTime startTime,
+    required int durationSeconds,
+    String? accomplishments,
+  }) {
+    return addFocusSession(FocusSessionsCompanion.insert(
+      method: method,
+      startTime: startTime,
+      durationSeconds: durationSeconds,
+      accomplishments: Value(accomplishments),
+    ));
+  }
+
+  Stream<List<FocusSession>> watchTodayFocusSessions() {
+    final now = DateTime.now();
+    final start = getStudyDayStart(now);
+    final end = start.add(const Duration(hours: 24));
+    return (select(focusSessions)
+          ..where((t) => t.startTime.isBiggerOrEqualValue(start) & t.startTime.isSmallerThanValue(end))
+          ..orderBy([(t) => OrderingTerm(expression: t.startTime, mode: OrderingMode.desc)]))
+        .watch();
+  }
+
+  Future<List<FocusSession>> getTodayFocusSessions() async {
+    final now = DateTime.now();
+    final start = getStudyDayStart(now);
+    final end = start.add(const Duration(hours: 24));
+    return (select(focusSessions)
+          ..where((t) => t.startTime.isBiggerOrEqualValue(start) & t.startTime.isSmallerThanValue(end))
+          ..orderBy([(t) => OrderingTerm(expression: t.startTime, mode: OrderingMode.desc)]))
+        .get();
+  }
+
+  Stream<int> watchTodayFocusDurationSeconds() {
+    return watchTodayFocusSessions().map((sessions) {
+      return sessions.fold(0, (sum, s) => sum + s.durationSeconds);
+    });
+  }
 }
 
-
+// Top-level function: computes the 4 AM rollover study-day start.
+// Located outside AppDatabase so it can be unit-tested without a DB instance.
+DateTime getStudyDayStart(DateTime now) {
+  if (now.hour < 4) {
+    final yesterday = now.subtract(const Duration(days: 1));
+    return DateTime(yesterday.year, yesterday.month, yesterday.day, 4);
+  }
+  return DateTime(now.year, now.month, now.day, 4);
+}

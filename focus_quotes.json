@@ -1,0 +1,24 @@
+{
+  "focus": [
+    "Consistency is what transforms average into excellence.",
+    "Hey {user_name}, stay in the zone! Focus determines your reality.",
+    "One step at a time, {user_name}. You have been focusing for {elapsed_minutes} minutes!",
+    "Only {remaining_minutes} minutes remaining in this session. Finish strong!",
+    "Excellence is not a skill. It is an attitude.",
+    "Do not stop when you are tired. Stop when you are done.",
+    "Excellence takes time, but every second counts.",
+    "Keep going, you've completed {tasks_completed} tasks so far!",
+    "Your future self will thank you for the focus you put in today.",
+    "Focus on progress, not perfection.",
+    "Energy and persistence conquer all things.",
+    "The secret of getting ahead is getting started."
+  ],
+  "break": [
+    "Take a deep breath and relax. You've earned this break!",
+    "Step away from the screen, stretch, and grab some water.",
+    "Great session, {user_name}! Enjoy your well-deserved break.",
+    "Rest is part of the work. Recharge and get ready for the next round.",
+    "So far you accomplished {tasks_completed} tasks this session. Excellent work!",
+    "Disconnect for a moment. Breathe in, breathe out."
+  ]
+}
