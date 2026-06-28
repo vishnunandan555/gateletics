@@ -77,9 +77,9 @@ dev_dependencies:
 
 flutter_launcher_icons:
   android: "launcher_icon"
-  image_path: "icon.png"
+  image_path: "assets/icon.png"
   adaptive_icon_background: "#18181B"
-  adaptive_icon_foreground: "icon_padded.png"
+  adaptive_icon_foreground: "assets/icon_padded.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -93,9 +93,9 @@ flutter:
   uses-material-design: true
 
   assets:
-    - icon.png
-    - github.png
-    - logo_trans_cropped.png
+    - assets/icon.png
+    - assets/github.png
+    - assets/logo_trans_cropped.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

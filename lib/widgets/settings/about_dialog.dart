@@ -51,7 +51,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.asset(
-                            'icon.png',
+                            'assets/icon.png',
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -263,7 +263,7 @@ void showAboutTrackerDialog(BuildContext context, WidgetRef ref) {
                             ),
                           ),
                           child: Image.asset(
-                            'github.png',
+                            'assets/github.png',
                             width: 24,
                             height: 24,
                             color: Colors.black,

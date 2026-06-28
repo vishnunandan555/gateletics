@@ -357,7 +357,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(18),
               child: Image.asset(
-                'icon.png',
+                'assets/icon.png',
                 fit: BoxFit.cover,
               ),
             ),

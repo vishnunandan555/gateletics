@@ -118,7 +118,7 @@ class _DeskSidebar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
               children: [
-                Image.asset('logo_trans_cropped.png', width: 28, height: 28),
+                Image.asset('assets/logo_trans_cropped.png', width: 28, height: 28),
                 if (!isCompact) ...[
                   const SizedBox(width: 8),
                   Text(

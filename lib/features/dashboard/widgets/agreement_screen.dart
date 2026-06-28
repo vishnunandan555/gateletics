@@ -129,7 +129,7 @@ If you have any questions about this Privacy Policy, please contact us at: vishn
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
                               child: Image.asset(
-                                'icon.png',
+                                'assets/icon.png',
                                 fit: BoxFit.cover,
                               ),
                             ),

@@ -87,7 +87,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(22),
                               child: Image.asset(
-                                'icon.png',
+                                'assets/icon.png',
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => const Icon(
                                   Icons.cloud_sync_rounded,
