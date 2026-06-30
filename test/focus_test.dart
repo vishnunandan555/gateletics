@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:gateletics/database/app_database.dart';
 import 'package:gateletics/providers/focus_provider.dart';
+import 'package:gateletics/utils/string_utils.dart';
 
 void main() {
   // ──────────────────────────────────────────────────────────────────────────
@@ -204,6 +205,25 @@ void main() {
 
       final total = await db.watchTodayFocusDurationSeconds().first;
       expect(total, 2100);  // 35 min
+    });
+  });
+
+  group('Category Short Name Initials Generation', () {
+    test('Converts multi-word names into uppercase initials', () {
+      expect(getCategoryShortName('Operating Systems'), 'OS');
+      expect(getCategoryShortName('Computer Networks'), 'CN');
+      expect(getCategoryShortName('Data Structures & Algorithms'), 'DSA');
+    });
+
+    test('Converts single word into initials up to 3 letters', () {
+      expect(getCategoryShortName('Maths'), 'MAT');
+      expect(getCategoryShortName('OS'), 'OS');
+      expect(getCategoryShortName('C'), 'C');
+    });
+
+    test('Trims and handles extra spaces or separators', () {
+      expect(getCategoryShortName('  General - Aptitude  '), 'GA');
+      expect(getCategoryShortName('Digital/Logic'), 'DL');
     });
   });
 }

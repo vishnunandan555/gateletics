@@ -98,3 +98,29 @@ class QuotesNotifier extends Notifier<List<String>> {
 final quotesProvider = NotifierProvider<QuotesNotifier, List<String>>(() {
   return QuotesNotifier();
 });
+
+class FocusQuotesEnabledNotifier extends Notifier<bool> {
+  static const _kKey = 'beta_focus_quotes_enabled';
+
+  @override
+  bool build() {
+    _load();
+    return false; // Default: disabled
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_kKey) ?? false;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kKey, enabled);
+  }
+}
+
+final focusQuotesEnabledProvider = NotifierProvider<FocusQuotesEnabledNotifier, bool>(() {
+  return FocusQuotesEnabledNotifier();
+});
+

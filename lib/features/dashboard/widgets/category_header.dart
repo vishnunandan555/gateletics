@@ -6,6 +6,7 @@ import '../../../providers/progress_font_provider.dart';
 import '../../../providers/subject_provider.dart';
 import '../../../providers/category_font_size_provider.dart';
 import 'customization_sheets.dart';
+import '../../../utils/string_utils.dart';
 
 class CategoryHeader extends ConsumerWidget {
   final Category category;
@@ -88,14 +89,28 @@ class CategoryHeader extends ConsumerWidget {
             builder: (context, animValue, _) {
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  // Measure the actual rendered text width so the fill
-                  // is proportional to the text, not the container.
-                  final textPainter = TextPainter(
+                  final shortName = getCategoryShortName(title);
+
+                  // 1. Measure the full name
+                  var textPainter = TextPainter(
                     text: TextSpan(text: title.toUpperCase(), style: baseStyle),
                     textDirection: TextDirection.ltr,
                     maxLines: 1,
-                    ellipsis: '...',
-                  )..layout(maxWidth: constraints.maxWidth);
+                  )..layout(maxWidth: double.infinity);
+
+                  String actualName = title;
+                  // If the full name's width exceeds constraints.maxWidth, use the shortName!
+                  if (textPainter.width > constraints.maxWidth) {
+                    actualName = shortName;
+                    // Re-measure with short name
+                    textPainter = TextPainter(
+                      text: TextSpan(text: shortName.toUpperCase(), style: baseStyle),
+                      textDirection: TextDirection.ltr,
+                      maxLines: 1,
+                    )..layout(maxWidth: constraints.maxWidth);
+                  } else {
+                    textPainter.layout(maxWidth: constraints.maxWidth);
+                  }
 
                   final fillWidth = textPainter.width * animValue;
 
@@ -111,11 +126,11 @@ class CategoryHeader extends ConsumerWidget {
                           },
                     child: Stack(
                       children: [
-                        Text(title.toUpperCase(), style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(actualName.toUpperCase(), style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
                         ClipRect(
                           clipper: _ProgressClipper(fillWidth),
                           child: Text(
-                            title.toUpperCase(),
+                            actualName.toUpperCase(),
                             style: baseStyle.copyWith(color: color),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

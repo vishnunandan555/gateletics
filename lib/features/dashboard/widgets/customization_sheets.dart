@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/subject_provider.dart';
+import '../../../utils/string_utils.dart';
 
 final neonPalette = [
   0xFFFF0000, // Neon Red
@@ -149,6 +150,9 @@ void showEditCategoryDialog(BuildContext context, Category category, WidgetRef r
           children: [
             TextField(
               controller: nameController,
+              onChanged: (val) {
+                setState(() {});
+              },
               style: GoogleFonts.outfit(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Category Name',
@@ -158,6 +162,18 @@ void showEditCategoryDialog(BuildContext context, Category category, WidgetRef r
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Short Name: ${getCategoryShortName(nameController.text)}',
+                style: GoogleFonts.outfit(
+                  color: Colors.white38,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -510,6 +526,9 @@ void showCreateCategoryDialog(BuildContext context, WidgetRef ref) {
           children: [
             TextField(
               controller: nameController,
+              onChanged: (val) {
+                setState(() {});
+              },
               style: GoogleFonts.outfit(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Category Name',
@@ -519,6 +538,18 @@ void showCreateCategoryDialog(BuildContext context, WidgetRef ref) {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Short Name: ${getCategoryShortName(nameController.text)}',
+                style: GoogleFonts.outfit(
+                  color: Colors.white38,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

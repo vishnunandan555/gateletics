@@ -18,6 +18,8 @@ import '../../providers/completion_type_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import '../../providers/package_info_provider.dart';
 import '../../providers/progress_font_provider.dart';
+import '../../providers/quotes_provider.dart';
+import '../../providers/focus_provider.dart';
 import '../../providers/category_autosort_provider.dart';
 import '../../providers/category_font_size_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -203,13 +205,31 @@ class SettingsScreen extends ConsumerWidget {
         await ref.read(subjectControllerProvider.notifier).resetEverything();
         await ref.read(syllabusControllerProvider.notifier).resetEverything();
 
+        // 1. Delete all focus sessions
+        final db = ref.read(appDatabaseProvider);
+        await db.delete(db.focusSessions).go();
+
+        // 2. Clear focus related SharedPreferences
         final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('focus_selected_method_index');
+        await prefs.remove('focus_custom_timer_minutes');
+        await prefs.remove('daily_focus_goal_minutes');
+        await prefs.remove('beta_focus_quotes_enabled');
+
+        // Other settings/onboarding keys
         await prefs.remove('has_agreed_legal');
         await prefs.remove('has_completed_setup');
         await prefs.remove('completion_type');
         await prefs.remove('has_seen_desktop_warning');
         await prefs.remove('last_seen_desktop_warning_version');
         await prefs.remove('desktop_warning_seen_time_ms');
+
+        // 3. Reset/invalidate all focus-related providers
+        ref.read(focusProvider.notifier).resetState();
+        ref.invalidate(todayFocusSessionsProvider);
+        ref.invalidate(todayFocusDurationProvider);
+        ref.invalidate(dailyFocusGoalProvider);
+        ref.invalidate(focusQuotesEnabledProvider);
 
         ref.invalidate(agreementProvider);
         ref.invalidate(setupCompletedProvider);
@@ -966,6 +986,37 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
+    final focusQuotesHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'FOCUS MODE (BETA)',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final focusQuotesContent = Consumer(
+      builder: (context, ref, _) {
+        final quotesEnabled = ref.watch(focusQuotesEnabledProvider);
+        return SwitchListTile(
+          activeColor: accentColor,
+          title: const Text('Show Motivational Quotes'),
+          subtitle: const Text(
+            'Display dynamic handwritten motivational quotes during focus sessions (Beta)',
+            style: TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+          value: quotesEnabled,
+          onChanged: (val) {
+            ref.read(focusQuotesEnabledProvider.notifier).setEnabled(val);
+          },
+        );
+      },
+    );
+
     final fontHeader = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
@@ -1404,6 +1455,11 @@ class SettingsScreen extends ConsumerWidget {
                               const SizedBox(height: 16),
                               const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              focusQuotesHeader,
+                              focusQuotesContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
                               fontHeader,
                               fontContent,
                               const SizedBox(height: 16),
@@ -1451,6 +1507,10 @@ class SettingsScreen extends ConsumerWidget {
                   const Divider(color: Colors.white12),
                   categoryOrderingHeader,
                   categoryOrderingContent,
+                  const SizedBox(height: 8),
+                  const Divider(color: Colors.white12),
+                  focusQuotesHeader,
+                  focusQuotesContent,
                   const SizedBox(height: 8),
                   const Divider(color: Colors.white12),
                   fontHeader,

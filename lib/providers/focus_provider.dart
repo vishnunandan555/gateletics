@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import 'subject_provider.dart';
+import 'completion_type_provider.dart';
 
 enum FocusMethod {
   freestyle,
@@ -126,6 +127,7 @@ class FocusSessionState {
   final Map<int, int> initialSubjectCompletedVideos;
   final List<String> sessionAccomplishments;
   final DateTime? sessionStartTime;
+  final bool isBreakActive;
 
   FocusSessionState({
     required this.status,
@@ -137,6 +139,7 @@ class FocusSessionState {
     required this.initialCompletedTaskIds,
     required this.initialSubjectCompletedVideos,
     required this.sessionAccomplishments,
+    required this.isBreakActive,
     this.sessionStartTime,
   });
 
@@ -151,6 +154,7 @@ class FocusSessionState {
     Map<int, int>? initialSubjectCompletedVideos,
     List<String>? sessionAccomplishments,
     DateTime? sessionStartTime,
+    bool? isBreakActive,
   }) {
     return FocusSessionState(
       status: status ?? this.status,
@@ -163,6 +167,7 @@ class FocusSessionState {
       initialSubjectCompletedVideos: initialSubjectCompletedVideos ?? this.initialSubjectCompletedVideos,
       sessionAccomplishments: sessionAccomplishments ?? this.sessionAccomplishments,
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
+      isBreakActive: isBreakActive ?? this.isBreakActive,
     );
   }
 
@@ -178,13 +183,14 @@ class FocusSessionState {
       initialSubjectCompletedVideos: const {},
       sessionAccomplishments: const [],
       sessionStartTime: null,
+      isBreakActive: false,
     );
   }
 
   FocusMethodDetails get details => focusMethodsData[selectedMethod]!;
 
   int get currentTargetSeconds {
-    if (status == FocusStatus.breakTime) {
+    if (isBreakActive) {
       return details.breakMinutes * 60;
     }
     if (details.isCountUp) return 0;
@@ -196,23 +202,59 @@ class FocusSessionState {
 class FocusStateNotifier extends Notifier<FocusSessionState> {
   Timer? _timer;
   DateTime? _lastTickTime;
+  int _accumulatedMilliseconds = 0;
 
   @override
   FocusSessionState build() {
     ref.onDispose(() {
       _timer?.cancel();
     });
+    _loadSelection();
     return FocusSessionState.initial();
+  }
+
+  Future<void> _loadSelection() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final methodIndex = prefs.getInt('focus_selected_method_index');
+      final customMins = prefs.getInt('focus_custom_timer_minutes');
+      FocusMethod? method;
+      if (methodIndex != null && methodIndex >= 0 && methodIndex < FocusMethod.values.length) {
+        method = FocusMethod.values[methodIndex];
+      }
+      if (state.status == FocusStatus.idle) {
+        state = state.copyWith(
+          selectedMethod: method ?? state.selectedMethod,
+          customTimerMinutes: customMins ?? state.customTimerMinutes,
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveSelection() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('focus_selected_method_index', state.selectedMethod.index);
+      await prefs.setInt('focus_custom_timer_minutes', state.customTimerMinutes);
+    } catch (_) {}
   }
 
   void selectMethod(FocusMethod method) {
     if (state.status != FocusStatus.idle) return;
     state = state.copyWith(selectedMethod: method, elapsedSeconds: 0);
+    _saveSelection();
   }
 
   void setCustomTimerMinutes(int minutes) {
     if (state.status != FocusStatus.idle) return;
     state = state.copyWith(customTimerMinutes: minutes);
+    _saveSelection();
+  }
+
+  void resetState() {
+    _timer?.cancel();
+    _accumulatedMilliseconds = 0;
+    state = FocusSessionState.initial();
   }
 
   Future<void> startSession() async {
@@ -250,9 +292,12 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       initialCompletedTaskIds: initialCompletedTaskIds,
       initialSubjectCompletedVideos: initialSubjectCompletedVideos,
       sessionAccomplishments: [],
+      isBreakActive: false,
     );
 
     _lastTickTime = DateTime.now();
+    _accumulatedMilliseconds = 0;
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
@@ -265,11 +310,11 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   void resumeSession() {
     if (state.status != FocusStatus.paused) return;
     state = state.copyWith(
-      status: state.completedFocusIntervals > 0 && state.elapsedSeconds >= state.currentTargetSeconds
-          ? (state.details.hasBreaks ? FocusStatus.breakTime : FocusStatus.focusing)
-          : FocusStatus.focusing,
+      status: state.isBreakActive ? FocusStatus.breakTime : FocusStatus.focusing,
     );
     _lastTickTime = DateTime.now();
+    _accumulatedMilliseconds = 0;
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
@@ -333,11 +378,36 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     await checkAccomplishments();
 
     final finalAccomplishments = state.sessionAccomplishments.join('\n');
+
+    double progressDelta = 0.0;
+    try {
+      final completionType = ref.read(completionTypeProvider);
+      if (completionType == CompletionType.syllabus) {
+        final tasks = await db.select(db.syllabusTasks).get();
+        final totalTasks = tasks.length;
+        if (totalTasks > 0) {
+          final initialCount = state.initialCompletedTaskIds.length;
+          final currentCount = tasks.where((t) => t.isCompleted).length;
+          progressDelta = ((currentCount - initialCount) / totalTasks) * 100.0;
+        }
+      } else {
+        final subjects = await db.select(db.subjects).get();
+        final totalVideos = subjects.fold(0, (sum, s) => sum + s.totalVideos);
+        if (totalVideos > 0) {
+          final initialCount = state.initialSubjectCompletedVideos.values.fold(0, (sum, count) => sum + count);
+          final currentCount = subjects.fold(0, (sum, s) => sum + s.completedVideos);
+          progressDelta = ((currentCount - initialCount) / totalVideos) * 100.0;
+        }
+      }
+    } catch (_) {}
+    if (progressDelta < 0.0) progressDelta = 0.0;
+
     final completedEntry = FocusSessionsCompanion.insert(
       method: state.details.name,
       startTime: state.sessionStartTime ?? DateTime.now(),
       durationSeconds: state.totalSecondsFocused,
       accomplishments: Value(finalAccomplishments.isNotEmpty ? finalAccomplishments : null),
+      progressDelta: Value(progressDelta),
     );
 
     int insertedId = -1;
@@ -351,6 +421,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       startTime: state.sessionStartTime ?? DateTime.now(),
       durationSeconds: state.totalSecondsFocused,
       accomplishments: finalAccomplishments.isNotEmpty ? finalAccomplishments : null,
+      progressDelta: progressDelta,
     );
 
     // Refresh history provider by invalidating or updates
@@ -363,8 +434,19 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
 
   void _tick() {
     final now = DateTime.now();
-    final tickDelta = _lastTickTime != null ? now.difference(_lastTickTime!).inSeconds : 1;
+    int diffMs = _lastTickTime != null ? now.difference(_lastTickTime!).inMilliseconds : 1000;
     _lastTickTime = now;
+
+    // Normalize jitter: if the tick is roughly around 1s, count it as exactly 1s
+    // to prevent the timer display from skipping/double-ticking on scheduling jitter.
+    if (diffMs >= 800 && diffMs <= 1500) {
+      diffMs = 1000;
+    }
+
+    _accumulatedMilliseconds += diffMs;
+    final tickDelta = _accumulatedMilliseconds ~/ 1000;
+    if (tickDelta <= 0) return;
+    _accumulatedMilliseconds %= 1000;
 
     if (state.status == FocusStatus.focusing) {
       final target = state.currentTargetSeconds;
@@ -388,8 +470,11 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
             state = state.copyWith(
               status: FocusStatus.breakTime,
               elapsedSeconds: 0,
+              isBreakActive: true,
             );
             _lastTickTime = DateTime.now();
+            _accumulatedMilliseconds = 0;
+            _timer?.cancel();
             _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
           } else {
             // Timer without break -> automatically finishes session
@@ -416,8 +501,10 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
         state = state.copyWith(
           status: FocusStatus.focusing,
           elapsedSeconds: 0,
+          isBreakActive: false,
         );
         _lastTickTime = DateTime.now();
+        _accumulatedMilliseconds = 0;
         _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
       } else {
         state = state.copyWith(elapsedSeconds: nextElapsed);

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/syllabus_provider.dart';
 import 'customization_sheets.dart' show neonPalette;
+import '../../../utils/string_utils.dart';
 
 // Show Category Options Sheet
 void showSyllabusCategoryOptionsSheet(
@@ -151,6 +152,9 @@ void showEditSyllabusCategoryDialog(BuildContext context, SyllabusCategory categ
           children: [
             TextField(
               controller: nameController,
+              onChanged: (val) {
+                setState(() {});
+              },
               style: GoogleFonts.outfit(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Category Name',
@@ -160,6 +164,18 @@ void showEditSyllabusCategoryDialog(BuildContext context, SyllabusCategory categ
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Short Name: ${getCategoryShortName(nameController.text)}',
+                style: GoogleFonts.outfit(
+                  color: Colors.white38,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -440,6 +456,9 @@ void showCreateSyllabusCategoryDialog(BuildContext context, WidgetRef ref) {
           children: [
             TextField(
               controller: nameController,
+              onChanged: (val) {
+                setState(() {});
+              },
               style: GoogleFonts.outfit(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Category Name',
@@ -449,6 +468,18 @@ void showCreateSyllabusCategoryDialog(BuildContext context, WidgetRef ref) {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Short Name: ${getCategoryShortName(nameController.text)}',
+                style: GoogleFonts.outfit(
+                  color: Colors.white38,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),

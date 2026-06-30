@@ -2080,6 +2080,18 @@ class $FocusSessionsTable extends FocusSessions
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _progressDeltaMeta = const VerificationMeta(
+    'progressDelta',
+  );
+  @override
+  late final GeneratedColumn<double> progressDelta = GeneratedColumn<double>(
+    'progress_delta',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2087,6 +2099,7 @@ class $FocusSessionsTable extends FocusSessions
     startTime,
     durationSeconds,
     accomplishments,
+    progressDelta,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2139,6 +2152,15 @@ class $FocusSessionsTable extends FocusSessions
         ),
       );
     }
+    if (data.containsKey('progress_delta')) {
+      context.handle(
+        _progressDeltaMeta,
+        progressDelta.isAcceptableOrUnknown(
+          data['progress_delta']!,
+          _progressDeltaMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2168,6 +2190,10 @@ class $FocusSessionsTable extends FocusSessions
         DriftSqlType.string,
         data['${effectivePrefix}accomplishments'],
       ),
+      progressDelta: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}progress_delta'],
+      )!,
     );
   }
 
@@ -2183,12 +2209,14 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
   final DateTime startTime;
   final int durationSeconds;
   final String? accomplishments;
+  final double progressDelta;
   const FocusSession({
     required this.id,
     required this.method,
     required this.startTime,
     required this.durationSeconds,
     this.accomplishments,
+    required this.progressDelta,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2200,6 +2228,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     if (!nullToAbsent || accomplishments != null) {
       map['accomplishments'] = Variable<String>(accomplishments);
     }
+    map['progress_delta'] = Variable<double>(progressDelta);
     return map;
   }
 
@@ -2212,6 +2241,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       accomplishments: accomplishments == null && nullToAbsent
           ? const Value.absent()
           : Value(accomplishments),
+      progressDelta: Value(progressDelta),
     );
   }
 
@@ -2226,6 +2256,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       startTime: serializer.fromJson<DateTime>(json['startTime']),
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
       accomplishments: serializer.fromJson<String?>(json['accomplishments']),
+      progressDelta: serializer.fromJson<double>(json['progressDelta']),
     );
   }
   @override
@@ -2237,6 +2268,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       'startTime': serializer.toJson<DateTime>(startTime),
       'durationSeconds': serializer.toJson<int>(durationSeconds),
       'accomplishments': serializer.toJson<String?>(accomplishments),
+      'progressDelta': serializer.toJson<double>(progressDelta),
     };
   }
 
@@ -2246,6 +2278,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     DateTime? startTime,
     int? durationSeconds,
     Value<String?> accomplishments = const Value.absent(),
+    double? progressDelta,
   }) => FocusSession(
     id: id ?? this.id,
     method: method ?? this.method,
@@ -2254,6 +2287,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     accomplishments: accomplishments.present
         ? accomplishments.value
         : this.accomplishments,
+    progressDelta: progressDelta ?? this.progressDelta,
   );
   FocusSession copyWithCompanion(FocusSessionsCompanion data) {
     return FocusSession(
@@ -2266,6 +2300,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       accomplishments: data.accomplishments.present
           ? data.accomplishments.value
           : this.accomplishments,
+      progressDelta: data.progressDelta.present
+          ? data.progressDelta.value
+          : this.progressDelta,
     );
   }
 
@@ -2276,14 +2313,21 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           ..write('method: $method, ')
           ..write('startTime: $startTime, ')
           ..write('durationSeconds: $durationSeconds, ')
-          ..write('accomplishments: $accomplishments')
+          ..write('accomplishments: $accomplishments, ')
+          ..write('progressDelta: $progressDelta')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, method, startTime, durationSeconds, accomplishments);
+  int get hashCode => Object.hash(
+    id,
+    method,
+    startTime,
+    durationSeconds,
+    accomplishments,
+    progressDelta,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2292,7 +2336,8 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           other.method == this.method &&
           other.startTime == this.startTime &&
           other.durationSeconds == this.durationSeconds &&
-          other.accomplishments == this.accomplishments);
+          other.accomplishments == this.accomplishments &&
+          other.progressDelta == this.progressDelta);
 }
 
 class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
@@ -2301,12 +2346,14 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
   final Value<DateTime> startTime;
   final Value<int> durationSeconds;
   final Value<String?> accomplishments;
+  final Value<double> progressDelta;
   const FocusSessionsCompanion({
     this.id = const Value.absent(),
     this.method = const Value.absent(),
     this.startTime = const Value.absent(),
     this.durationSeconds = const Value.absent(),
     this.accomplishments = const Value.absent(),
+    this.progressDelta = const Value.absent(),
   });
   FocusSessionsCompanion.insert({
     this.id = const Value.absent(),
@@ -2314,6 +2361,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     required DateTime startTime,
     required int durationSeconds,
     this.accomplishments = const Value.absent(),
+    this.progressDelta = const Value.absent(),
   }) : method = Value(method),
        startTime = Value(startTime),
        durationSeconds = Value(durationSeconds);
@@ -2323,6 +2371,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     Expression<DateTime>? startTime,
     Expression<int>? durationSeconds,
     Expression<String>? accomplishments,
+    Expression<double>? progressDelta,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2330,6 +2379,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
       if (startTime != null) 'start_time': startTime,
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (accomplishments != null) 'accomplishments': accomplishments,
+      if (progressDelta != null) 'progress_delta': progressDelta,
     });
   }
 
@@ -2339,6 +2389,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     Value<DateTime>? startTime,
     Value<int>? durationSeconds,
     Value<String?>? accomplishments,
+    Value<double>? progressDelta,
   }) {
     return FocusSessionsCompanion(
       id: id ?? this.id,
@@ -2346,6 +2397,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
       startTime: startTime ?? this.startTime,
       durationSeconds: durationSeconds ?? this.durationSeconds,
       accomplishments: accomplishments ?? this.accomplishments,
+      progressDelta: progressDelta ?? this.progressDelta,
     );
   }
 
@@ -2367,6 +2419,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     if (accomplishments.present) {
       map['accomplishments'] = Variable<String>(accomplishments.value);
     }
+    if (progressDelta.present) {
+      map['progress_delta'] = Variable<double>(progressDelta.value);
+    }
     return map;
   }
 
@@ -2377,7 +2432,8 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
           ..write('method: $method, ')
           ..write('startTime: $startTime, ')
           ..write('durationSeconds: $durationSeconds, ')
-          ..write('accomplishments: $accomplishments')
+          ..write('accomplishments: $accomplishments, ')
+          ..write('progressDelta: $progressDelta')
           ..write(')'))
         .toString();
   }
@@ -4189,6 +4245,7 @@ typedef $$FocusSessionsTableCreateCompanionBuilder =
       required DateTime startTime,
       required int durationSeconds,
       Value<String?> accomplishments,
+      Value<double> progressDelta,
     });
 typedef $$FocusSessionsTableUpdateCompanionBuilder =
     FocusSessionsCompanion Function({
@@ -4197,6 +4254,7 @@ typedef $$FocusSessionsTableUpdateCompanionBuilder =
       Value<DateTime> startTime,
       Value<int> durationSeconds,
       Value<String?> accomplishments,
+      Value<double> progressDelta,
     });
 
 class $$FocusSessionsTableFilterComposer
@@ -4230,6 +4288,11 @@ class $$FocusSessionsTableFilterComposer
 
   ColumnFilters<String> get accomplishments => $composableBuilder(
     column: $table.accomplishments,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get progressDelta => $composableBuilder(
+    column: $table.progressDelta,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4267,6 +4330,11 @@ class $$FocusSessionsTableOrderingComposer
     column: $table.accomplishments,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get progressDelta => $composableBuilder(
+    column: $table.progressDelta,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FocusSessionsTableAnnotationComposer
@@ -4294,6 +4362,11 @@ class $$FocusSessionsTableAnnotationComposer
 
   GeneratedColumn<String> get accomplishments => $composableBuilder(
     column: $table.accomplishments,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get progressDelta => $composableBuilder(
+    column: $table.progressDelta,
     builder: (column) => column,
   );
 }
@@ -4334,12 +4407,14 @@ class $$FocusSessionsTableTableManager
                 Value<DateTime> startTime = const Value.absent(),
                 Value<int> durationSeconds = const Value.absent(),
                 Value<String?> accomplishments = const Value.absent(),
+                Value<double> progressDelta = const Value.absent(),
               }) => FocusSessionsCompanion(
                 id: id,
                 method: method,
                 startTime: startTime,
                 durationSeconds: durationSeconds,
                 accomplishments: accomplishments,
+                progressDelta: progressDelta,
               ),
           createCompanionCallback:
               ({
@@ -4348,12 +4423,14 @@ class $$FocusSessionsTableTableManager
                 required DateTime startTime,
                 required int durationSeconds,
                 Value<String?> accomplishments = const Value.absent(),
+                Value<double> progressDelta = const Value.absent(),
               }) => FocusSessionsCompanion.insert(
                 id: id,
                 method: method,
                 startTime: startTime,
                 durationSeconds: durationSeconds,
                 accomplishments: accomplishments,
+                progressDelta: progressDelta,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

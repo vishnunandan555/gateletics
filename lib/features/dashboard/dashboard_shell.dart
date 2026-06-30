@@ -188,7 +188,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     final isCountUp = sessionState.details.isCountUp;
     final displaySeconds = isCountUp
         ? sessionState.totalSecondsFocused
-        : (sessionState.status == FocusStatus.breakTime
+        : (sessionState.isBreakActive
             ? max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds)
             : max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds));
 

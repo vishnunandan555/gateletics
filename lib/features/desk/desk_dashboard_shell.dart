@@ -273,7 +273,7 @@ class _SidebarNavItem extends ConsumerWidget {
         final isCountUp = sessionState.details.isCountUp;
         final displaySeconds = isCountUp
             ? sessionState.totalSecondsFocused
-            : (sessionState.status == FocusStatus.breakTime
+            : (sessionState.isBreakActive
                 ? max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds)
                 : max(0, sessionState.currentTargetSeconds - sessionState.elapsedSeconds));
 

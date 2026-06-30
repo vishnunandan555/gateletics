@@ -65,6 +65,7 @@ class FocusSessions extends Table {
   DateTimeColumn get startTime => dateTime()();
   IntColumn get durationSeconds => integer()();
   TextColumn get accomplishments => text().nullable()();
+  RealColumn get progressDelta => real().withDefault(const Constant(0.0))();
 }
 
 class SyllabusTopicWithTasks {
@@ -464,6 +465,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.createTable(focusSessions);
+          }
+          if (from < 5) {
+            await m.addColumn(focusSessions, focusSessions.progressDelta);
           }
         },
       );

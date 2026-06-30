@@ -69,3 +69,28 @@ To publish on the Google Play Store, Google **requires** a Privacy Policy URL. A
   - Select **"No"** to *Does your app collect or share any of the required user data types?*
   - This matches our clean, 100% offline codebase.
 - **Closed Testing Requirement:** For personal developer accounts created after November 2023, Google requires a 14-day closed testing track with at least 20 testers before publishing to Production. Planning this early is highly recommended.
+
+---
+
+### 🔑 4. Adding Release SHA-1 / SHA-256 for Google Sign-in & Firebase
+Google Sign-in and Firebase require the SHA-1 and SHA-256 certificate fingerprints of your signing key to authorize requests. Follow these steps:
+
+1. **For Local Release Builds (Signed APK/AAB):**
+   Run the following command to retrieve the SHA fingerprints of your local keystore:
+   ```bash
+   keytool -list -v -keystore android/app/release.jks -alias key
+   ```
+   *Copy the SHA-1 and SHA-256 fingerprint lines.*
+
+2. **For Google Play Store Distributed Builds:**
+   Google Play Store re-signs your app bundle (AAB) with its own master key. To retrieve this:
+   - Go to the **Google Play Console** > select your App.
+   - In the left sidebar, navigate to **Setup** > **App integrity** > **App signing** tab.
+   - *Copy the SHA-1 and SHA-256 fingerprints from there.*
+
+3. **Link to Firebase Console:**
+   - Go to your **Firebase Console** > select your project.
+   - Click the gear icon next to **Project Overview** > select **Project settings**.
+   - Under **General** tab, scroll down to **Your apps** > select your Android app.
+   - Click **Add fingerprint** and paste both the local key and the Play Console's SHA fingerprints (both SHA-1 and SHA-256).
+   - *Download the updated `google-services.json` file and place it in `android/app/` if config settings change.*
