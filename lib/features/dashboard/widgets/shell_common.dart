@@ -165,11 +165,16 @@ Future<void> checkAppVersionUpdate(BuildContext context, WidgetRef ref) async {
 
     if (lastKnownVer != null && lastKnownVer != currentVer) {
       if (context.mounted) {
+        final screenWidth = MediaQuery.sizeOf(context).width;
+        final useWidth = screenWidth > 600;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF18181B),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
+            width: useWidth ? 400 : null,
+            margin: useWidth ? null : const EdgeInsets.all(16),
+            duration: const Duration(seconds: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(color: Colors.white.withAlpha(20), width: 1),
@@ -188,6 +193,25 @@ Future<void> checkAppVersionUpdate(BuildContext context, WidgetRef ref) async {
                     style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  },
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(30, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    "OK",
+                    style: GoogleFonts.outfit(
+                      color: Colors.cyanAccent,
+                      fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
                   ),

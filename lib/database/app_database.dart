@@ -461,13 +461,17 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 3) {
             await m.addColumn(categories, categories.lastInteractedAt);
-            await m.addColumn(syllabusCategories, syllabusCategories.lastInteractedAt);
+            if (from >= 2) {
+              await m.addColumn(syllabusCategories, syllabusCategories.lastInteractedAt);
+            }
           }
           if (from < 4) {
             await m.createTable(focusSessions);
           }
           if (from < 5) {
-            await m.addColumn(focusSessions, focusSessions.progressDelta);
+            if (from >= 4) {
+              await m.addColumn(focusSessions, focusSessions.progressDelta);
+            }
           }
         },
       );
