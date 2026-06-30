@@ -22,6 +22,7 @@ import '../../providers/quotes_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/category_autosort_provider.dart';
 import '../../providers/category_font_size_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../database/backup_service.dart';
@@ -711,6 +712,101 @@ class SettingsScreen extends ConsumerWidget {
                             icon: const Icon(Icons.logout_rounded, size: 16),
                             label: Text(
                               "SIGN OUT",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: const Color(0xFF161B22),
+                                  title: Text(
+                                    'Delete Account',
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Are you sure you want to delete your account? This will permanently delete all your synced data backups from the cloud. Your local database will remain intact.',
+                                    style: GoogleFonts.outfit(color: Colors.white70),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(false),
+                                      child: Text(
+                                        'Cancel',
+                                        style: GoogleFonts.outfit(color: Colors.grey),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(context).pop(true),
+                                      child: Text(
+                                        'Delete Permanently',
+                                        style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true && context.mounted) {
+                                try {
+                                  await ref.read(authProvider.notifier).deleteAccount();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Account and synced data deleted successfully.'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                } on FirebaseAuthException catch (e) {
+                                  if (e.code == 'requires-recent-login' && context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please sign out and sign in again to verify your identity before deleting your account.'),
+                                        backgroundColor: Colors.redAccent,
+                                        duration: Duration(seconds: 5),
+                                      ),
+                                    );
+                                  } else if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error: ${e.message}'),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error: $e'),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.redAccent),
+                              foregroundColor: Colors.redAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            icon: const Icon(Icons.delete_forever_rounded, size: 16),
+                            label: Text(
+                              "DELETE ACCOUNT",
                               style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 11,

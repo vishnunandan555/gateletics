@@ -1,29 +1,49 @@
 # Terms of Service for GATEletics
 
-Last updated: June 25, 2026
+Last updated: July 1, 2026
 
-Please read these Terms of Service ("Terms") carefully before using the GATEletics mobile application (the "App") operated by Vishnu Nandan ("us", "we", or "our").
+Please read these Terms of Service ("Terms") carefully before using the GATEletics application (the "App") operated by Vishnu Nandan ("us", "we", or "our").
+
+---
 
 ## 1. Acceptance of Terms
-By downloading or using the App, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access or use the App.
+By downloading, installing, or using the App, you agree to be bound by these Terms. If you disagree with any part of these Terms, you may not access or use the App.
+
+---
 
 ## 2. License to Use
 We grant you a personal, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial educational purposes on devices owned or controlled by you.
 
-## 3. Intellectual Property
+---
+
+## 3. Accounts & Cloud Synchronization (Optional)
+- **Account Credentials:** If you choose to enable the optional Cloud Backup & Sync service via Google Sign-In, you are responsible for maintaining the confidentiality of your credentials.
+- **Backup Data:** Your synchronized backups are stored securely on Firebase. However, you acknowledge that no network transmission or database system is 100% secure, and we are not liable for any synchronization delays, connectivity errors, or backup data losses.
+- **Termination:** We reserve the right to suspend or delete synchronized backups for accounts that violate these Terms or have been inactive for long periods. You can also request complete deletion of your backups at any time via the in-app deletion utility.
+
+---
+
+## 4. Intellectual Property
 The App, its original features, and source code are open-source and licensed under the MIT License. You may modify and redistribute it under the terms of the MIT License, but the official Play Store version and brand name "GATEletics" are represented by the developer.
 
-## 4. Limitation of Liability & "As-Is" Clause
+---
+
+## 5. Limitation of Liability & "As-Is" Clause
 The App is provided on an "AS IS" and "AS AVAILABLE" basis without warranties of any kind, either express or implied. 
 
-In no event shall Vishnu Nandan be liable for any direct, indirect, incidental, special, or consequential damages arising out of your use of, or inability to use, the App. This includes, but is not limited to, loss of study data, device issues, or errors in syllabus descriptions.
+In no event shall Vishnu Nandan be liable for any direct, indirect, incidental, special, or consequential damages arising out of your use of, or inability to use, the App. This includes, but is not limited to, loss of study progress, synchronization issues, device errors, or discrepancies in syllabus descriptions.
 
-## 5. Changes to Terms
+---
+
+## 6. Changes to Terms
 We reserve the right to modify or replace these Terms at any time. Your continued use of the App after changes constitutes acceptance of the new Terms.
 
-## 6. Contact Us
+---
+
+## 7. Contact Us
 For any questions regarding these Terms, contact: vishnunandan555@gmail.com
 
-## 7. Disclaimer of Affiliation
-GATEletics is an independent educational tool developed to assist student preparation. This App is not affiliated with, authorized by, sponsored by, or associated with the Graduate Aptitude Test in Engineering (GATE) or its official organizing institutes (IISc, IITs, or NCB-GATE).
+---
 
+## 8. Disclaimer of Affiliation
+GATEletics is an independent educational tool developed to assist student preparation. This App is not affiliated with, authorized by, sponsored by, or associated with the Graduate Aptitude Test in Engineering (GATE) or its official organizing institutes (IISc, IITs, or NCB-GATE).

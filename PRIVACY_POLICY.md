@@ -1,29 +1,50 @@
 # Privacy Policy for GATEletics
 
-Last updated: June 25, 2026
+Last updated: July 1, 2026
 
-Vishnu Nandan ("we", "our", or "us") operates the GATEletics mobile application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
+Vishnu Nandan ("we", "our", or "us") operates the GATEletics application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
+
+---
 
 ## 1. Information Collection and Use
 
-**No Personal Information Collected:** 
-The App is designed as an offline-first tool. We do not collect, store, or transmit any personally identifiable information (PII) or user tracking data. 
+### A. Offline Mode (Default)
+The App is designed as an offline-first tool. If you choose not to sign in, we do not collect, store, or transmit any personally identifiable information (PII) or user tracking data. All study progress, syllabus checklists, subjects, and focus sessions data are stored locally on your device's secure storage.
 
-**Local Storage:**
-All study progress, syllabus checklists, subjects, and tracking data are stored locally on your device's secure storage using an embedded database. This data never leaves your device unless you manually choose to export it to a JSON backup file.
+### B. Cloud Backup & Sync Mode (Optional)
+If you choose to sign in using Google Sign-In:
+- **Authentication Identifiers:** We use Firebase Authentication to verify your identity. This grants access to basic Google Account info (such as your name, email address, and profile picture URL) which we use solely to associate your synchronized database with your account.
+- **Database Backup Storage:** We securely upload and synchronize your progress data (such as completed tasks, subject checklists, focus history, and configurations) to Google Cloud Firestore. This ensures you can restore your data across multiple devices.
 
-**Internet Access:**
-The App requires internet access (`android.permission.INTERNET`) solely to fetch daily motivational quotes from a public repository. No user-specific identifier, location, or device telemetry is transmitted during this fetch.
+---
 
 ## 2. Third-Party Services
-The App does not use any third-party analytics, advertising networks, or tracking SDKs.
 
-## 3. Children's Privacy
-Our App does not collect any information from children or anyone else, making it fully compliant with COPPA and global privacy standards.
+We do not sell, rent, or trade your data to third parties. We use the following services solely to facilitate authentication and cloud backups:
+- **Firebase Authentication & Cloud Firestore (Google LLC):** Used to authorize access and store your optional database backups securely. Google's privacy practices are subject to the [Google Privacy Policy](https://policies.google.com/privacy).
 
-## 4. Contact Us
-If you have any questions about this Privacy Policy, please contact us at: vishnunandan555@gmail.com
+---
 
-## 5. Disclaimer of Affiliation
+## 3. Account Deletion & Data Control
+
+We believe in complete data transparency and user control:
+- **Sign Out:** You can sign out at any time from the settings menu to cease synchronization.
+- **In-App Account Deletion:** You can request the permanent deletion of your account and all stored cloud backups directly from the App's settings menu at any time. This action immediately deletes your user document from Firestore and deletes your credentials from Firebase Authentication.
+
+---
+
+## 4. Children's Privacy
+
+Our App does not collect any personal information from children or anyone else unless they voluntarily sign in to sync backups. The App complies with COPPA and global privacy regulations.
+
+---
+
+## 5. Contact Us
+
+If you have any questions or requests regarding this Privacy Policy, please contact us at: vishnunandan555@gmail.com
+
+---
+
+## 6. Disclaimer of Affiliation
+
 GATEletics is an independent educational tool developed to assist student preparation. This App is not affiliated with, authorized by, sponsored by, or associated with the Graduate Aptitude Test in Engineering (GATE) or its official organizing institutes (IISc, IITs, or NCB-GATE).
-

@@ -1,96 +1,41 @@
-# Google Play Store Release Checklist — GATE Progress Tracker
+# Pending Release Checklist — GATEletics
 
-> **Why now?** Android is progressively restricting sideloading (unknown source installs). Getting on the Play Store is the correct long-term solution for reliable distribution.
-
----
-
-## ⚡ TL;DR — Quick Status at a Glance
-
-### 🚫 Hard Blockers & Must-Declares — ALL RESOLVED & CLEANED ✅
-
-All telemetry, self-updating APK systems, and sensitive permissions have been fully removed from the codebase. The app is now clean and compliant with Google Play Developer policies.
-
-| # | Prior Issue | Status | Action Taken |
-|---|---|---|---|
-| 1 | **In-app APK downloader** | ✅ **RESOLVED** | Removed entire download flow, updater provider, updater dialog, and unreferenced packages. |
-| 2 | **`REQUEST_INSTALL_PACKAGES` permission** | ✅ **RESOLVED** | Removed the permission from `AndroidManifest.xml`. |
-| 3 | **`requestLegacyExternalStorage="true"`** | ✅ **RESOLVED** | Removed the legacy attribute from `AndroidManifest.xml`. |
-| 4 | **Telemetry pings & endpoints** | ✅ **RESOLVED** | Deleted the telemetry service, lifecycle observer, and settings toggles. The app is now 100% offline. |
-| 5 | **Debug mock constants** | ✅ **RESOLVED** | Cleaned up all developer mock constants and versions from the updater/telemetry stubs. |
+This checklist tracks the remaining technical and submission steps required to publish the production web and Android builds.
 
 ---
 
-## 📋 Build & Submit Checklist
-
-### 1. Release Keystore & App Signing
-Since you have not started the Google Developer account yet, you can configure signing configurations once you are ready. Below is the step-by-step setup:
-
-1. **Generate the Keystore:**
-   Run this command in your terminal to generate a secure keystore file:
-   ```bash
-   keytool -genkey -v -keystore android/app/release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias key
-   ```
-2. **Configure Credentials:**
-   Create a file at `android/key.properties` (this file is ignored by git to keep secrets safe) containing:
-   ```properties
-   storePassword=<your-keystore-password>
-   keyPassword=<your-key-password>
-   keyAlias=key
-   storeFile=release.jks
-   ```
-3. **Build the Production Bundle:**
-   Once signing is wired up in `build.gradle.kts`, run this command to build the optimized App Bundle (AAB):
-   ```bash
-   flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info
-   ```
+## 🔑 1. Production OAuth & Google Sign-In Setup
+- [ ] **Web Domains Whitelisting:**
+  - Add production Vercel/GitHub Pages domains to **Authentication > Settings > Authorized domains** in Firebase Console.
+- [ ] **Google Cloud API Credentials:**
+  - Add production domain to **Authorized JavaScript origins** in Google Cloud Console.
+  - Verify redirect URI (`https://<project-id>.firebaseapp.com/__/auth/handler`).
+- [ ] **Release SHA Fingerprints:**
+  - Retrieve SHA-1 and SHA-256 certificate fingerprints from Google Play Console **Setup > App integrity** (for Google Play builds).
+  - Retrieve SHA-1 and SHA-256 from local release keystore via `keytool` (for direct release APKs).
+  - Add both sets of fingerprints to **Project settings > Android app** in Firebase Console.
+- [ ] **Config Update:**
+  - Download the updated `google-services.json` from Firebase Console and replace the old one at `android/app/google-services.json`.
 
 ---
 
-## 📄 2. Legal Requirements (ToS & Privacy Policy)
-
-To publish on the Google Play Store, Google **requires** a Privacy Policy URL. A Terms of Service (ToS) is optional but highly recommended to limit your liability.
-
-### Checklist & Action Items:
-- [x] Create `PRIVACY_POLICY.md` in repository root (Completed ✅)
-- [x] Create `TERMS_OF_SERVICE.md` in repository root (Completed ✅)
-- [x] Integrate first-launch Legal Agreement Screen to lock the app until agreed (Completed ✅)
-- [x] Integrate Onboarding Setup Screen for style & preset selection (Completed ✅)
-- [x] Push changes to GitHub repository (Completed ✅)
-- [x] Host the files on the web (Created `/docs` files for GitHub Pages ✅)
-- [ ] Paste hosted Privacy Policy link into Google Play Console (Console app not created yet - pending ⏳)
+## 📦 2. Production Signing & Android Builds
+- [ ] **Keystore Generation:**
+  - Run `keytool -genkey -v -keystore android/app/release.jks ...` to create the signing key.
+- [ ] **Signing Configurations:**
+  - Create local `android/key.properties` with keystore passwords and alias.
+- [ ] **Obfuscated App Bundle:**
+  - Run `flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info`.
 
 ---
 
-
-### 3. Store Assets & Submissions (For Later)
-- **Feature Graphic:** 1024×500 PNG/JPEG (no transparent background).
-- **Screenshots:** At least 2 screenshots showing the main tracking dashboard and syllabus checklist.
-- **Data Safety Form (Play Console):**
-  - Select **"No"** to *Does your app collect or share any of the required user data types?*
-  - This matches our clean, 100% offline codebase.
-- **Closed Testing Requirement:** For personal developer accounts created after November 2023, Google requires a 14-day closed testing track with at least 20 testers before publishing to Production. Planning this early is highly recommended.
-
----
-
-### 🔑 4. Adding Release SHA-1 / SHA-256 for Google Sign-in & Firebase
-Google Sign-in and Firebase require the SHA-1 and SHA-256 certificate fingerprints of your signing key to authorize requests. Follow these steps:
-
-1. **For Local Release Builds (Signed APK/AAB):**
-   Run the following command to retrieve the SHA fingerprints of your local keystore:
-   ```bash
-   keytool -list -v -keystore android/app/release.jks -alias key
-   ```
-   *Copy the SHA-1 and SHA-256 fingerprint lines.*
-
-2. **For Google Play Store Distributed Builds:**
-   Google Play Store re-signs your app bundle (AAB) with its own master key. To retrieve this:
-   - Go to the **Google Play Console** > select your App.
-   - In the left sidebar, navigate to **Setup** > **App integrity** > **App signing** tab.
-   - *Copy the SHA-1 and SHA-256 fingerprints from there.*
-
-3. **Link to Firebase Console:**
-   - Go to your **Firebase Console** > select your project.
-   - Click the gear icon next to **Project Overview** > select **Project settings**.
-   - Under **General** tab, scroll down to **Your apps** > select your Android app.
-   - Click **Add fingerprint** and paste both the local key and the Play Console's SHA fingerprints (both SHA-1 and SHA-256).
-   - *Download the updated `google-services.json` file and place it in `android/app/` if config settings change.*
+## 📋 3. Google Play Store Submission
+- [ ] **Legal URL:**
+  - Paste hosted Privacy Policy URL (`docs/PRIVACY_POLICY.md` on GitHub Pages) into Play Console.
+- [ ] **Graphic Assets:**
+  - Upload 1024×500 feature graphic.
+  - Upload dashboard & checklist screenshots.
+- [ ] **Data Safety Declarations:**
+  - Declare "No" to data collection (since the database is local/offline, except for user-initiated Firebase backups).
+- [ ] **Closed Testing track:**
+  - Recruit 20 active testers and complete the mandatory 14-day testing period.

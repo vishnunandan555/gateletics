@@ -21,3 +21,7 @@ wave.png
 timer.png
 
 <a href="https://www.flaticon.com/free-icons/timer" title="timer icons">Timer icons created by fjstudio - Flaticon</a>
+
+ultradian 120.png
+
+<a href="https://www.flaticon.com/free-icons/wind" title="wind icons">Wind icons created by Freepik - Flaticon</a>

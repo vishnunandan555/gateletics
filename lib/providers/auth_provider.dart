@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -178,6 +179,46 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       isOfflineMode: false,
       isLoading: false,
     ));
+  }
+
+  // Delete user account and all Firestore backups
+  Future<void> deleteAccount() async {
+    state = const AsyncValue.loading();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Delete Firestore document first
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+        } catch (e) {
+          debugPrint("Error deleting user Firestore data: $e");
+        }
+        // Delete FirebaseAuth user
+        await user.delete();
+      }
+      if (isFirebaseSupported()) {
+        await GoogleSignIn().signOut();
+      }
+      await _prefs.setBool('has_chosen_offline', false);
+      try {
+        await ref.read(syncProvider.notifier).clearSyncState();
+      } catch (e) {
+        debugPrint("Error clearing sync state: $e");
+      }
+      state = AsyncValue.data(AuthState(
+        user: null,
+        isOfflineMode: false,
+        isLoading: false,
+      ));
+    } catch (e) {
+      final currentOffline = _prefs.getBool('has_chosen_offline') ?? false;
+      state = AsyncValue.data(AuthState(
+        user: FirebaseAuth.instance.currentUser,
+        isOfflineMode: currentOffline,
+        isLoading: false,
+      ));
+      rethrow;
+    }
   }
 }
 

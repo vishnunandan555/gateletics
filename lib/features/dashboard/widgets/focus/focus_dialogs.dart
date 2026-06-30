@@ -209,8 +209,8 @@ void showMethodSelectionMenu(BuildContext context, FocusSessionState sessionStat
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           width: 110,
-                          height: 120,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          height: 110,
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
                           decoration: BoxDecoration(
                             color: isSelected ? accentColor.withAlpha(20) : const Color(0xFF131316),
                             borderRadius: BorderRadius.circular(16),
@@ -222,8 +222,8 @@ void showMethodSelectionMenu(BuildContext context, FocusSessionState sessionStat
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              buildMethodIcon(details, isSelected ? accentColor : Colors.white70, size: 36),
-                              const SizedBox(height: 10),
+                              buildMethodIcon(details, isSelected ? accentColor : Colors.white70, size: 28),
+                              const SizedBox(height: 6),
                               Text(
                                 details.name,
                                 style: GoogleFonts.outfit(
