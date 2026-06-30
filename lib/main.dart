@@ -15,6 +15,8 @@ import 'features/dashboard/widgets/setup_screen.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
 import 'providers/package_info_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'core/router/route_resolver.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -35,6 +37,9 @@ void main() async {
       debugPrint("Firebase initialization failed: $e");
     }
   }
+
+  final prefs = await SharedPreferences.getInstance();
+  persistedUserWantsDesktopUI = prefs.getBool('user_wants_desktop_ui');
 
   final packageInfo = await PackageInfo.fromPlatform();
   final appDb = AppDatabase();

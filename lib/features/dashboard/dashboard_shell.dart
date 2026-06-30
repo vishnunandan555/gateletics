@@ -1,10 +1,7 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
@@ -14,7 +11,6 @@ import 'widgets/focus_screen.dart';
 import '../../providers/focus_provider.dart';
 import 'widgets/shell_common.dart';
 import 'settings_screen.dart';
-import '../../providers/package_info_provider.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -269,209 +265,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   }
 
   Future<void> _checkDesktopWarning() async {
-    if (!kIsWeb) return;
-
-    final width = MediaQuery.of(context).size.width;
-    if (width <= 600) return;
-
-    final prefs = await SharedPreferences.getInstance();
-
-    // Check version upgrade and time-based expiration
-    final packageInfo = ref.read(packageInfoProvider);
-    final currentVer = '${packageInfo.version}+${packageInfo.buildNumber}';
-    final lastSeenVer = prefs.getString('last_seen_desktop_warning_version');
-
-    final lastSeenTimeMs = prefs.getInt('desktop_warning_seen_time_ms');
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    // 30 days expiration (in milliseconds)
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-
-    bool isExpired = false;
-    if (lastSeenTimeMs != null && (now - lastSeenTimeMs) > thirtyDaysMs) {
-      isExpired = true;
-    }
-
-    if (lastSeenVer != currentVer || isExpired) {
-      await prefs.setBool('has_seen_desktop_warning', false);
-      if (lastSeenVer != currentVer) {
-        await prefs.setString('last_seen_desktop_warning_version', currentVer);
-      }
-    }
-
-    final hasSeenWarning = prefs.getBool('has_seen_desktop_warning') ?? false;
-
-    if (!hasSeenWarning && mounted) {
-      _showDesktopWarningDialog();
-    }
+    // Prompting dialog removed. Auto-routing based on preference / screen size is active.
   }
 
-  Future<void> _markDesktopWarningSeen(SharedPreferences prefs) async {
-    final packageInfo = ref.read(packageInfoProvider);
-    final currentVer = '${packageInfo.version}+${packageInfo.buildNumber}';
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    await prefs.setBool('has_seen_desktop_warning', true);
-    await prefs.setString('last_seen_desktop_warning_version', currentVer);
-    await prefs.setInt('desktop_warning_seen_time_ms', now);
-  }
-
-  void _showDesktopWarningDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        icon: const Icon(
-          Icons.phonelink_setup_rounded,
-          color: Colors.cyanAccent,
-          size: 32,
-        ),
-        title: Text(
-          "Optimized for Mobile",
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            fontSize: 18,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "GATEletics is built primarily with a mobile-first user interface. While all features function perfectly on desktop, the visual layout is optimized for narrower aspect ratios.",
-                style: GoogleFonts.outfit(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    "We also offer a desktop UI ",
-                    style: GoogleFonts.outfit(
-                      color: Colors.cyanAccent.withValues(alpha: 0.8),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                    decoration: BoxDecoration(
-                      color: Colors.cyanAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
-                    ),
-                    child: Text(
-                      'BETA',
-                      style: GoogleFonts.outfit(
-                        color: Colors.cyanAccent,
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    " designed for wider screens. Try it for a layout that makes better use of your screen space.",
-                    style: GoogleFonts.outfit(
-                      color: Colors.cyanAccent.withValues(alpha: 0.8),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(dialogContext);
-                  final prefs = await SharedPreferences.getInstance();
-                  await _markDesktopWarningSeen(prefs);
-                  if (mounted) {
-                    context.go('/desk');
-                  }
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  backgroundColor: Colors.cyanAccent,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      "TRY DESKTOP UI",
-                      style: GoogleFonts.outfit(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.4), width: 1),
-                      ),
-                      child: Text(
-                        'BETA',
-                        style: GoogleFonts.outfit(
-                          color: Colors.black,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(dialogContext);
-                  final prefs = await SharedPreferences.getInstance();
-                  await _markDesktopWarningSeen(prefs);
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white54,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text(
-                  "STAY ON MOBILE UI",
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 }

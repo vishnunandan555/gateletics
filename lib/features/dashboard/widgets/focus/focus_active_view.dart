@@ -310,7 +310,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 48),
           ],
         ),
       ),
@@ -554,8 +554,10 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
             borderRadius: BorderRadius.circular(24),
             side: BorderSide(color: accentColor.withAlpha(60), width: 1.5),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -648,6 +650,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
                 ),
               ],
             ),
+          ),
           ),
         );
       },

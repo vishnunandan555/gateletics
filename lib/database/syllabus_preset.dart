@@ -150,7 +150,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'COA',
+    name: 'Computer Organisation and Architecture',
     color: 0xFF00F0FF,
     topics: [
       PresetTopic(
@@ -207,7 +207,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'C PROG.',
+    name: 'C Programming',
     color: 0xFFD500F9,
     topics: [
       PresetTopic(
@@ -237,7 +237,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'DS',
+    name: 'Data Structures',
     color: 0xFFFFE500,
     topics: [
       PresetTopic(
@@ -306,7 +306,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'TOC',
+    name: 'Theory of Computation',
     color: 0xFFFF1493,
     topics: [
       PresetTopic(
@@ -349,7 +349,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'CD',
+    name: 'Compiler Design',
     color: 0xFF2979FF,
     topics: [
       PresetTopic(
@@ -391,7 +391,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'OS',
+    name: 'Operating Systems',
     color: 0xFFFF0000,
     topics: [
       PresetTopic(
@@ -504,7 +504,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
     ],
   ),
   PresetCategory(
-    name: 'CN',
+    name: 'Computer Networks',
     color: 0xFF00F0FF,
     topics: [
       PresetTopic(

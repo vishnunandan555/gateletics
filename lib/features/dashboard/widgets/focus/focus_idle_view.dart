@@ -35,7 +35,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
         constraints: const BoxConstraints(maxWidth: 600),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

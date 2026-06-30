@@ -1268,11 +1268,16 @@ class SettingsScreen extends ConsumerWidget {
             : 'Experience the desktop layout on your web browser',
         style: const TextStyle(color: Colors.grey, fontSize: 11),
       ),
-      onTap: () {
-        if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
-          context.go('/');
-        } else {
-          context.go('/desk');
+      onTap: () async {
+        final prefs = await SharedPreferences.getInstance();
+        if (context.mounted) {
+          if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
+            await prefs.setBool('user_wants_desktop_ui', false);
+            if (context.mounted) context.go('/');
+          } else {
+            await prefs.setBool('user_wants_desktop_ui', true);
+            if (context.mounted) context.go('/desk');
+          }
         }
       },
     );
