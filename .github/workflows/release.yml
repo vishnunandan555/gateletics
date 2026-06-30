@@ -210,7 +210,7 @@ jobs:
           echo 'Categories=Utility;' >> AppDir/gateletics.desktop
           
           # Copy icon file
-          cp icon.png AppDir/gateletics.png
+          cp assets/icon.png AppDir/gateletics.png
           
           # Compile the AppImage
           ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gateletics-linux-mobileUI-${{ env.VERSION }}.AppImage
@@ -256,7 +256,7 @@ jobs:
           echo 'Categories=Utility;' >> AppDir/gateletics.desktop
           
           # Copy icon file
-          cp icon.png AppDir/gateletics.png
+          cp assets/icon.png AppDir/gateletics.png
           
           # Compile the AppImage
           ARCH=x86_64 ./appimagetool-x86_64.AppImage --appimage-extract-and-run AppDir gateletics-linux-deskUI-beta-${{ env.VERSION }}.AppImage
@@ -308,7 +308,7 @@ jobs:
         run: flutter build web --release
 
       - name: Deploy Static Web Assets to Vercel
-        uses: amondnet/vercel-action@v20
+        uses: amondnet/vercel-action@v25.2.0
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
