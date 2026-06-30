@@ -122,11 +122,20 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         );
       }
 
-      state = SyncState(
-        status: status,
-        lastSyncedAt: lastSyncedAt,
-        errorMessage: lastErrorStr,
-      );
+      // If the notifier has already moved past 'idle' (e.g. initializeSync was called),
+      // only update the lastSyncedAt and errorMessage fields, leaving the status alone.
+      if (state.status != SyncStatus.idle) {
+        state = state.copyWith(
+          lastSyncedAt: lastSyncedAt,
+          errorMessage: lastErrorStr,
+        );
+      } else {
+        state = SyncState(
+          status: status,
+          lastSyncedAt: lastSyncedAt,
+          errorMessage: lastErrorStr,
+        );
+      }
     } catch (e) {
       debugPrint("Error loading sync state from prefs: $e");
     }
@@ -138,6 +147,11 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     String? errorMessage,
     Map<String, dynamic>? pendingCloudData,
   }) async {
+    // Do not save transient/requiresAction/syncing status to prefs to prevent stale restores.
+    final saveStatus = (status == SyncStatus.success || status == SyncStatus.error || status == SyncStatus.idle)
+        ? status.name
+        : SyncStatus.idle.name;
+
     state = SyncState(
       status: status,
       lastSyncedAt: lastSyncedAt ?? state.lastSyncedAt,
@@ -147,7 +161,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_sync_status', status.name);
+      await prefs.setString('last_sync_status', saveStatus);
       if (lastSyncedAt != null) {
         await prefs.setString('last_synced_at', lastSyncedAt.toIso8601String());
       }
@@ -653,13 +667,38 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       final cloudTasks = cloud['syllabusTasks'] as List?;
       if (localTasks?.length != cloudTasks?.length) return false;
 
-      // Map local syllabus tasks by topicKey and name
-      final localTaskMap = {
-        for (var t in (localTasks ?? []))
-          "${t['topicKey'] ?? t['topicId']}_${t['name'] ?? ''}": t
-      };
+      final localSylCats = local['syllabusCategories'] as List? ?? [];
+      final localSylTops = local['syllabusTopics'] as List? ?? [];
+      final cloudSylCats = cloud['syllabusCategories'] as List? ?? [];
+      final cloudSylTops = cloud['syllabusTopics'] as List? ?? [];
+
+      // Helper to build a lookup map of id -> name for categories
+      final localCatMap = {for (var c in localSylCats) c['id']: c['name']};
+      final cloudCatMap = {for (var c in cloudSylCats) c['id']: c['name']};
+
+      // Helper to build a lookup map of topicId -> "categoryName/topicName"
+      final localTopicMap = <dynamic, String>{};
+      for (var t in localSylTops) {
+        final catName = localCatMap[t['categoryId']] ?? 'Unknown';
+        localTopicMap[t['id']] = "$catName/${t['name']}";
+      }
+      final cloudTopicMap = <dynamic, String>{};
+      for (var t in cloudSylTops) {
+        final catName = cloudCatMap[t['categoryId']] ?? 'Unknown';
+        cloudTopicMap[t['id']] = "$catName/${t['name']}";
+      }
+
+      // Map local syllabus tasks by stable path key: "categoryName/topicName/taskName"
+      final localTaskMap = <String, Map<String, dynamic>>{};
+      for (var t in (localTasks ?? [])) {
+        final topicPath = localTopicMap[t['topicId']] ?? 'Unknown/Unknown';
+        final key = "$topicPath/${t['name'] ?? ''}";
+        localTaskMap[key] = Map<String, dynamic>.from(t);
+      }
+
       for (final ct in (cloudTasks ?? [])) {
-        final key = "${ct['topicKey'] ?? ct['topicId']}_${ct['name'] ?? ''}";
+        final topicPath = cloudTopicMap[ct['topicId']] ?? 'Unknown/Unknown';
+        final key = "$topicPath/${ct['name'] ?? ''}";
         final lt = localTaskMap[key];
         if (lt == null) return false;
         if (lt['isCompleted'] != ct['isCompleted']) return false;

@@ -42,6 +42,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
     final hours = (displaySeconds / 3600).floor();
     final minutes = ((displaySeconds % 3600) / 60).floor();
     final seconds = displaySeconds % 60;
+    final totalMinutes = (displaySeconds / 60).floor();
 
     final progress = sessionState.currentTargetSeconds == 0
         ? 0.0
@@ -135,7 +136,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
+                              "${totalMinutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
                               style: GoogleFonts.orbitron(
                                 fontSize: 52,
                                 fontWeight: FontWeight.w900,
@@ -310,7 +311,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
               ),
             ),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -562,17 +563,6 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: accentColor.withAlpha(30),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.stars_rounded, color: accentColor, size: 40),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
                   "Session Summary",
                   style: GoogleFonts.outfit(

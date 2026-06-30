@@ -105,7 +105,7 @@ final focusMethodsData = {
     focusMinutes: 120,
     breakMinutes: 30,
     description: 'An extended ultradian cycle for those who can maintain focus over long periods. Best for intensive study, research, writing, and projects requiring prolonged concentration.',
-    iconPath: 'assets/wave.png',
+    iconPath: 'assets/ultradian120.png',
   ),
 };
 
@@ -428,7 +428,13 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     ref.invalidate(todayFocusSessionsProvider);
     ref.invalidate(todayFocusDurationProvider);
 
-    state = FocusSessionState.initial();
+    final prevMethod = state.selectedMethod;
+    final prevCustomMins = state.customTimerMinutes;
+
+    state = FocusSessionState.initial().copyWith(
+      selectedMethod: prevMethod,
+      customTimerMinutes: prevCustomMins,
+    );
     return finalSession;
   }
 

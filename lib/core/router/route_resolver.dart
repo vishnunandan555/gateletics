@@ -18,19 +18,20 @@ String resolveInitialRoute() {
       }
     } catch (_) {}
   }
+
+  // 1. Check user preference saved in settings (applicable to both Web and native Desktop)
+  if (persistedUserWantsDesktopUI != null) {
+    return persistedUserWantsDesktopUI! ? '/desk' : '/';
+  }
+
+  // 2. Mobile platforms always default to mobile UI (Android/iOS)
+  if (defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS) {
+    return '/';
+  }
+
+  // 3. Desktop layouts (Windows, Linux, macOS, Web on large screens)
   if (kIsWeb) {
-    // 1. Previous mode user selected (saved in settings) takes first preference
-    if (persistedUserWantsDesktopUI != null) {
-      return persistedUserWantsDesktopUI! ? '/desk' : '/';
-    }
-
-    // 2. Mobile platforms always default to mobile UI
-    if (defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS) {
-      return '/';
-    }
-
-    // 3. Fallback: auto-detect large screen (desktop displays)
     try {
       final view = PlatformDispatcher.instance.views.first;
       final logicalWidth = view.physicalSize.width / view.devicePixelRatio;
@@ -38,6 +39,10 @@ String resolveInitialRoute() {
         return '/desk';
       }
     } catch (_) {}
+  } else {
+    // Native Desktop app (Windows/Linux) defaults to desktop UI
+    return '/desk';
   }
+
   return '/';
 }

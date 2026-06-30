@@ -74,15 +74,15 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF18181F),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: accentColor.withAlpha(60), width: 1.5),
+                      color: accentColor.withAlpha(35),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: accentColor.withAlpha(100), width: 1.5),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        buildMethodIcon(sessionState.details, accentColor, size: 18),
-                        const SizedBox(width: 10),
+                        buildMethodIcon(sessionState.details, accentColor, size: 24),
+                        const SizedBox(width: 12),
                         Text(
                           sessionState.details.name,
                           style: GoogleFonts.outfit(

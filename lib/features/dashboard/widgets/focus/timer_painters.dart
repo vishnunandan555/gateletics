@@ -2,28 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../providers/focus_provider.dart';
 
 Widget buildMethodIcon(FocusMethodDetails details, Color color, {double size = 18}) {
-  if (details.method == FocusMethod.ultradian120) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(
-          details.iconPath,
-          width: size - 2,
-          height: (size - 2) / 2,
-          fit: BoxFit.contain,
-          color: color,
-        ),
-        const SizedBox(height: 1),
-        Image.asset(
-          details.iconPath,
-          width: size - 2,
-          height: (size - 2) / 2,
-          fit: BoxFit.contain,
-          color: color,
-        ),
-      ],
-    );
-  }
   return Image.asset(
     details.iconPath,
     width: size,
