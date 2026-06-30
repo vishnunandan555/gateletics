@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.4-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.5-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -107,6 +107,21 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.5 Highlights
+
+- **Interactive Study Focus Mode**: Added a dedicated productivity workspace with support for Pomodoro and Freestyle timers to track study sessions.
+- **Dynamic Daily Goals**: Integrated visual goal widgets displaying study metrics (completed/remaining hours, percent progress) with interactive cycling.
+- **Account Deletion Flow**: Added a compliant account deletion request flow inside the settings interface to adhere to app store policies.
+- **Persistent Desktop UI Prefs**: Support for remembering user UI preferences (desktop vs. mobile view mode) and automated layout detection.
+- **Sync Stabilization**: Fixed continuous sync loops on conflict resolutions and corrected mode reset bugs.
+
+## 🌟 Version 1.2.4 Highlights
+
+- **Completion-Type Tuning**: Changed default completion tracking strategy to syllabus-based.
+- **Robust Version Updates**: Added direct, automated app update checks and native release notifications.
+- **Enhanced Sync Settings**: Deeper sync frequency configs integrated cleanly within the settings view.
+- **Desktop Warning Optimization**: Automatically checks viewport width and notifies users when resizing will optimize the presentation.
 
 ## 🌟 Version 1.2.3 Highlights
 
