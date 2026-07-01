@@ -418,3 +418,94 @@ footer {
 #release-body a:hover {
   color: var(--accent-hover);
 }
+
+/* =========================================================================
+   Responsive Design (Mobile / Tablet)
+   ========================================================================= */
+@media (max-width: 768px) {
+  header {
+    padding: 12px 0;
+  }
+
+  .nav-container {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    padding: 0 16px;
+  }
+
+  .nav-controls {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 16px;
+    width: 100%;
+  }
+
+  .nav-links a {
+    font-size: 13px;
+  }
+
+  .theme-toggle {
+    width: 100%;
+    max-width: 160px;
+    justify-content: center;
+    padding: 8px 12px;
+  }
+
+  .container {
+    padding: 24px 16px 60px 16px;
+  }
+
+  .hero {
+    padding: 32px 0;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .hero p {
+    font-size: 15px;
+  }
+
+  h2 {
+    font-size: 20px;
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .doc-card {
+    padding: 20px 16px;
+  }
+
+  #content h1 {
+    font-size: 24px;
+  }
+
+  #content h2 {
+    font-size: 16px;
+    margin-top: 24px;
+  }
+
+  .footer-links {
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    // Apply theme immediately to prevent flashing
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Support and Help Center for GATEletics.">
+  <title>Support & Help Center - GATEletics</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Boldonse&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <img src="logo_trans_cropped.png" alt="GATEletics Logo" class="logo-img">
+        <span class="logo-text"><span class="logo-gate">GATE</span><span class="logo-letics">LETICS</span></span>
+      </a>
+      <div class="nav-controls">
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="support.html">Support</a>
+          <a href="delete-account.html">Delete Account</a>
+          <a href="terms.html">Terms</a>
+          <a href="privacy.html">Privacy</a>
+        </div>
+        <button id="theme-toggle" class="theme-toggle">🌙 Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <section style="text-align: center; margin-bottom: 40px;">
+      <h2>Support & Help Center</h2>
+      <p style="color: var(--text-muted); max-width: 600px; margin: 0 auto;">Need assistance with GATEletics? Find answers to frequently asked questions or contact us directly.</p>
+    </section>
+
+    <div class="grid" style="margin-bottom: 48px;">
+      <div class="card">
+        <h3>Contact Support</h3>
+        <p>If you have any technical issues, feedback, or general questions, feel free to email us directly.</p>
+        <p style="font-weight: 600; margin-top: 16px;">
+          Email: <a href="mailto:vishnunandan555@gmail.com" style="color: var(--accent-color); text-decoration: none;">vishnunandan555@gmail.com</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Report a Bug</h3>
+        <p>GATEletics is open source. You can report bugs or submit feature requests directly on our GitHub repository.</p>
+        <a href="https://github.com/vishnunandan555/gateletics/issues" target="_blank" class="btn-secondary" style="margin-top: 16px; display: inline-block;">
+          Open GitHub Issue
+        </a>
+      </div>
+    </div>
+
+    <h2>Frequently Asked Questions</h2>
+    <div style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-top: 24px; display: flex; flex-direction: column; gap: 24px;">
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-main);">Is my study data kept private?</h4>
+        <p style="margin: 0; color: var(--text-muted); font-size: 15px;">Yes. By default, GATEletics operates in Offline Mode. All your checklist progress and session logs are stored strictly on your local device. If you optionally choose to sign in with Google, backups are securely encrypted and synchronized to your private Firebase database.</p>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;" />
+
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-main);">Does the app support offline usage?</h4>
+        <p style="margin: 0; color: var(--text-muted); font-size: 15px;">Absolutely. All core features (syllabus checklist, progress statistics, and focus timers) work completely offline. Internet is only required if you choose to sync your data across devices.</p>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;" />
+
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-main);">How do I reset my progress?</h4>
+        <p style="margin: 0; color: var(--text-muted); font-size: 15px;">You can reset your subject completion tracker and erase local database cache from the Settings screen inside the app at any time.</p>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0;" />
+
+      <div>
+        <h4 style="margin: 0 0 8px 0; font-size: 16px; color: var(--text-main);">How do I delete my cloud synced account?</h4>
+        <p style="margin: 0; color: var(--text-muted); font-size: 15px;">You can delete your account instantly from the settings menu within the app, or you can submit an email request. Please see our <a href="delete-account.html" style="color: var(--accent-color); text-decoration: none;">Account Deletion Page</a> for complete details.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="https://gateletics.vercel.app/" target="_blank">Launch Web App</a>
+      <a href="support.html">Support</a>
+      <a href="delete-account.html">Delete Account</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="privacy.html">Privacy Policy</a>
+    </div>
+    <div class="copyright">&copy; 2026 Vishnu Nandan. All rights reserved.</div>
+  </footer>
+
+  <script>
+    // Theme Toggle Handler
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateToggleText(newTheme);
+    });
+
+    function updateToggleText(theme) {
+      themeToggle.innerHTML = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+    updateToggleText(document.documentElement.getAttribute('data-theme'));
+  </script>
+</body>
+
+</html>

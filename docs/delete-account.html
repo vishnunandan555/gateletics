@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    // Apply theme immediately to prevent flashing
+    (function () {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+      }
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Request account and data deletion for GATEletics.">
+  <title>Account Deletion Instructions - GATEletics</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Boldonse&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <header>
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <img src="logo_trans_cropped.png" alt="GATEletics Logo" class="logo-img">
+        <span class="logo-text"><span class="logo-gate">GATE</span><span class="logo-letics">LETICS</span></span>
+      </a>
+      <div class="nav-controls">
+        <div class="nav-links">
+          <a href="index.html">Home</a>
+          <a href="support.html">Support</a>
+          <a href="delete-account.html">Delete Account</a>
+          <a href="terms.html">Terms</a>
+          <a href="privacy.html">Privacy</a>
+        </div>
+        <button id="theme-toggle" class="theme-toggle">🌙 Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <section style="margin-bottom: 40px;">
+      <h2>Account & Data Deletion</h2>
+      <p style="color: var(--text-muted); line-height: 1.6;">At GATEletics, we prioritize your privacy and believe you should have complete control over your personal data. If you have synchronized your study tracker to the cloud and wish to delete your account, we provide two simple ways to request permanent deletion of all stored data.</p>
+    </section>
+
+    <div style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-bottom: 32px;">
+      <h3 style="margin-top: 0; color: var(--accent-color);">Method 1: In-App Account Deletion (Instant)</h3>
+      <p>The fastest way to delete your account and erase all data is directly from inside the app:</p>
+      <ol style="padding-left: 20px; line-height: 1.8; color: var(--text-main);">
+        <li>Open the **GATEletics** app on your device.</li>
+        <li>Navigate to the **Settings** screen (the third tab in the navigation bar).</li>
+        <li>Scroll down and click on **Delete Account**.</li>
+        <li>Confirm your choice. This action immediately deletes your Firebase Authentication profile and deletes your entire progress database document from Google Cloud Firestore.</li>
+      </ol>
+      <p style="margin-top: 16px; font-size: 14px; color: var(--text-muted); font-style: italic; line-height: 1.5;">
+        <strong>Note on Re-login:</strong> Because GATEletics is offline-first, your study progress remains saved on your local device. If you log back into the app using the same Google Account after deletion, the app will automatically sync your existing local progress to initialize a fresh cloud account. Your original cloud database document and user profile were completely and permanently destroyed on the server.
+      </p>
+    </div>
+
+    <div style="background-color: var(--card-bg); border: 1px solid var(--border-color); padding: 32px; border-radius: 8px; margin-bottom: 32px;">
+      <h3 style="margin-top: 0; color: var(--accent-color);">Method 2: Email Deletion Request</h3>
+      <p>If you have uninstalled the app and want to delete your cloud data without reinstalling, you can send an email request:</p>
+      <ul style="padding-left: 20px; line-height: 1.8; color: var(--text-main);">
+        <li>Send an email to: <a href="mailto:vishnunandan555@gmail.com" style="color: var(--accent-color); text-decoration: none;">vishnunandan555@gmail.com</a></li>
+        <li>Use the Subject: **Account Deletion Request**</li>
+        <li>Include the **email address** associated with the Google Account you used to sign in to the app.</li>
+        <li>We will process your request and permanently delete all your authentication profiles and database backups within **30 days** of receiving your email.</li>
+      </ul>
+    </div>
+
+    <h3>What data is deleted?</h3>
+    <p style="color: var(--text-muted); line-height: 1.6; margin-bottom: 24px;">When your deletion request is processed (either instantly in-app or via email), the following data is permanently wiped and cannot be recovered:</p>
+    <ul style="padding-left: 20px; line-height: 1.8; color: var(--text-main); margin-bottom: 32px;">
+      <li>Your user authentication credentials (email address, user name, and unique user identifier).</li>
+      <li>Your entire syllabus progress (completed subjects, units, and topic checkmarks).</li>
+      <li>Your focus session history logs (timestamps and session durations).</li>
+      <li>Your custom resources and playlist configurations.</li>
+    </ul>
+
+    <p style="font-weight: 600; color: var(--text-main);">Have questions about our data practices? Please review our <a href="privacy.html" style="color: var(--accent-color); text-decoration: none;">Privacy Policy</a>.</p>
+  </div>
+
+  <footer>
+    <div class="footer-links">
+      <a href="index.html">Home</a>
+      <a href="https://gateletics.vercel.app/" target="_blank">Launch Web App</a>
+      <a href="support.html">Support</a>
+      <a href="delete-account.html">Delete Account</a>
+      <a href="terms.html">Terms of Service</a>
+      <a href="privacy.html">Privacy Policy</a>
+    </div>
+    <div class="copyright">&copy; 2026 Vishnu Nandan. All rights reserved.</div>
+  </footer>
+
+  <script>
+    // Theme Toggle Handler
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateToggleText(newTheme);
+    });
+
+    function updateToggleText(theme) {
+      themeToggle.innerHTML = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+    updateToggleText(document.documentElement.getAttribute('data-theme'));
+  </script>
+</body>
+
+</html>
