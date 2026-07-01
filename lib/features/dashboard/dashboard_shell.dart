@@ -84,7 +84,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
           highlightColor: Colors.transparent,
         ),
         child: Container(
-          height: 72,
+          height: 64 + MediaQuery.of(context).padding.bottom,
           decoration: BoxDecoration(
             color: const Color(0xFF131316),
             border: Border(
@@ -96,26 +96,29 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
           ),
           child: SafeArea(
             top: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.percent_rounded,
-                  label: 'Completion',
-                  color: progressColor,
-                ),
-                _buildFocusNavItem(
-                  index: 1,
-                  color: progressColor,
-                ),
-                _buildNavItem(
-                  index: 2,
-                  icon: Icons.settings_rounded,
-                  label: 'Settings',
-                  color: progressColor,
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    index: 0,
+                    icon: Icons.percent_rounded,
+                    label: 'Completion',
+                    color: progressColor,
+                  ),
+                  _buildFocusNavItem(
+                    index: 1,
+                    color: progressColor,
+                  ),
+                  _buildNavItem(
+                    index: 2,
+                    icon: Icons.settings_rounded,
+                    label: 'Settings',
+                    color: progressColor,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

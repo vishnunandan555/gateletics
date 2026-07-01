@@ -30,6 +30,7 @@ We do not sell, rent, or trade your data to third parties. We use the following 
 We believe in complete data transparency and user control:
 - **Sign Out:** You can sign out at any time from the settings menu to cease synchronization.
 - **In-App Account Deletion:** You can request the permanent deletion of your account and all stored cloud backups directly from the App's settings menu at any time. This action immediately deletes your user document from Firestore and deletes your credentials from Firebase Authentication.
+- **Out-of-App Deletion Request:** To request the deletion of your account and all associated data without using the app, you can email us directly at vishnunandan555@gmail.com with the subject "Account Deletion Request". We will process your request and permanently delete your data within 30 days.
 
 ---
 

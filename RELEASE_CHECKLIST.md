@@ -5,7 +5,7 @@ This document provides a comprehensive, step-by-step checklist to prepare, build
 ---
 
 ## 🔑 1. Developer Account & Initial Settings
-- [ ] **Google Play Developer Account Verification:**
+- [x] **Google Play Developer Account Verification:**
   - Complete identity verification with government ID (and D-U-N-S business registry if registering under an Organization account).
   - Ensure 2-Factor Authentication (2FA) is turned on for the developer Google account.
 - [ ] **Data Safety Declarations (Google Play Console):**
@@ -37,30 +37,37 @@ If your personal developer account was created after **November 13, 2023**, Goog
 To prevent Google Sign-In failures in production (such as the standard `DEVELOPER_ERROR` or popup blockages), you must configure authorized domains and SHA credentials:
 
 ### A. Web Hosted App (Vercel / GitHub Pages)
-- [ ] **Firebase Authorized Domains:**
+- [x] **Firebase Authorized Domains:**
   - Open [Firebase Console](https://console.firebase.google.com/) > **Authentication** > **Settings** > **Authorized domains**.
   - Click **Add domain** and enter your production web domain (e.g. `gate-tracker.vercel.app`).
-- [ ] **Google Cloud Console Redirects:**
+- [x] **Google Cloud Console Redirects:**
   - Open [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials).
   - Select your **OAuth 2.0 Client ID** for the Web application.
   - Add your production URL to **Authorized JavaScript origins**.
   - Add the Firebase Auth handler URL (e.g., `https://<your-project-id>.firebaseapp.com/__/auth/handler`) to **Authorized redirect URIs**.
 
 ### B. Android App (Google Play Console & Firebase)
-- [ ] **Add App Signing Key SHA Fingerprints:**
+- [x] **Create App in Google Play Console:**
+  - Create a new app project in Google Play Console (Personal/Business Developer Account).
+  - Register the package name: `com.vishnunandan.gateletics`.
+- [x] **Register Android App in Firebase Console:**
+  - Open Firebase Console, select your project, and click **Add App** > **Android**.
+  - Enter the Android package name: `com.vishnunandan.gateletics`.
+  - Enter an app nickname (optional: e.g., "GATEletics Android").
+- [x] **Add App Signing Key SHA Fingerprints:**
   - When you upload your AAB, Google Play signs your production app with a master key.
   - Go to your Google Play Console > select your app > **Setup** > **App integrity** > **App signing** tab.
   - Copy both the **SHA-1** and **SHA-256** certificate fingerprints.
-  - Go to your Firebase Console > **Project settings** > **Your apps** > **Android app**.
+  - Go to your Firebase Console > **Project settings** > **Your apps** > **Android app** (`com.vishnunandan.gateletics`).
   - Click **Add fingerprint** and paste both SHA-1 and SHA-256 values.
-- [ ] **Add Local Upload Key SHA Fingerprints:**
+- [x] **Add Local Upload Key SHA Fingerprints:**
   - Follow the steps in Section 4 to create your local upload key.
   - Run the fingerprint extraction command:
     ```bash
     keytool -list -v -keystore android/app/release.jks -alias upload-key
     ```
   - Copy the SHA-1 and SHA-256 fingerprints, go to Firebase Console, and add them to your Android app fingerprints.
-- [ ] **Replace Configuration File:**
+- [x] **Replace Configuration File:**
   - Once all fingerprints are added to Firebase Console, download the updated `google-services.json` file.
   - Replace the file at `android/app/google-services.json`.
 

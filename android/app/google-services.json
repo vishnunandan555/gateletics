@@ -22,6 +22,22 @@
           }
         },
         {
+          "client_id": "981770496770-hdk3rv3ddbhklbh9q2f2rqi5nunopre3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vishnunandan.gateletics",
+            "certificate_hash": "c154014e8c0d0223b56eaeadd1ec7796e3f3c8d1"
+          }
+        },
+        {
+          "client_id": "981770496770-iuco9qgb9nlfc6nlb5qqfhlos4oh6t0f.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vishnunandan.gateletics",
+            "certificate_hash": "9218941980c00f48cae397dff7648d53089e5ba6"
+          }
+        },
+        {
           "client_id": "981770496770-vjquhdkpekv4t22gaqtm5ng975u7927r.apps.googleusercontent.com",
           "client_type": 3
         }
