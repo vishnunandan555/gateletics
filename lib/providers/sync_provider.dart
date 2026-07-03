@@ -10,6 +10,7 @@ import 'auth_provider.dart';
 import 'subject_provider.dart';
 import 'syllabus_provider.dart';
 import 'completion_type_provider.dart';
+import 'hide_download_banner_provider.dart';
 import '../database/syllabus_preset.dart';
 
 enum SyncStatus {
@@ -465,6 +466,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (hasLocalData) {
         final localData = await _exportLocalData();
         localData['completionType'] = ref.read(completionTypeProvider).name;
+        localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
         if (_areDataEqual(localData, cloudData)) {
           await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
           return false;
@@ -485,6 +487,11 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
         }
 
+        // Restore hideDownloadBanner
+        final hideBanner = cloudData['hideDownloadBanner'] as bool?;
+        if (hideBanner != null) {
+          await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
+        }
         await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
         return false;
       }
@@ -515,6 +522,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     try {
       final localData = await _exportLocalData();
       localData['completionType'] = ref.read(completionTypeProvider).name;
+      localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'data': localData,
@@ -546,6 +554,12 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
             orElse: () => CompletionType.syllabus,
           );
           await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
+        }
+
+        // Restore hideDownloadBanner
+        final hideBanner = cloudData['hideDownloadBanner'] as bool?;
+        if (hideBanner != null) {
+          await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
         }
         // Get lastSyncedAt from the cloud document
         DateTime? cloudLastSynced;
@@ -595,9 +609,16 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           );
           await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
         }
+
+        // Restore hideDownloadBanner
+        final hideBanner = dataToMerge['hideDownloadBanner'] as bool?;
+        if (hideBanner != null) {
+          await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
+        }
         
         // Write merged data back to Cloud
         merged['completionType'] = ref.read(completionTypeProvider).name;
+        merged['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'data': merged,
           'lastSyncedAt': FieldValue.serverTimestamp(),
@@ -622,6 +643,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     try {
       final localData = await _exportLocalData();
       localData['completionType'] = ref.read(completionTypeProvider).name;
+      localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'data': localData,
@@ -638,6 +660,9 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     try {
       // Compare completionType
       if (local['completionType'] != cloud['completionType']) return false;
+
+      // Compare hideDownloadBanner
+      if (local['hideDownloadBanner'] != cloud['hideDownloadBanner']) return false;
 
       // Compare categories count and names
       final localCats = local['categories'] as List?;

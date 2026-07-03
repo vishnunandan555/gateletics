@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/syllabus_provider.dart';
-import '../../../providers/category_font_size_provider.dart';
+import '../../../providers/topic_font_size_provider.dart';
 import '../../../widgets/progress_bar.dart';
 import 'syllabus_customization_sheets.dart';
 
@@ -29,7 +29,7 @@ class SyllabusTopicCard extends ConsumerWidget {
     final expandedSet = ref.watch(expandedTopicsProvider);
     final isExpanded = expandedSet.contains(topic.id);
 
-    final topicScaleFactor = ref.watch(categoryFontSizeProvider).topicScaleFactor;
+    final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Adaptive font sizes based on screen width

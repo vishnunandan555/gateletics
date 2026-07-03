@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../database/app_database.dart';
 import '../providers/subject_provider.dart';
-import '../providers/category_font_size_provider.dart';
+import '../providers/topic_font_size_provider.dart';
 import 'progress_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -339,7 +339,7 @@ class SubjectCard extends ConsumerWidget {
             ? 0.0
             : (subject.completedVideos / subject.totalVideos) * 100);
 
-    final topicScaleFactor = ref.watch(categoryFontSizeProvider).topicScaleFactor;
+    final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Card content: Row without IntrinsicHeight (incompatible with LayoutBuilder in ProgressBar)

@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'dart:io' show File;
+import 'dart:ui' show ImageFilter;
+import '../../core/theme/colors.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,15 +24,89 @@ import '../../providers/progress_font_provider.dart';
 import '../../providers/quotes_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/category_autosort_provider.dart';
-import '../../providers/category_font_size_provider.dart';
+import 'widgets/settings/change_font_size_tile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
+import '../../providers/hide_download_banner_provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../database/backup_service.dart';
 import '../../widgets/settings/about_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
+
+  Widget _buildDownloadBanner(BuildContext context, WidgetRef ref, Color accentColor) {
+    final hideBanner = ref.watch(hideDownloadBannerProvider);
+    if (!kIsWeb || hideBanner) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: accentColor.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.devices_rounded, color: accentColor, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Get GATEletics on all devices',
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Sync your prep status seamlessly! GATEletics is also available as a native app for Android, Windows, and Linux.',
+              style: GoogleFonts.outfit(
+                color: Colors.white70,
+                fontSize: 11,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 10),
+            InkWell(
+              onTap: () async {
+                final url = Uri.parse('https://vishnunandan555.github.io/gateletics/');
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Download Now',
+                    style: GoogleFonts.outfit(
+                      color: accentColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.open_in_new_rounded, color: accentColor, size: 12),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
     try {
@@ -161,8 +238,19 @@ class SettingsScreen extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
+        String message = 'Import failed: $e';
+        if (e is PlatformException && e.code == 'invalid_file_extension') {
+          message = 'Invalid file type selected. Only JSON (.json) files are supported for importing backup files.';
+        } else if (e is FormatException) {
+          message = 'The selected file is not a valid JSON file. Please ensure you picked a valid backup file.';
+        } else if (e is TypeError || e is StateError) {
+          message = 'The selected file does not contain valid backup data.';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e')),
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -234,6 +322,7 @@ class SettingsScreen extends ConsumerWidget {
 
         ref.invalidate(agreementProvider);
         ref.invalidate(setupCompletedProvider);
+        await ref.read(overallProgressColorProvider.notifier).setAutoMode();
       } else {
         final currentType = ref.read(completionTypeProvider);
         if (currentType == CompletionType.syllabus) {
@@ -493,6 +582,7 @@ class SettingsScreen extends ConsumerWidget {
                                 ),
                               ),
                             ),
+                            _buildDownloadBanner(context, ref, accentColor),
                           ],
                         ),
                       ),
@@ -814,6 +904,7 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
+                          _buildDownloadBanner(context, ref, accentColor),
                         ],
                       ),
                     ),
@@ -1113,6 +1204,58 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
+    final accentColorHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'ACCENT COLOR OPTIONS',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final accentColorContent = Consumer(
+      builder: (context, ref, _) {
+        final colorNotifier = ref.watch(overallProgressColorProvider.notifier);
+        final currentColor = ref.watch(overallProgressColorProvider);
+        final isAuto = colorNotifier.mode == 'auto';
+
+        return ListTile(
+          leading: Icon(
+            isAuto ? Icons.brightness_auto_rounded : Icons.color_lens_rounded,
+            color: currentColor,
+          ),
+          title: const Text(
+            'Accent Color Options',
+            style: TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          subtitle: Text(
+            isAuto ? 'Auto-cycling' : 'Frozen custom color',
+            style: const TextStyle(color: Colors.white30, fontSize: 12),
+          ),
+          trailing: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: currentColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white30, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: currentColor.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+          onTap: () => _showAccentColorDialog(context, ref),
+        );
+      },
+    );
+
     final fontHeader = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
@@ -1196,109 +1339,6 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               );
             }).toList(),
-          );
-        },
-      ),
-    );
-
-    final fontSizeHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'CATEGORY FONT SIZE',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-
-    final fontSizeContent = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Consumer(
-        builder: (context, ref, _) {
-          final currentSize = ref.watch(categoryFontSizeProvider);
-
-          String getFontLevelLabel(CategoryFontSize size) {
-            switch (size) {
-              case CategoryFontSize.level1:
-                return 'XS';
-              case CategoryFontSize.level2:
-                return 'S';
-              case CategoryFontSize.level3:
-                return 'Normal';
-              case CategoryFontSize.level4:
-                return 'L';
-              case CategoryFontSize.level5:
-                return 'XL';
-            }
-          }
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    getFontLevelLabel(currentSize),
-                    style: GoogleFonts.outfit(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (currentSize == CategoryFontSize.level3)
-                    Text(
-                      'DEFAULT',
-                      style: GoogleFonts.outfit(
-                        color: accentColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: accentColor,
-                  inactiveTrackColor: Colors.white.withAlpha(20),
-                  thumbColor: accentColor,
-                  overlayColor: accentColor.withAlpha(40),
-                  valueIndicatorColor: accentColor,
-                  tickMarkShape: const RoundSliderTickMarkShape(),
-                  activeTickMarkColor: Colors.black,
-                  inactiveTickMarkColor: Colors.white30,
-                ),
-                child: Slider(
-                  value: CategoryFontSize.values.indexOf(currentSize).toDouble(),
-                  min: 0,
-                  max: 4,
-                  divisions: 4,
-                  label: getFontLevelLabel(currentSize),
-                  onChanged: (val) {
-                    final newSize = CategoryFontSize.values[val.toInt()];
-                    ref.read(categoryFontSizeProvider.notifier).setFontSize(newSize);
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('XS', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                    Text('S', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                    Text('Normal (Def)', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.bold)),
-                    Text('L', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                    Text('XL', style: GoogleFonts.outfit(color: Colors.white30, fontSize: 10)),
-                  ],
-                ),
-              ),
-            ],
           );
         },
       ),
@@ -1460,6 +1500,28 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
+              final hideBanner = ref.watch(hideDownloadBannerProvider);
+              return ListTile(
+                leading: Icon(Icons.devices_other_rounded, color: accentColor),
+                title: const Text('Hide Cross-Platform Promo'),
+                subtitle: const Text(
+                  'Hide the download banner shown under Cloud Sync on the web version',
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                trailing: Switch(
+                  activeThumbColor: accentColor,
+                  value: hideBanner,
+                  onChanged: (val) async {
+                    await ref.read(hideDownloadBannerProvider.notifier).setHidden(val);
+                    ref.read(syncProvider.notifier).triggerAutoSync();
+                  },
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -1561,13 +1623,17 @@ class SettingsScreen extends ConsumerWidget {
                               const SizedBox(height: 16),
                               const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              accentColorHeader,
+                              accentColorContent,
+                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 8),
                               fontHeader,
                               fontContent,
                               const SizedBox(height: 16),
                               const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
-                              fontSizeHeader,
-                              fontSizeContent,
+                              ChangeFontSizeTile(accentColor: accentColor),
                               const SizedBox(height: 16),
                               const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
@@ -1614,12 +1680,13 @@ class SettingsScreen extends ConsumerWidget {
                   focusQuotesContent,
                   const SizedBox(height: 8),
                   const Divider(color: Colors.white12),
+                  accentColorHeader,
+                  accentColorContent,
+                  const Divider(color: Colors.white12),
                   fontHeader,
                   fontContent,
                   const SizedBox(height: 8),
-                  const Divider(color: Colors.white12),
-                  fontSizeHeader,
-                  fontSizeContent,
+                  ChangeFontSizeTile(accentColor: accentColor),
                   const Divider(color: Colors.white12),
                   resetDataHeader,
                   resetDataContent,
@@ -1713,6 +1780,169 @@ class SettingsScreen extends ConsumerWidget {
           ],
         );
       },
+    );
+  }
+
+  void _showAccentColorDialog(BuildContext context, WidgetRef ref) {
+    final size = MediaQuery.of(context).size;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withAlpha(200),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: (size.width * 0.85).clamp(280.0, 360.0),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF131316),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withAlpha(12), width: 1.5),
+              ),
+              padding: const EdgeInsets.all(24.0),
+              child: Consumer(
+                builder: (context, ref, _) {
+                  final colorNotifier = ref.watch(overallProgressColorProvider.notifier);
+                  final currentActiveColor = ref.watch(overallProgressColorProvider);
+                  final isAuto = colorNotifier.mode == 'auto';
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Accent Color',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      // Top Option: Auto-change with auto icon
+                      InkWell(
+                        onTap: () {
+                          ref.read(overallProgressColorProvider.notifier).setAutoMode();
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: isAuto
+                                ? currentActiveColor.withValues(alpha: 0.15)
+                                : Colors.white10,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isAuto ? currentActiveColor : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.brightness_auto_rounded,
+                                color: isAuto ? currentActiveColor : Colors.white70,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  'Auto-change color',
+                                  style: GoogleFonts.outfit(
+                                    color: isAuto ? Colors.white : Colors.white70,
+                                    fontSize: 15,
+                                    fontWeight: isAuto ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                              if (isAuto)
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: currentActiveColor,
+                                  size: 20,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Freeze a color:',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Wrap of all available colors in circle
+                      Center(
+                        child: Wrap(
+                          spacing: 16,
+                          runSpacing: 16,
+                          alignment: WrapAlignment.center,
+                          children: AppColors.neonCycle.map((color) {
+                            final isSelected = !isAuto &&
+                                colorNotifier.frozenColor?.toARGB32() == color.toARGB32();
+
+                            return InkWell(
+                              onTap: () {
+                                ref.read(overallProgressColorProvider.notifier).setFrozenColor(color);
+                                Navigator.pop(context);
+                              },
+                              customBorder: const CircleBorder(),
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Colors.white24,
+                                    width: isSelected ? 3.0 : 1.5,
+                                  ),
+                                  boxShadow: [
+                                    if (isSelected)
+                                      BoxShadow(
+                                        color: color.withValues(alpha: 0.6),
+                                        blurRadius: 12,
+                                        spreadRadius: 2,
+                                      ),
+                                  ],
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.black,
+                                        size: 20,
+                                        fontWeight: FontWeight.bold,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
