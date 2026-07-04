@@ -1058,27 +1058,28 @@ class SettingsScreen extends ConsumerWidget {
                         final result = await FilePicker.pickFiles(
                           type: FileType.image,
                         );
-                        if (result != null && result.files.single.path != null) {
-                          final path = result.files.single.path!;
-                          final bytes = result.files.single.bytes;
-                          
-                          String savedPath = path;
-                          if (!kIsWeb) {
-                            final dir = await getApplicationDocumentsDirectory();
-                            final targetFile = File('${dir.path}/custom_profile_${DateTime.now().millisecondsSinceEpoch}.png');
-                            await File(path).copy(targetFile.path);
-                            savedPath = targetFile.path;
-                          } else if (bytes != null) {
-                            savedPath = 'data:image/png;base64,${base64Encode(bytes)}';
-                          }
+                        if (result != null) {
+                          final file = result.files.single;
+                          final bytes = await file.readAsBytes();
+                          if (file.path != null) {
+                            final path = file.path!;
+                            String savedPath = path;
+                            if (!kIsWeb) {
+                              final dir = await getApplicationDocumentsDirectory();
+                              final targetFile = File('${dir.path}/custom_profile_${DateTime.now().millisecondsSinceEpoch}.png');
+                              await File(path).copy(targetFile.path);
+                              savedPath = targetFile.path;
+                            } else {
+                              savedPath = 'data:image/png;base64,${base64Encode(bytes)}';
+                            }
 
-                          await ref.read(profileProvider.notifier).setCustomProfilePhotoPath(savedPath);
-                          await ref.read(profileProvider.notifier).setProfilePhotoMode('custom');
-                        } else if (result != null && result.files.single.bytes != null) {
-                          final bytes = result.files.single.bytes!;
-                          final savedPath = 'data:image/png;base64,${base64Encode(bytes)}';
-                          await ref.read(profileProvider.notifier).setCustomProfilePhotoPath(savedPath);
-                          await ref.read(profileProvider.notifier).setProfilePhotoMode('custom');
+                            await ref.read(profileProvider.notifier).setCustomProfilePhotoPath(savedPath);
+                            await ref.read(profileProvider.notifier).setProfilePhotoMode('custom');
+                          } else {
+                            final savedPath = 'data:image/png;base64,${base64Encode(bytes)}';
+                            await ref.read(profileProvider.notifier).setCustomProfilePhotoPath(savedPath);
+                            await ref.read(profileProvider.notifier).setProfilePhotoMode('custom');
+                          }
                         }
                       }
                     },
@@ -1211,7 +1212,7 @@ class SettingsScreen extends ConsumerWidget {
     final categoryOrderingHeader = buildHeader('CATEGORY ORDERING');
 
     final categoryOrderingContent = SwitchListTile(
-      activeColor: accentColor,
+      activeThumbColor: accentColor,
       title: const Text('Auto-Sort Categories'),
       subtitle: const Text(
         'Move last interacted category to the top automatically',
@@ -1229,7 +1230,7 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         final quotesEnabled = ref.watch(focusQuotesEnabledProvider);
         return SwitchListTile(
-          activeColor: accentColor,
+          activeThumbColor: accentColor,
           title: const Text('Show Motivational Quotes'),
           subtitle: const Text(
             'Display dynamic handwritten motivational quotes during focus sessions (Beta)',

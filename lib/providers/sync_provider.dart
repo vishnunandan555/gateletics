@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
@@ -340,11 +341,55 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       });
     });
 
+    // Merge Focus Sessions
+    final localFocusSess = List<Map<String, dynamic>>.from(local['focusSessions'] ?? []);
+    final cloudFocusSess = List<Map<String, dynamic>>.from(cloud['focusSessions'] ?? []);
+    final mergedFocusSess = <String, Map<String, dynamic>>{};
+    
+    for (final fs in [...localFocusSess, ...cloudFocusSess]) {
+      final startTimeStr = fs['startTime'] as String;
+      mergedFocusSess[startTimeStr] = fs;
+    }
+    final finalFocusSess = mergedFocusSess.values.toList();
+
+    // Merge Daily History
+    final localDailyHist = List<Map<String, dynamic>>.from(local['dailyHistory'] ?? []);
+    final cloudDailyHist = List<Map<String, dynamic>>.from(cloud['dailyHistory'] ?? []);
+    final mergedDailyHist = <String, Map<String, dynamic>>{};
+
+    for (final dh in localDailyHist) {
+      final dateStr = dh['dateStr'] as String;
+      mergedDailyHist[dateStr] = dh;
+    }
+    for (final dh in cloudDailyHist) {
+      final dateStr = dh['dateStr'] as String;
+      if (!mergedDailyHist.containsKey(dateStr)) {
+        mergedDailyHist[dateStr] = dh;
+      } else {
+        final localEntry = mergedDailyHist[dateStr]!;
+        final localFocus = (localEntry['totalFocusSeconds'] as num).toInt();
+        final cloudFocus = (dh['totalFocusSeconds'] as num).toInt();
+        final localProg = (localEntry['syllabusProgressPct'] as num).toDouble();
+        final cloudProg = (dh['syllabusProgressPct'] as num).toDouble();
+
+        mergedDailyHist[dateStr] = {
+          'dateStr': dateStr,
+          'totalFocusSeconds': max(localFocus, cloudFocus),
+          'targetGoalSeconds': localEntry['targetGoalSeconds'] ?? dh['targetGoalSeconds'],
+          'isGoalCompleted': localEntry['isGoalCompleted'] == true || dh['isGoalCompleted'] == true,
+          'syllabusProgressPct': max(localProg, cloudProg),
+        };
+      }
+    }
+    final finalDailyHist = mergedDailyHist.values.toList();
+
     return {
-      'version': 3,
+      'version': 6,
       'syllabusCategories': finalSylCats,
       'syllabusTopics': finalSylTops,
       'syllabusTasks': finalSylTsks,
+      'focusSessions': finalFocusSess,
+      'dailyHistory': finalDailyHist,
       'lastInteractedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -358,6 +403,14 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       // 1. Check if there is any progress in syllabus tasks
       final tasks = await _db.select(_db.syllabusTasks).get();
       if (tasks.any((t) => t.isCompleted)) return true;
+
+      // 2. Check if there are focus sessions
+      final sessions = await _db.select(_db.focusSessions).get();
+      if (sessions.isNotEmpty) return true;
+
+      // 3. Check if there is daily history
+      final history = await _db.select(_db.dailyHistory).get();
+      if (history.isNotEmpty) return true;
 
       // 4. Check if there are custom syllabus categories or missing default syllabus categories
       final sylCategories = await _db.select(_db.syllabusCategories).get();
@@ -580,6 +633,36 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       final cloudTasks = cloud['syllabusTasks'] as List? ?? [];
       if (localTasks.length != cloudTasks.length) {
         debugPrint("Sync diff: syllabus tasks count (${localTasks.length} vs ${cloudTasks.length})");
+        return false;
+      }
+
+      // Compare focus sessions
+      final localFocus = local['focusSessions'] as List? ?? [];
+      final cloudFocus = cloud['focusSessions'] as List? ?? [];
+      if (localFocus.length != cloudFocus.length) {
+        debugPrint("Sync diff: focus sessions count (${localFocus.length} vs ${cloudFocus.length})");
+        return false;
+      }
+
+      final localFsTimes = localFocus.map((fs) => fs['startTime'] as String).toSet();
+      final cloudFsTimes = cloudFocus.map((fs) => fs['startTime'] as String).toSet();
+      if (localFsTimes.length != cloudFsTimes.length || !localFsTimes.containsAll(cloudFsTimes)) {
+        debugPrint("Sync diff: focus sessions start times mismatch");
+        return false;
+      }
+
+      // Compare daily history
+      final localHist = local['dailyHistory'] as List? ?? [];
+      final cloudHist = cloud['dailyHistory'] as List? ?? [];
+      if (localHist.length != cloudHist.length) {
+        debugPrint("Sync diff: daily history count (${localHist.length} vs ${cloudHist.length})");
+        return false;
+      }
+
+      final localDhDates = localHist.map((dh) => dh['dateStr'] as String).toSet();
+      final cloudDhDates = cloudHist.map((dh) => dh['dateStr'] as String).toSet();
+      if (localDhDates.length != cloudDhDates.length || !localDhDates.containsAll(cloudDhDates)) {
+        debugPrint("Sync diff: daily history dates mismatch");
         return false;
       }
 

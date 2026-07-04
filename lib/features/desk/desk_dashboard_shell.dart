@@ -357,7 +357,7 @@ class _SidebarNavItem extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (timerBadge case final badge?) badge,
+                  ?timerBadge,
                 ],
               ],
             ),

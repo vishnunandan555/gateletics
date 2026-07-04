@@ -13,6 +13,8 @@ import '../../providers/completion_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/glow_strength_provider.dart';
 import '../../providers/focus_animation_provider.dart';
+import '../../providers/rollover_provider.dart';
+import '../../database/app_database.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final PageController? shellPageController;
@@ -461,6 +463,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Horizontal Consistency Day Tracker
   Widget _buildConsistencyGrid(Color accentColor, int dailyGoalMinutes) {
     final recentSessionsAsync = ref.watch(recentDaysFocusProvider);
+    final rollover = ref.watch(studyDayRolloverProvider);
 
     return recentSessionsAsync.when(
       data: (sessionsMap) {
@@ -468,7 +471,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // Generate list of 7 study days with Today in the middle (index 3)
         final List<DateTime> days = List.generate(7, (index) {
           // index 3 is today, so range is: today-3 to today+3
-          return studyDayFor(now).add(Duration(days: index - 3));
+          return studyDayFor(now, rollover).add(Duration(days: index - 3));
         });
 
         return Row(
@@ -694,24 +697,17 @@ class DailyGoalOutlinePainter extends CustomPainter {
 // Riverpod Provider for Consistency Days
 final recentDaysFocusProvider = StreamProvider<Map<DateTime, int>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchRecentFocusSessions(7).map((sessions) {
+  final rollover = ref.watch(studyDayRolloverProvider);
+  return db.watchRecentFocusSessions(7, rollover: rollover).map((sessions) {
     final map = <DateTime, int>{};
     for (final s in sessions) {
-      final studyDay = studyDayFor(s.startTime);
+      final studyDay = studyDayFor(s.startTime, rollover);
       final current = map[studyDay] ?? 0;
       map[studyDay] = current + s.durationSeconds.toInt();
     }
     return map;
   });
 });
-
-DateTime studyDayFor(DateTime time) {
-  if (time.hour < 4) {
-    final prev = time.subtract(const Duration(days: 1));
-    return DateTime(prev.year, prev.month, prev.day);
-  }
-  return DateTime(time.year, time.month, time.day);
-}
 
 class _TickingCountdownTimer extends ConsumerStatefulWidget {
   const _TickingCountdownTimer();

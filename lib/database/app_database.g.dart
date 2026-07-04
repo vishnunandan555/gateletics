@@ -1461,6 +1461,404 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
   }
 }
 
+class $DailyHistoryTable extends DailyHistory
+    with TableInfo<$DailyHistoryTable, DailyHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyHistoryTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateStrMeta = const VerificationMeta(
+    'dateStr',
+  );
+  @override
+  late final GeneratedColumn<String> dateStr = GeneratedColumn<String>(
+    'date_str',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 10,
+      maxTextLength: 10,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalFocusSecondsMeta = const VerificationMeta(
+    'totalFocusSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> totalFocusSeconds = GeneratedColumn<int>(
+    'total_focus_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _targetGoalSecondsMeta = const VerificationMeta(
+    'targetGoalSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> targetGoalSeconds = GeneratedColumn<int>(
+    'target_goal_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(7200),
+  );
+  static const VerificationMeta _isGoalCompletedMeta = const VerificationMeta(
+    'isGoalCompleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isGoalCompleted = GeneratedColumn<bool>(
+    'is_goal_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_goal_completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _syllabusProgressPctMeta =
+      const VerificationMeta('syllabusProgressPct');
+  @override
+  late final GeneratedColumn<double> syllabusProgressPct =
+      GeneratedColumn<double>(
+        'syllabus_progress_pct',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0.0),
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    dateStr,
+    totalFocusSeconds,
+    targetGoalSeconds,
+    isGoalCompleted,
+    syllabusProgressPct,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date_str')) {
+      context.handle(
+        _dateStrMeta,
+        dateStr.isAcceptableOrUnknown(data['date_str']!, _dateStrMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateStrMeta);
+    }
+    if (data.containsKey('total_focus_seconds')) {
+      context.handle(
+        _totalFocusSecondsMeta,
+        totalFocusSeconds.isAcceptableOrUnknown(
+          data['total_focus_seconds']!,
+          _totalFocusSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_goal_seconds')) {
+      context.handle(
+        _targetGoalSecondsMeta,
+        targetGoalSeconds.isAcceptableOrUnknown(
+          data['target_goal_seconds']!,
+          _targetGoalSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_goal_completed')) {
+      context.handle(
+        _isGoalCompletedMeta,
+        isGoalCompleted.isAcceptableOrUnknown(
+          data['is_goal_completed']!,
+          _isGoalCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('syllabus_progress_pct')) {
+      context.handle(
+        _syllabusProgressPctMeta,
+        syllabusProgressPct.isAcceptableOrUnknown(
+          data['syllabus_progress_pct']!,
+          _syllabusProgressPctMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {dateStr};
+  @override
+  DailyHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyHistoryData(
+      dateStr: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date_str'],
+      )!,
+      totalFocusSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_focus_seconds'],
+      )!,
+      targetGoalSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_goal_seconds'],
+      )!,
+      isGoalCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_goal_completed'],
+      )!,
+      syllabusProgressPct: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}syllabus_progress_pct'],
+      )!,
+    );
+  }
+
+  @override
+  $DailyHistoryTable createAlias(String alias) {
+    return $DailyHistoryTable(attachedDatabase, alias);
+  }
+}
+
+class DailyHistoryData extends DataClass
+    implements Insertable<DailyHistoryData> {
+  final String dateStr;
+  final int totalFocusSeconds;
+  final int targetGoalSeconds;
+  final bool isGoalCompleted;
+  final double syllabusProgressPct;
+  const DailyHistoryData({
+    required this.dateStr,
+    required this.totalFocusSeconds,
+    required this.targetGoalSeconds,
+    required this.isGoalCompleted,
+    required this.syllabusProgressPct,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date_str'] = Variable<String>(dateStr);
+    map['total_focus_seconds'] = Variable<int>(totalFocusSeconds);
+    map['target_goal_seconds'] = Variable<int>(targetGoalSeconds);
+    map['is_goal_completed'] = Variable<bool>(isGoalCompleted);
+    map['syllabus_progress_pct'] = Variable<double>(syllabusProgressPct);
+    return map;
+  }
+
+  DailyHistoryCompanion toCompanion(bool nullToAbsent) {
+    return DailyHistoryCompanion(
+      dateStr: Value(dateStr),
+      totalFocusSeconds: Value(totalFocusSeconds),
+      targetGoalSeconds: Value(targetGoalSeconds),
+      isGoalCompleted: Value(isGoalCompleted),
+      syllabusProgressPct: Value(syllabusProgressPct),
+    );
+  }
+
+  factory DailyHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyHistoryData(
+      dateStr: serializer.fromJson<String>(json['dateStr']),
+      totalFocusSeconds: serializer.fromJson<int>(json['totalFocusSeconds']),
+      targetGoalSeconds: serializer.fromJson<int>(json['targetGoalSeconds']),
+      isGoalCompleted: serializer.fromJson<bool>(json['isGoalCompleted']),
+      syllabusProgressPct: serializer.fromJson<double>(
+        json['syllabusProgressPct'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dateStr': serializer.toJson<String>(dateStr),
+      'totalFocusSeconds': serializer.toJson<int>(totalFocusSeconds),
+      'targetGoalSeconds': serializer.toJson<int>(targetGoalSeconds),
+      'isGoalCompleted': serializer.toJson<bool>(isGoalCompleted),
+      'syllabusProgressPct': serializer.toJson<double>(syllabusProgressPct),
+    };
+  }
+
+  DailyHistoryData copyWith({
+    String? dateStr,
+    int? totalFocusSeconds,
+    int? targetGoalSeconds,
+    bool? isGoalCompleted,
+    double? syllabusProgressPct,
+  }) => DailyHistoryData(
+    dateStr: dateStr ?? this.dateStr,
+    totalFocusSeconds: totalFocusSeconds ?? this.totalFocusSeconds,
+    targetGoalSeconds: targetGoalSeconds ?? this.targetGoalSeconds,
+    isGoalCompleted: isGoalCompleted ?? this.isGoalCompleted,
+    syllabusProgressPct: syllabusProgressPct ?? this.syllabusProgressPct,
+  );
+  DailyHistoryData copyWithCompanion(DailyHistoryCompanion data) {
+    return DailyHistoryData(
+      dateStr: data.dateStr.present ? data.dateStr.value : this.dateStr,
+      totalFocusSeconds: data.totalFocusSeconds.present
+          ? data.totalFocusSeconds.value
+          : this.totalFocusSeconds,
+      targetGoalSeconds: data.targetGoalSeconds.present
+          ? data.targetGoalSeconds.value
+          : this.targetGoalSeconds,
+      isGoalCompleted: data.isGoalCompleted.present
+          ? data.isGoalCompleted.value
+          : this.isGoalCompleted,
+      syllabusProgressPct: data.syllabusProgressPct.present
+          ? data.syllabusProgressPct.value
+          : this.syllabusProgressPct,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyHistoryData(')
+          ..write('dateStr: $dateStr, ')
+          ..write('totalFocusSeconds: $totalFocusSeconds, ')
+          ..write('targetGoalSeconds: $targetGoalSeconds, ')
+          ..write('isGoalCompleted: $isGoalCompleted, ')
+          ..write('syllabusProgressPct: $syllabusProgressPct')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    dateStr,
+    totalFocusSeconds,
+    targetGoalSeconds,
+    isGoalCompleted,
+    syllabusProgressPct,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyHistoryData &&
+          other.dateStr == this.dateStr &&
+          other.totalFocusSeconds == this.totalFocusSeconds &&
+          other.targetGoalSeconds == this.targetGoalSeconds &&
+          other.isGoalCompleted == this.isGoalCompleted &&
+          other.syllabusProgressPct == this.syllabusProgressPct);
+}
+
+class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
+  final Value<String> dateStr;
+  final Value<int> totalFocusSeconds;
+  final Value<int> targetGoalSeconds;
+  final Value<bool> isGoalCompleted;
+  final Value<double> syllabusProgressPct;
+  final Value<int> rowid;
+  const DailyHistoryCompanion({
+    this.dateStr = const Value.absent(),
+    this.totalFocusSeconds = const Value.absent(),
+    this.targetGoalSeconds = const Value.absent(),
+    this.isGoalCompleted = const Value.absent(),
+    this.syllabusProgressPct = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailyHistoryCompanion.insert({
+    required String dateStr,
+    this.totalFocusSeconds = const Value.absent(),
+    this.targetGoalSeconds = const Value.absent(),
+    this.isGoalCompleted = const Value.absent(),
+    this.syllabusProgressPct = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : dateStr = Value(dateStr);
+  static Insertable<DailyHistoryData> custom({
+    Expression<String>? dateStr,
+    Expression<int>? totalFocusSeconds,
+    Expression<int>? targetGoalSeconds,
+    Expression<bool>? isGoalCompleted,
+    Expression<double>? syllabusProgressPct,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dateStr != null) 'date_str': dateStr,
+      if (totalFocusSeconds != null) 'total_focus_seconds': totalFocusSeconds,
+      if (targetGoalSeconds != null) 'target_goal_seconds': targetGoalSeconds,
+      if (isGoalCompleted != null) 'is_goal_completed': isGoalCompleted,
+      if (syllabusProgressPct != null)
+        'syllabus_progress_pct': syllabusProgressPct,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailyHistoryCompanion copyWith({
+    Value<String>? dateStr,
+    Value<int>? totalFocusSeconds,
+    Value<int>? targetGoalSeconds,
+    Value<bool>? isGoalCompleted,
+    Value<double>? syllabusProgressPct,
+    Value<int>? rowid,
+  }) {
+    return DailyHistoryCompanion(
+      dateStr: dateStr ?? this.dateStr,
+      totalFocusSeconds: totalFocusSeconds ?? this.totalFocusSeconds,
+      targetGoalSeconds: targetGoalSeconds ?? this.targetGoalSeconds,
+      isGoalCompleted: isGoalCompleted ?? this.isGoalCompleted,
+      syllabusProgressPct: syllabusProgressPct ?? this.syllabusProgressPct,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dateStr.present) {
+      map['date_str'] = Variable<String>(dateStr.value);
+    }
+    if (totalFocusSeconds.present) {
+      map['total_focus_seconds'] = Variable<int>(totalFocusSeconds.value);
+    }
+    if (targetGoalSeconds.present) {
+      map['target_goal_seconds'] = Variable<int>(targetGoalSeconds.value);
+    }
+    if (isGoalCompleted.present) {
+      map['is_goal_completed'] = Variable<bool>(isGoalCompleted.value);
+    }
+    if (syllabusProgressPct.present) {
+      map['syllabus_progress_pct'] = Variable<double>(
+        syllabusProgressPct.value,
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyHistoryCompanion(')
+          ..write('dateStr: $dateStr, ')
+          ..write('totalFocusSeconds: $totalFocusSeconds, ')
+          ..write('targetGoalSeconds: $targetGoalSeconds, ')
+          ..write('isGoalCompleted: $isGoalCompleted, ')
+          ..write('syllabusProgressPct: $syllabusProgressPct, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1469,6 +1867,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SyllabusTopicsTable syllabusTopics = $SyllabusTopicsTable(this);
   late final $SyllabusTasksTable syllabusTasks = $SyllabusTasksTable(this);
   late final $FocusSessionsTable focusSessions = $FocusSessionsTable(this);
+  late final $DailyHistoryTable dailyHistory = $DailyHistoryTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1478,6 +1877,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     syllabusTopics,
     syllabusTasks,
     focusSessions,
+    dailyHistory,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2754,6 +3154,214 @@ typedef $$FocusSessionsTableProcessedTableManager =
       FocusSession,
       PrefetchHooks Function()
     >;
+typedef $$DailyHistoryTableCreateCompanionBuilder =
+    DailyHistoryCompanion Function({
+      required String dateStr,
+      Value<int> totalFocusSeconds,
+      Value<int> targetGoalSeconds,
+      Value<bool> isGoalCompleted,
+      Value<double> syllabusProgressPct,
+      Value<int> rowid,
+    });
+typedef $$DailyHistoryTableUpdateCompanionBuilder =
+    DailyHistoryCompanion Function({
+      Value<String> dateStr,
+      Value<int> totalFocusSeconds,
+      Value<int> targetGoalSeconds,
+      Value<bool> isGoalCompleted,
+      Value<double> syllabusProgressPct,
+      Value<int> rowid,
+    });
+
+class $$DailyHistoryTableFilterComposer
+    extends Composer<_$AppDatabase, $DailyHistoryTable> {
+  $$DailyHistoryTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get dateStr => $composableBuilder(
+    column: $table.dateStr,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalFocusSeconds => $composableBuilder(
+    column: $table.totalFocusSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetGoalSeconds => $composableBuilder(
+    column: $table.targetGoalSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isGoalCompleted => $composableBuilder(
+    column: $table.isGoalCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get syllabusProgressPct => $composableBuilder(
+    column: $table.syllabusProgressPct,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyHistoryTableOrderingComposer
+    extends Composer<_$AppDatabase, $DailyHistoryTable> {
+  $$DailyHistoryTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get dateStr => $composableBuilder(
+    column: $table.dateStr,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalFocusSeconds => $composableBuilder(
+    column: $table.totalFocusSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetGoalSeconds => $composableBuilder(
+    column: $table.targetGoalSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isGoalCompleted => $composableBuilder(
+    column: $table.isGoalCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get syllabusProgressPct => $composableBuilder(
+    column: $table.syllabusProgressPct,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyHistoryTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DailyHistoryTable> {
+  $$DailyHistoryTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get dateStr =>
+      $composableBuilder(column: $table.dateStr, builder: (column) => column);
+
+  GeneratedColumn<int> get totalFocusSeconds => $composableBuilder(
+    column: $table.totalFocusSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetGoalSeconds => $composableBuilder(
+    column: $table.targetGoalSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isGoalCompleted => $composableBuilder(
+    column: $table.isGoalCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get syllabusProgressPct => $composableBuilder(
+    column: $table.syllabusProgressPct,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyHistoryTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DailyHistoryTable,
+          DailyHistoryData,
+          $$DailyHistoryTableFilterComposer,
+          $$DailyHistoryTableOrderingComposer,
+          $$DailyHistoryTableAnnotationComposer,
+          $$DailyHistoryTableCreateCompanionBuilder,
+          $$DailyHistoryTableUpdateCompanionBuilder,
+          (
+            DailyHistoryData,
+            BaseReferences<_$AppDatabase, $DailyHistoryTable, DailyHistoryData>,
+          ),
+          DailyHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$DailyHistoryTableTableManager(_$AppDatabase db, $DailyHistoryTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyHistoryTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailyHistoryTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailyHistoryTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> dateStr = const Value.absent(),
+                Value<int> totalFocusSeconds = const Value.absent(),
+                Value<int> targetGoalSeconds = const Value.absent(),
+                Value<bool> isGoalCompleted = const Value.absent(),
+                Value<double> syllabusProgressPct = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyHistoryCompanion(
+                dateStr: dateStr,
+                totalFocusSeconds: totalFocusSeconds,
+                targetGoalSeconds: targetGoalSeconds,
+                isGoalCompleted: isGoalCompleted,
+                syllabusProgressPct: syllabusProgressPct,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String dateStr,
+                Value<int> totalFocusSeconds = const Value.absent(),
+                Value<int> targetGoalSeconds = const Value.absent(),
+                Value<bool> isGoalCompleted = const Value.absent(),
+                Value<double> syllabusProgressPct = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyHistoryCompanion.insert(
+                dateStr: dateStr,
+                totalFocusSeconds: totalFocusSeconds,
+                targetGoalSeconds: targetGoalSeconds,
+                isGoalCompleted: isGoalCompleted,
+                syllabusProgressPct: syllabusProgressPct,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyHistoryTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DailyHistoryTable,
+      DailyHistoryData,
+      $$DailyHistoryTableFilterComposer,
+      $$DailyHistoryTableOrderingComposer,
+      $$DailyHistoryTableAnnotationComposer,
+      $$DailyHistoryTableCreateCompanionBuilder,
+      $$DailyHistoryTableUpdateCompanionBuilder,
+      (
+        DailyHistoryData,
+        BaseReferences<_$AppDatabase, $DailyHistoryTable, DailyHistoryData>,
+      ),
+      DailyHistoryData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2766,4 +3374,6 @@ class $AppDatabaseManager {
       $$SyllabusTasksTableTableManager(_db, _db.syllabusTasks);
   $$FocusSessionsTableTableManager get focusSessions =>
       $$FocusSessionsTableTableManager(_db, _db.focusSessions);
+  $$DailyHistoryTableTableManager get dailyHistory =>
+      $$DailyHistoryTableTableManager(_db, _db.dailyHistory);
 }

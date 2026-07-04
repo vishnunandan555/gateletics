@@ -1,5 +1,4 @@
 import 'dart:io' show Platform;
-import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/foundation.dart';
 
 const bool forceDeskUI = bool.fromEnvironment('FORCE_DESK_UI', defaultValue: false);

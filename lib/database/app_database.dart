@@ -39,6 +39,17 @@ class FocusSessions extends Table {
   RealColumn get progressDelta => real().withDefault(const Constant(0.0))();
 }
 
+class DailyHistory extends Table {
+  TextColumn get dateStr => text().withLength(min: 10, max: 10)(); // "YYYY-MM-DD"
+  IntColumn get totalFocusSeconds => integer().withDefault(const Constant(0))();
+  IntColumn get targetGoalSeconds => integer().withDefault(const Constant(7200))();
+  BoolColumn get isGoalCompleted => boolean().withDefault(const Constant(false))();
+  RealColumn get syllabusProgressPct => real().withDefault(const Constant(0.0))();
+
+  @override
+  Set<Column> get primaryKey => {dateStr};
+}
+
 class SyllabusTopicWithTasks {
   final SyllabusTopic topic;
   final List<SyllabusTask> tasks;
@@ -59,7 +70,7 @@ class SyllabusCategoryWithTopics {
   });
 }
 
-@DriftDatabase(tables: [SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions])
+@DriftDatabase(tables: [SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions, DailyHistory])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
   AppDatabase.forTesting(super.executor);
@@ -114,6 +125,9 @@ class AppDatabase extends _$AppDatabase {
             if (from >= 4) {
               await m.addColumn(focusSessions, focusSessions.progressDelta);
             }
+          }
+          if (from < 6) {
+            await m.createTable(dailyHistory);
           }
         },
       );
@@ -387,13 +401,6 @@ class AppDatabase extends _$AppDatabase {
   // Focus Session Operations & Midnight Rollover Logic
   // ----------------------------------------------------
 
-  DateTime getStudyDayStartInstance(DateTime now) => DateTime(
-    now.hour < 4 ? now.subtract(const Duration(days: 1)).year : now.year,
-    now.hour < 4 ? now.subtract(const Duration(days: 1)).month : now.month,
-    now.hour < 4 ? now.subtract(const Duration(days: 1)).day : now.day,
-    4,
-  );
-
   Future<int> addFocusSession(FocusSessionsCompanion companion) async {
     return into(focusSessions).insert(companion);
   }
@@ -413,9 +420,9 @@ class AppDatabase extends _$AppDatabase {
     ));
   }
 
-  Stream<List<FocusSession>> watchTodayFocusSessions() {
+  Stream<List<FocusSession>> watchTodayFocusSessions({StudyDayRollover rollover = StudyDayRollover.overnight}) {
     final now = DateTime.now();
-    final start = getStudyDayStart(now);
+    final start = getStudyDayStart(now, rollover: rollover);
     final end = start.add(const Duration(hours: 24));
     return (select(focusSessions)
           ..where((t) => t.startTime.isBiggerOrEqualValue(start) & t.startTime.isSmallerThanValue(end))
@@ -423,9 +430,9 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  Future<List<FocusSession>> getTodayFocusSessions() async {
+  Future<List<FocusSession>> getTodayFocusSessions({StudyDayRollover rollover = StudyDayRollover.overnight}) async {
     final now = DateTime.now();
-    final start = getStudyDayStart(now);
+    final start = getStudyDayStart(now, rollover: rollover);
     final end = start.add(const Duration(hours: 24));
     return (select(focusSessions)
           ..where((t) => t.startTime.isBiggerOrEqualValue(start) & t.startTime.isSmallerThanValue(end))
@@ -433,28 +440,69 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
-  Stream<int> watchTodayFocusDurationSeconds() {
-    return watchTodayFocusSessions().map((sessions) {
+  Stream<int> watchTodayFocusDurationSeconds({StudyDayRollover rollover = StudyDayRollover.overnight}) {
+    return watchTodayFocusSessions(rollover: rollover).map((sessions) {
       return sessions.fold(0, (sum, s) => sum + s.durationSeconds);
     });
   }
 
-  Stream<List<FocusSession>> watchRecentFocusSessions(int daysCount) {
+  Stream<List<FocusSession>> watchRecentFocusSessions(int daysCount, {StudyDayRollover rollover = StudyDayRollover.overnight}) {
     final now = DateTime.now();
-    final since = getStudyDayStart(now).subtract(Duration(days: daysCount - 1));
+    final since = getStudyDayStart(now, rollover: rollover).subtract(Duration(days: daysCount - 1));
     return (select(focusSessions)
           ..where((t) => t.startTime.isBiggerOrEqualValue(since))
           ..orderBy([(t) => OrderingTerm(expression: t.startTime, mode: OrderingMode.asc)]))
         .watch();
   }
+
+  // ----------------------------------------------------
+  // Daily History Operations
+  // ----------------------------------------------------
+
+  Future<void> upsertDailyHistory({
+    required String dateStr,
+    required int totalFocusSeconds,
+    required int targetGoalSeconds,
+    required bool isGoalCompleted,
+    required double syllabusProgressPct,
+  }) async {
+    await into(dailyHistory).insertOnConflictUpdate(
+      DailyHistoryCompanion(
+        dateStr: Value(dateStr),
+        totalFocusSeconds: Value(totalFocusSeconds),
+        targetGoalSeconds: Value(targetGoalSeconds),
+        isGoalCompleted: Value(isGoalCompleted),
+        syllabusProgressPct: Value(syllabusProgressPct),
+      ),
+    );
+  }
+
+  Stream<List<DailyHistoryData>> watchDailyHistory() {
+    return (select(dailyHistory)..orderBy([(t) => OrderingTerm(expression: t.dateStr, mode: OrderingMode.asc)])).watch();
+  }
+
+  Future<List<DailyHistoryData>> getDailyHistory() async {
+    return (select(dailyHistory)..orderBy([(t) => OrderingTerm(expression: t.dateStr, mode: OrderingMode.asc)])).get();
+  }
 }
 
-// Top-level function: computes the 4 AM rollover study-day start.
+enum StudyDayRollover {
+  midnight,
+  overnight,
+}
+
+// Top-level function: computes the rollover study-day start.
 // Located outside AppDatabase so it can be unit-tested without a DB instance.
-DateTime getStudyDayStart(DateTime now) {
-  if (now.hour < 4) {
+DateTime getStudyDayStart(DateTime now, {StudyDayRollover rollover = StudyDayRollover.overnight}) {
+  final hour = rollover == StudyDayRollover.overnight ? 4 : 0;
+  if (now.hour < hour) {
     final yesterday = now.subtract(const Duration(days: 1));
-    return DateTime(yesterday.year, yesterday.month, yesterday.day, 4);
+    return DateTime(yesterday.year, yesterday.month, yesterday.day, hour);
   }
-  return DateTime(now.year, now.month, now.day, 4);
+  return DateTime(now.year, now.month, now.day, hour);
+}
+
+DateTime studyDayFor(DateTime time, StudyDayRollover rollover) {
+  final start = getStudyDayStart(time, rollover: rollover);
+  return DateTime(start.year, start.month, start.day);
 }

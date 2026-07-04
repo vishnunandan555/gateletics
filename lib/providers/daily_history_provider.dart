@@ -1,0 +1,130 @@
+import 'dart:async';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../database/app_database.dart';
+import 'syllabus_provider.dart';
+import 'focus_provider.dart';
+import 'completion_provider.dart';
+import 'rollover_provider.dart';
+import 'sync_provider.dart';
+
+// Stream of historical snapshots
+final dailyHistoryProvider = StreamProvider<List<DailyHistoryData>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.watchDailyHistory();
+});
+
+// A manager provider that listens to active day changes and keeps dailyHistory table up-to-date
+final dailyHistoryManagerProvider = Provider<void>((ref) {
+  final db = ref.read(appDatabaseProvider);
+
+  // Watch inputs
+  final todayDurationAsync = ref.watch(todayFocusDurationProvider);
+  final completionAsync = ref.watch(completionPercentageProvider);
+  final dailyGoalMins = ref.watch(dailyFocusGoalProvider);
+  final rollover = ref.watch(studyDayRolloverProvider);
+
+  todayDurationAsync.whenData((totalFocusSeconds) {
+    completionAsync.whenData((completionPct) {
+      final now = DateTime.now();
+      final date = studyDayFor(now, rollover);
+      final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+      // Run asynchronously outside provider evaluation
+      Future.microtask(() async {
+        try {
+          await db.upsertDailyHistory(
+            dateStr: dateStr,
+            totalFocusSeconds: totalFocusSeconds,
+            targetGoalSeconds: dailyGoalMins * 60,
+            isGoalCompleted: totalFocusSeconds >= (dailyGoalMins * 60),
+            syllabusProgressPct: completionPct,
+          );
+        } catch (e) {
+          debugPrint("Failed to upsert daily history: $e");
+        }
+      });
+    });
+  });
+});
+
+// Personal best streak notifier
+class LongestStreakNotifier extends Notifier<int> {
+  @override
+  int build() {
+    _load();
+    return 0;
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      state = prefs.getInt('longest_streak') ?? 0;
+    } catch (_) {}
+  }
+
+  Future<void> updateLongest(int current) async {
+    if (current > state) {
+      state = current;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('longest_streak', current);
+        ref.read(syncProvider.notifier).triggerAutoSync();
+      } catch (_) {}
+    }
+  }
+}
+
+final longestStreakProvider = NotifierProvider<LongestStreakNotifier, int>(() {
+  return LongestStreakNotifier();
+});
+
+// Current streak dynamically walked back starting from today
+final currentStreakProvider = Provider<int>((ref) {
+  final historyAsync = ref.watch(dailyHistoryProvider);
+  final rollover = ref.watch(studyDayRolloverProvider);
+
+  return historyAsync.when(
+    data: (historyList) {
+      if (historyList.isEmpty) return 0;
+
+      // Collect all dates where daily goal was met
+      final completedDates = historyList
+          .where((e) => e.isGoalCompleted)
+          .map((e) => e.dateStr)
+          .toSet();
+
+      if (completedDates.isEmpty) return 0;
+
+      final today = studyDayFor(DateTime.now(), rollover);
+      int streak = 0;
+      DateTime checkDate = today;
+
+      while (true) {
+        final checkDateStr = "${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}";
+        
+        if (completedDates.contains(checkDateStr)) {
+          streak++;
+          checkDate = checkDate.subtract(const Duration(days: 1));
+        } else {
+          // If checkDate is today, we check if they finished yesterday instead of breaking immediately
+          if (checkDate == today) {
+            checkDate = checkDate.subtract(const Duration(days: 1));
+            continue;
+          }
+          break;
+        }
+      }
+
+      // Proactively update longest streak in post-frame/microtask
+      Future.microtask(() {
+        ref.read(longestStreakProvider.notifier).updateLongest(streak);
+      });
+
+      return streak;
+    },
+    loading: () => 0,
+    error: (err, stack) => 0,
+  );
+});

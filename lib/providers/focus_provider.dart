@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import 'syllabus_provider.dart';
+import 'rollover_provider.dart';
 
 enum FocusMethod {
   freestyle,
@@ -525,12 +526,14 @@ final dailyFocusGoalProvider = NotifierProvider<DailyFocusGoalNotifier, int>(() 
 // Streams and fetching for today's sessions
 final todayFocusSessionsProvider = StreamProvider<List<FocusSession>>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchTodayFocusSessions();
+  final rollover = ref.watch(studyDayRolloverProvider);
+  return db.watchTodayFocusSessions(rollover: rollover);
 });
 
 final todayFocusDurationProvider = StreamProvider<int>((ref) {
   final db = ref.watch(appDatabaseProvider);
-  return db.watchTodayFocusDurationSeconds();
+  final rollover = ref.watch(studyDayRolloverProvider);
+  return db.watchTodayFocusDurationSeconds(rollover: rollover);
 });
 
 // Smart quotes engine loading from JSON file

@@ -9,6 +9,7 @@ import 'providers/syllabus_provider.dart';
 import 'providers/agreement_provider.dart';
 import 'providers/setup_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/daily_history_provider.dart';
 import 'features/dashboard/widgets/agreement_screen.dart';
 import 'features/dashboard/widgets/auth_screen.dart';
 import 'features/dashboard/widgets/setup_screen.dart';
@@ -60,6 +61,9 @@ class GateTrackerApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Start listening and saving daily stats snapshots
+    ref.watch(dailyHistoryManagerProvider);
+
     final agreementAsync = ref.watch(agreementProvider);
     final authAsync = ref.watch(authProvider);
     final setupAsync = ref.watch(setupCompletedProvider);

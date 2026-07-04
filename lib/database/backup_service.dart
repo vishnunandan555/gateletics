@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'app_database.dart';
 
 class BackupService {
@@ -6,6 +7,8 @@ class BackupService {
     final syllabusCats = await db.select(db.syllabusCategories).get();
     final syllabusTops = await db.select(db.syllabusTopics).get();
     final syllabusTsks = await db.select(db.syllabusTasks).get();
+    final focusSess = await db.select(db.focusSessions).get();
+    final dailyHist = await db.select(db.dailyHistory).get();
 
     final exportedSyllabusCats = syllabusCats.map((c) => {
       'id': c.id,
@@ -30,11 +33,30 @@ class BackupService {
       'position': k.position,
     }).toList();
 
+    final exportedFocusSessions = focusSess.map((fs) => {
+      'id': fs.id,
+      'method': fs.method,
+      'startTime': fs.startTime.toIso8601String(),
+      'durationSeconds': fs.durationSeconds,
+      'accomplishments': fs.accomplishments,
+      'progressDelta': fs.progressDelta,
+    }).toList();
+
+    final exportedDailyHistory = dailyHist.map((dh) => {
+      'dateStr': dh.dateStr,
+      'totalFocusSeconds': dh.totalFocusSeconds,
+      'targetGoalSeconds': dh.targetGoalSeconds,
+      'isGoalCompleted': dh.isGoalCompleted,
+      'syllabusProgressPct': dh.syllabusProgressPct,
+    }).toList();
+
     return {
-      'version': 3,
+      'version': 6,
       'syllabusCategories': exportedSyllabusCats,
       'syllabusTopics': exportedSyllabusTops,
       'syllabusTasks': exportedSyllabusTsks,
+      'focusSessions': exportedFocusSessions,
+      'dailyHistory': exportedDailyHistory,
       'lastInteractedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -44,6 +66,8 @@ class BackupService {
     final syllabusCategoriesData = payload['syllabusCategories'] as List<dynamic>?;
     final syllabusTopicsData = payload['syllabusTopics'] as List<dynamic>?;
     final syllabusTasksData = payload['syllabusTasks'] as List<dynamic>?;
+    final focusSessionsData = payload['focusSessions'] as List<dynamic>?;
+    final dailyHistoryData = payload['dailyHistory'] as List<dynamic>?;
 
     await db.transaction(() async {
       // Restore syllabus-based tables if present in backup
@@ -90,6 +114,46 @@ class BackupService {
             final taskId = await db.addSyllabusTask(newTopicId, name, position: position);
             await db.updateSyllabusTaskCompletion(taskId, isCompleted);
           }
+        }
+      }
+
+      // Restore Focus Sessions if present in backup
+      if (focusSessionsData != null) {
+        await db.delete(db.focusSessions).go();
+        for (final fs in focusSessionsData) {
+          final method = fs['method'] as String;
+          final startTime = DateTime.parse(fs['startTime'] as String);
+          final durationSeconds = (fs['durationSeconds'] as num).toInt();
+          final accomplishments = fs['accomplishments'] as String?;
+          final progressDelta = (fs['progressDelta'] as num?)?.toDouble() ?? 0.0;
+
+          await db.addFocusSession(FocusSessionsCompanion.insert(
+            method: method,
+            startTime: startTime,
+            durationSeconds: durationSeconds,
+            accomplishments: Value(accomplishments),
+            progressDelta: Value(progressDelta),
+          ));
+        }
+      }
+
+      // Restore Daily History if present in backup
+      if (dailyHistoryData != null) {
+        await db.delete(db.dailyHistory).go();
+        for (final dh in dailyHistoryData) {
+          final dateStr = dh['dateStr'] as String;
+          final totalFocusSeconds = (dh['totalFocusSeconds'] as num).toInt();
+          final targetGoalSeconds = (dh['targetGoalSeconds'] as num).toInt();
+          final isGoalCompleted = dh['isGoalCompleted'] as bool;
+          final syllabusProgressPct = (dh['syllabusProgressPct'] as num).toDouble();
+
+          await db.upsertDailyHistory(
+            dateStr: dateStr,
+            totalFocusSeconds: totalFocusSeconds,
+            targetGoalSeconds: targetGoalSeconds,
+            isGoalCompleted: isGoalCompleted,
+            syllabusProgressPct: syllabusProgressPct,
+          );
         }
       }
     });
