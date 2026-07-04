@@ -14,7 +14,7 @@ The App is designed as an offline-first tool. If you choose not to sign in, we d
 ### B. Cloud Backup & Sync Mode (Optional)
 If you choose to sign in using Google Sign-In:
 - **Authentication Identifiers:** We use Firebase Authentication to verify your identity. This grants access to basic Google Account info (such as your name, email address, and profile picture URL) which we use solely to associate your synchronized database with your account.
-- **Database Backup Storage:** We securely upload and synchronize your progress data (such as completed tasks, subject checklists, focus history, and configurations) to Google Cloud Firestore. This ensures you can restore your data across multiple devices.
+- **Database Backup Storage:** We securely upload and synchronize your progress data (such as completed tasks, subject checklists, focus history, and configurations—including user-configured profile preferences like custom names or local avatar display settings) to Google Cloud Firestore. This ensures you can restore your data across multiple devices.
 
 ---
 

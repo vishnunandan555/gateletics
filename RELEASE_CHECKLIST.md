@@ -21,15 +21,15 @@ This document provides a comprehensive, step-by-step checklist to prepare, build
 
 ## 🧪 2. Mandatory 14-Day Closed Testing Track (Personal Accounts)
 If your personal developer account was created after **November 13, 2023**, Google Play requires running a closed test before you can release to production:
-- [ ] **Recruit Testers:**
-  - Recruit at least **12 unique, opted-in testers**.
+- [x] **Recruit Testers:**
+  - Recruit at least **12 unique, opted-in testers**. (Completed ✅)
   - **Important:** Testers must be real users on real Android devices (emulators, simulator tools, or duplicate bot accounts will not qualify and will result in production access request rejections).
-- [ ] **Closed Testing Setup:**
-  - Create a **Closed Testing** track release in Google Play Console (do not use Internal Testing, as it does not count toward the requirement).
-  - Add your 12 testers' Google email addresses to the testing list.
-  - Share the opt-in web link (provided by the Play Console) with your testers.
-- [ ] **14-Day Consecutive Run:**
-  - Ensure all 12 testers opt in, install the app, and keep it installed for **14 consecutive days**.
+- [x] **Closed Testing Setup:**
+  - Create a **Closed Testing** track release in Google Play Console (do not use Internal Testing, as it does not count toward the requirement). (Completed ✅)
+  - Add your 12 testers' Google email addresses to the testing list. (Completed ✅)
+  - Share the opt-in web link (provided by the Play Console) with your testers. (Completed ✅)
+- [/] **14-Day Consecutive Run (IN PROGRESS):**
+  - Ensure all 12 testers opt in, install the app, and keep it installed for **14 consecutive days**. (Started on July 4, 2026 ⏳)
   - **Warning:** If your active opted-in tester count drops below 12 during these 14 days, the clock will reset. Keep in touch with your testers to ensure they don't uninstall or opt out.
 
 ---
@@ -127,7 +127,7 @@ android {
 
 ## 🛠️ 5. Build, Obfuscate & Package
 - [ ] **Bump App Version:**
-  - Verify that the app version is bumped in `pubspec.yaml` (currently `version: 1.2.5+8`).
+  - Verify that the app version is bumped in `pubspec.yaml` (currently `version: 1.2.6+9`).
 - [ ] **Clean Build Cache:**
   ```bash
   flutter clean

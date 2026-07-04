@@ -88,7 +88,7 @@ class AppBarTitle extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'Stable',
+                    'Beta',
                     style: TextStyle(
                       color: progressColor,
                       fontSize: 8,

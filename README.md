@@ -176,7 +176,7 @@ All production releases are automatically compiled, versioned, and packaged via 
 ## 🌟 Version 1.1.4 Highlights
 
 - **Dynamic Resizing on Linux & Windows**: Added window resizing capability from the corners while enforcing a strict `9:16` aspect ratio, making the desktop view match standard mobile proportions.
-- **Fixed Layout Overflow**: Wrapped AppBar components in FittedBox scaling to automatically scale down the app title and stable badge when resized to narrow resolutions.
+- **Fixed Layout Overflow**: Wrapped AppBar components in FittedBox scaling to automatically scale down the app title and beta badge when resized to narrow resolutions.
 - **Google Fonts Integration**: Migrated typography to use free, open-source Google Fonts via the `google_fonts` package, allowing dynamic font configuration and removing local custom font assets from the bundle.
 - **Cleaned Boilerplate Residues**: Verified package identifiers across Android, Linux, Windows, and Web platforms to ensure no `com.example` or legacy names remain.
 
