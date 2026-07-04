@@ -58,8 +58,15 @@ jobs:
       - name: Prepare Android Artifacts
         run: |
           mkdir -p artifacts
-          cp build/app/outputs/flutter-apk/app-release.apk artifacts/gateletics-${{ env.VERSION }}.apk
-          cp build/app/outputs/bundle/release/app-release.aab artifacts/gateletics-${{ env.VERSION }}.aab
+          if [ -f android/key.properties ]; then
+            echo "Release key.properties found. Copying as release-signed."
+            cp build/app/outputs/flutter-apk/app-release.apk artifacts/gateletics-${{ env.VERSION }}-release-signed.apk
+            cp build/app/outputs/bundle/release/app-release.aab artifacts/gateletics-${{ env.VERSION }}-release-signed.aab
+          else
+            echo "Release key.properties NOT found. Copying as debug-signed fallback."
+            cp build/app/outputs/flutter-apk/app-release.apk artifacts/gateletics-${{ env.VERSION }}-debug-signed.apk
+            cp build/app/outputs/bundle/release/app-release.aab artifacts/gateletics-${{ env.VERSION }}-debug-signed.aab
+          fi
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -383,8 +390,8 @@ jobs:
         with:
           files: |
             release-files/gateletics-web-${{ env.VERSION }}.zip
-            release-files/gateletics-${{ env.VERSION }}.aab
-            release-files/gateletics-${{ env.VERSION }}.apk
+            release-files/gateletics-${{ env.VERSION }}-*.aab
+            release-files/gateletics-${{ env.VERSION }}-*.apk
             release-files/gateletics-windows-mobileUI-${{ env.VERSION }}.zip
             release-files/gateletics-linux-mobileUI-${{ env.VERSION }}.AppImage
             release-files/gateletics-linux-mobileUI-${{ env.VERSION }}.tar.gz
