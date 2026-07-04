@@ -6,6 +6,7 @@ import '../../../../providers/focus_provider.dart';
 import '../../../../utils/string_utils.dart';
 import 'focus_dialogs.dart';
 import 'timer_painters.dart';
+import '../../../../utils/ui_scaling.dart';
 
 class FocusIdleView extends ConsumerStatefulWidget {
   final Color accentColor;
@@ -35,20 +36,20 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
         constraints: const BoxConstraints(maxWidth: 600),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 40),
+          padding: EdgeInsets.only(left: context.s(24), right: context.s(24), top: context.s(16), bottom: context.s(40)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header
-              const SizedBox(height: 12),
+              SizedBox(height: context.s(12)),
               Center(
                 child: RichText(
                   text: TextSpan(
                     style: GoogleFonts.outfit(
-                      fontSize: 32,
+                      fontSize: context.s(32),
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      letterSpacing: 0.5,
+                      letterSpacing: context.s(0.5),
                     ),
                     children: [
                       const TextSpan(text: 'Ready to '),
@@ -61,33 +62,33 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: context.s(24)),
 
               // Timer Start Box
               _buildTimerStartBox(context, ref, sessionState, accentColor),
-              const SizedBox(height: 16),
+              SizedBox(height: context.s(16)),
 
               // Method Selector Chip
               Center(
                 child: GestureDetector(
                   onTap: () => showMethodSelectionMenu(context, sessionState, accentColor, ref),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: context.s(20), vertical: context.s(10)),
                     decoration: BoxDecoration(
                       color: accentColor.withAlpha(35),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: accentColor.withAlpha(100), width: 1.5),
+                      borderRadius: BorderRadius.circular(context.s(12)),
+                      border: Border.all(color: accentColor.withAlpha(100), width: context.s(1.5)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        buildMethodIcon(sessionState.details, accentColor, size: 24),
-                        const SizedBox(width: 12),
+                        buildMethodIcon(sessionState.details, accentColor, size: context.s(24)),
+                        SizedBox(width: context.s(12)),
                         Text(
                           sessionState.details.name,
                           style: GoogleFonts.outfit(
                             color: Colors.white,
-                            fontSize: 14,
+                            fontSize: context.s(14),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -96,7 +97,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: context.s(32)),
 
               // Daily Goal Progress
               dailyGoalMinutes == 0 ? const SizedBox() : todayDurationAsync.when(
@@ -138,10 +139,10 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                     },
                     onLongPress: () => showDailyGoalDialog(context, dailyGoalMinutes, accentColor, ref),
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(context.s(16)),
                       decoration: BoxDecoration(
                         color: const Color(0xFF131316),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(context.s(16)),
                         border: Border.all(color: Colors.white.withAlpha(10)),
                       ),
                       child: Column(
@@ -154,7 +155,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                                 "Daily Goal:",
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
-                                  fontSize: 15,
+                                  fontSize: context.s(15),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -162,25 +163,25 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                                 progressInfo,
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
-                                  fontSize: 15,
+                                  fontSize: context.s(15),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          SizedBox(height: context.s(10)),
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(context.s(8)),
                             child: Stack(
                               children: [
                                 Container(
-                                  height: 32,
+                                  height: context.s(32),
                                   color: Colors.white.withAlpha(8),
                                 ),
                                 FractionallySizedBox(
                                   widthFactor: progressPercent,
                                   child: Container(
-                                    height: 32,
+                                    height: context.s(32),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [accentColor.withAlpha(200), accentColor],
@@ -201,31 +202,31 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text("Goal error: $e"),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: context.s(32)),
 
               // Today's History Header
               Text(
                 "Today’s History:",
                 style: GoogleFonts.outfit(
-                  fontSize: 24,
+                  fontSize: context.s(24),
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: context.s(16)),
 
               // History List Timeline
               todaySessionsAsync.when(
                 data: (sessions) {
                   if (sessions.isEmpty) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      padding: EdgeInsets.symmetric(vertical: context.s(24.0)),
                       child: Center(
                         child: Text(
                           "No focus sessions completed today yet.",
                           style: GoogleFonts.outfit(
                             color: Colors.white30,
-                            fontSize: 14,
+                            fontSize: context.s(14),
                           ),
                         ),
                       ),
@@ -246,6 +247,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                       final formattedTime = formatTimeOfDay(s.startTime);
 
                       return _buildHistoryTimelineEntry(
+                        context,
                         time: formattedTime,
                         method: s.method,
                         duration: durationStr,
@@ -274,27 +276,27 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
       // Freestyle big play button
       return Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 56.0),
+          padding: EdgeInsets.symmetric(vertical: context.s(56.0)),
           child: GestureDetector(
             onTap: () => ref.read(focusProvider.notifier).startSession(),
             child: Container(
-              width: 140,
-              height: 140,
+              width: context.s(140),
+              height: context.s(140),
               decoration: BoxDecoration(
                 color: accentColor,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: accentColor.withOpacity(0.15),
-                    blurRadius: 16,
-                    spreadRadius: 1,
+                    color: accentColor.withAlpha(38),
+                    blurRadius: context.s(16),
+                    spreadRadius: context.s(1),
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.play_arrow_rounded,
                 color: Colors.black,
-                size: 72,
+                size: context.s(72),
               ),
             ),
           ),
@@ -311,11 +313,11 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
         : "${sessionState.details.breakMinutes.toString().padLeft(2, '0')}:00";
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: EdgeInsets.symmetric(horizontal: context.s(20), vertical: context.s(24)),
       decoration: BoxDecoration(
         color: const Color(0xFF131316),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withAlpha(8), width: 1.5),
+        borderRadius: BorderRadius.circular(context.s(20)),
+        border: Border.all(color: Colors.white.withAlpha(8), width: context.s(1.5)),
       ),
       child: Column(
         children: [
@@ -330,12 +332,12 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                       "FOCUS",
                       style: GoogleFonts.outfit(
                         color: Colors.white60,
-                        fontSize: 10,
+                        fontSize: context.s(10),
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                        letterSpacing: context.s(1.5),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: context.s(6)),
                     GestureDetector(
                       onTap: () {
                         if (sessionState.details.isCustom) {
@@ -346,7 +348,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                         focusStr,
                         style: GoogleFonts.orbitron(
                           color: Colors.white,
-                          fontSize: 32,
+                          fontSize: context.s(32),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -354,10 +356,10 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
                   child: Container(
-                    width: 1,
-                    height: 40,
+                    width: context.s(1),
+                    height: context.s(40),
                     color: Colors.white12,
                   ),
                 ),
@@ -367,17 +369,17 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                       "BREAK",
                       style: GoogleFonts.outfit(
                         color: Colors.white60,
-                        fontSize: 10,
+                        fontSize: context.s(10),
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                        letterSpacing: context.s(1.5),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: context.s(6)),
                     Text(
                       breakStr,
                       style: GoogleFonts.orbitron(
                         color: Colors.white,
-                        fontSize: 32,
+                        fontSize: context.s(32),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -386,17 +388,17 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: context.s(24)),
           SizedBox(
             width: double.infinity,
-            height: 48,
+            height: context.s(48),
             child: FilledButton.icon(
               onPressed: () => ref.read(focusProvider.notifier).startSession(),
               style: FilledButton.styleFrom(
                 backgroundColor: accentColor,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(context.s(14)),
                 ),
               ),
               icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
@@ -404,7 +406,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                 "Lets Do This!",
                 style: GoogleFonts.outfit(
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+                  letterSpacing: context.s(0.5),
                 ),
               ),
             ),
@@ -415,7 +417,8 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
   }
 
   // History timeline entry
-  Widget _buildHistoryTimelineEntry({
+  Widget _buildHistoryTimelineEntry(
+    BuildContext context, {
     required String time,
     required String method,
     required String duration,
@@ -431,41 +434,41 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
         children: [
           // Left timestamp
           SizedBox(
-            width: 72,
+            width: context.s(72),
             child: Padding(
-              padding: const EdgeInsets.only(top: 14.0),
+              padding: EdgeInsets.only(top: context.s(14.0)),
               child: Text(
                 time,
                 style: GoogleFonts.outfit(
                   color: Colors.white54,
-                  fontSize: 12,
+                  fontSize: context.s(12),
                 ),
                 textAlign: TextAlign.end,
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: context.s(16)),
 
           // Timeline node
           SizedBox(
-            width: 16,
+            width: context.s(16),
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
                 Positioned(
-                  top: isFirst ? 16 : 0,
+                  top: isFirst ? context.s(16) : 0,
                   bottom: isLast ? null : 0,
-                  height: isLast ? 16 : null,
+                  height: isLast ? context.s(16) : null,
                   child: Container(
-                    width: 2,
+                    width: context.s(2),
                     color: accentColor.withAlpha(50),
                   ),
                 ),
                 Positioned(
-                  top: 16,
+                  top: context.s(16),
                   child: Container(
-                    width: 10,
-                    height: 10,
+                    width: context.s(10),
+                    height: context.s(10),
                     decoration: BoxDecoration(
                       color: accentColor,
                       shape: BoxShape.circle,
@@ -475,16 +478,16 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
               ],
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: context.s(16)),
 
           // Entry Card
           Expanded(
             child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: EdgeInsets.only(bottom: context.s(16)),
+              padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(12)),
               decoration: BoxDecoration(
                 color: const Color(0xFF131316),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(context.s(14)),
                 border: Border.all(color: accentColor.withAlpha(50)),
               ),
               child: Column(
@@ -495,13 +498,13 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.access_time_rounded, color: accentColor, size: 16),
-                          const SizedBox(width: 6),
+                          Icon(Icons.access_time_rounded, color: accentColor, size: context.s(16)),
+                          SizedBox(width: context.s(6)),
                           Text(
                             duration,
                             style: GoogleFonts.outfit(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: context.s(14),
                             ),
                           ),
                         ],
@@ -512,27 +515,27 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                         style: GoogleFonts.outfit(
                           color: progressDelta > 0 ? accentColor : Colors.white24,
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: context.s(13),
                         ),
                       ),
                       Text(
                         method,
                         style: GoogleFonts.outfit(
                           color: Colors.white54,
-                          fontSize: 12,
+                          fontSize: context.s(12),
                         ),
                       ),
                     ],
                   ),
                   if (accomplishments != null && accomplishments.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    SizedBox(height: context.s(8)),
                     const Divider(color: Colors.white10),
-                    const SizedBox(height: 4),
+                    SizedBox(height: context.s(4)),
                     Text(
                       accomplishments,
                       style: GoogleFonts.outfit(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: context.s(12),
                         height: 1.4,
                       ),
                     ),

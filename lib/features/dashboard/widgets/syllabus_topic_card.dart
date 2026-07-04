@@ -8,6 +8,7 @@ import '../../../providers/task_font_size_provider.dart';
 import '../../../providers/overall_ui_scale_provider.dart';
 import '../../../widgets/progress_bar.dart';
 import 'syllabus_customization_sheets.dart';
+import '../../../utils/ui_scaling.dart';
 
 class SyllabusTopicCard extends ConsumerWidget {
   final SyllabusTopicWithTasks topicWithTasks;
@@ -34,30 +35,29 @@ class SyllabusTopicCard extends ConsumerWidget {
     final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
     final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
     final taskScaleFactor = ref.watch(taskFontSizeProvider).scaleFactor;
-    final screenWidth = MediaQuery.of(context).size.width;
 
-    // Adaptive font sizes based on screen width
-    final topicFontSize = (screenWidth * 0.042).clamp(13.0, 16.0) * topicScaleFactor;
-    final percentFontSize = (screenWidth * 0.09).clamp(22.0, 27.0) * topicScaleFactor;
-    final countFontSize = (screenWidth * 0.03).clamp(10.0, 11.5) * topicScaleFactor;
-    final taskFontSize = (screenWidth * 0.035).clamp(12.0, 15.0) * taskScaleFactor;
+    // Proportional font sizes using context.s() scaling factor
+    final topicFontSize = context.s(16.0) * topicScaleFactor;
+    final percentFontSize = context.s(27.0) * topicScaleFactor;
+    final countFontSize = context.s(11.5) * topicScaleFactor;
+    final taskFontSize = context.s(14.0) * taskScaleFactor;
 
     late TapDownDetails topicTapDetails;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.5 * overallScale),
+      margin: EdgeInsets.symmetric(horizontal: context.s(16.0), vertical: context.s(2.5) * overallScale),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E22),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(context.s(10)),
         border: Border.all(
           color: categoryColor.withAlpha(20),
-          width: 1.0,
+          width: context.s(1.0),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(40),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: context.s(10),
+            offset: Offset(0, context.s(4)),
           ),
         ],
       ),
@@ -77,7 +77,7 @@ class SyllabusTopicCard extends ConsumerWidget {
               _showTopicContextMenu(context, topicTapDetails, topic, tasks, ref);
             },
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12 * overallScale, vertical: 8 * overallScale),
+              padding: EdgeInsets.symmetric(horizontal: context.s(12) * overallScale, vertical: context.s(8) * overallScale),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -97,10 +97,10 @@ class SyllabusTopicCard extends ConsumerWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 6 * overallScale),
+                        SizedBox(height: context.s(6) * overallScale),
                         ProgressBar(
                           percentage: percentage,
-                          height: 8 * overallScale,
+                          height: context.s(8) * overallScale,
                           color: categoryColor,
                           showTicks: false,
                           tickCount: 10,
@@ -108,10 +108,10 @@ class SyllabusTopicCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  SizedBox(width: 16 * overallScale),
+                  SizedBox(width: context.s(16) * overallScale),
                   // RIGHT: Big % & Fraction count
                   Container(
-                    width: 80 * overallScale,
+                    width: context.s(80) * overallScale,
                     alignment: Alignment.centerRight,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -123,24 +123,24 @@ class SyllabusTopicCard extends ConsumerWidget {
                             fontSize: percentFontSize,
                             fontWeight: FontWeight.w900,
                             color: categoryColor,
-                            letterSpacing: -1.0,
+                            letterSpacing: context.s(-1.0),
                             height: 1,
                             shadows: [
                               Shadow(
                                 color: categoryColor.withAlpha(140),
-                                blurRadius: 14,
+                                blurRadius: context.s(14),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 4 * overallScale),
+                        SizedBox(height: context.s(4) * overallScale),
                         Text(
                           '$completedCount/$totalCount',
                           style: GoogleFonts.outfit(
                             color: Colors.white70,
                             fontSize: countFontSize,
                             fontWeight: FontWeight.w500,
-                            letterSpacing: 0.5,
+                            letterSpacing: context.s(0.5),
                           ),
                         ),
                       ],
@@ -188,33 +188,33 @@ class SyllabusTopicCard extends ConsumerWidget {
                     _showTaskContextMenu(context, taskTapDetails, task, ref);
                   },
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14 * overallScale, vertical: 8 * overallScale),
+                    padding: EdgeInsets.symmetric(horizontal: context.s(14) * overallScale, vertical: context.s(8) * overallScale),
                     child: Row(
                       children: [
                         // Custom Checkbox
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          width: 18 * overallScale,
-                          height: 18 * overallScale,
+                          width: context.s(18) * overallScale,
+                          height: context.s(18) * overallScale,
                           decoration: BoxDecoration(
                             color: task.isCompleted
                                 ? categoryColor.withAlpha(38)
                                 : Colors.transparent,
-                            borderRadius: BorderRadius.circular(5),
+                            borderRadius: BorderRadius.circular(context.s(5)),
                             border: Border.all(
                               color: task.isCompleted ? categoryColor : Colors.white24,
-                              width: 1.5,
+                              width: context.s(1.5),
                             ),
                           ),
                           child: task.isCompleted
                               ? Icon(
                                   Icons.check_rounded,
-                                  size: 14 * overallScale,
+                                  size: context.s(14) * overallScale,
                                   color: categoryColor,
                                 )
                               : null,
                         ),
-                        SizedBox(width: 12 * overallScale),
+                        SizedBox(width: context.s(12) * overallScale),
                         // Task Name
                         Expanded(
                           child: Text(

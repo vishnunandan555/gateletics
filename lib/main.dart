@@ -5,7 +5,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'database/app_database.dart';
-import 'providers/subject_provider.dart';
+import 'providers/syllabus_provider.dart';
 import 'providers/agreement_provider.dart';
 import 'providers/setup_provider.dart';
 import 'providers/auth_provider.dart';

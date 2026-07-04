@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/subject_provider.dart';
 import '../providers/progress_font_provider.dart';
+import '../utils/ui_scaling.dart';
 
 class PillProgressWidget extends ConsumerStatefulWidget {
   final double percentage;
@@ -72,8 +73,8 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
         builder: (context, _) {
           final screenWidth = MediaQuery.of(context).size.width;
           final w = (screenWidth * 0.75).clamp(240.0, 400.0);
-          const h = 140.0;
-          const fontSize = 44.0;
+          final h = context.s(140.0);
+          final fontSize = context.s(44.0);
           final color = ref.watch(overallProgressColorProvider);
           final progress = _anim.value;
           final selectedFont = ref.watch(progressFontProvider);
@@ -83,19 +84,19 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
               fontSize: fontSize,
               color: color,
               height: 1.0,
-              letterSpacing: 2,
+              letterSpacing: context.s(2),
               shadows: [
                 Shadow(
                   color: color.withValues(alpha: 0.5),
-                  blurRadius: 16,
+                  blurRadius: context.s(16),
                 ),
                 Shadow(
                   color: color.withValues(alpha: 0.28),
-                  blurRadius: 55,
+                  blurRadius: context.s(55),
                 ),
                 Shadow(
                   color: color.withValues(alpha: 0.15),
-                  blurRadius: 95,
+                  blurRadius: context.s(95),
                 ),
               ],
             );
@@ -104,40 +105,40 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
               case ProgressFont.jersey15:
                 return GoogleFonts.jersey15(
                   textStyle: baseStyle.copyWith(
-                    fontSize: fontSize - -15,
+                    fontSize: fontSize + context.s(15),
                   ),
                   fontWeight: FontWeight.w900,
                 );
               case ProgressFont.jersey10:
                 return GoogleFonts.jersey10(
                   textStyle: baseStyle.copyWith(
-                    fontSize: fontSize - -15,
+                    fontSize: fontSize + context.s(15),
                   ),
                   fontWeight: FontWeight.w900,
                 );
               case ProgressFont.tektur:
                 return GoogleFonts.tektur(
                   textStyle: baseStyle.copyWith(
-                    fontSize: fontSize - -10,
+                    fontSize: fontSize + context.s(10),
                   ),
                   fontWeight: FontWeight.w900,
                 );
               case ProgressFont.odibeeSans:
                 return GoogleFonts.odibeeSans(
                   textStyle: baseStyle.copyWith(
-                    fontSize: fontSize - -10,
+                    fontSize: fontSize + context.s(10),
                   ),
                   fontWeight: FontWeight.w900,
                 );
               case ProgressFont.pressStart2P:
                 return GoogleFonts.pressStart2p(
-                  textStyle: baseStyle.copyWith(fontSize: fontSize - 10),
+                  textStyle: baseStyle.copyWith(fontSize: fontSize - context.s(10)),
                   fontWeight: FontWeight.w900,
                 );
               case ProgressFont.boldonse:
                 return GoogleFonts.boldonse(
                   textStyle: baseStyle.copyWith(
-                    fontSize: fontSize - 10,
+                    fontSize: fontSize - context.s(10),
                     height: 1.6,
                   ),
                   fontWeight: FontWeight.w900,
@@ -159,7 +160,7 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                   progress: progress,
                   color: color,
                   trackColor: Colors.white.withValues(alpha: 0.07),
-                  strokeWidth: 10,
+                  strokeWidth: context.s(10),
                 ),
                 child: Center(
                   child: Column(
@@ -169,11 +170,11 @@ class _PillProgressWidgetState extends ConsumerState<PillProgressWidget>
                         widget.totalVideos == 0 ? '?' : '${(progress * 100).toStringAsFixed(2)}%',
                         style: getPercentageStyle(),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
+                      SizedBox(height: context.s(4)),
+                      Text(
                         'Total Syllabus Completion',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: context.s(13),
                           color: Colors.white70,
                           fontWeight: FontWeight.bold,
                         ),

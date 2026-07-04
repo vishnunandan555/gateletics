@@ -17,7 +17,7 @@ import '../../providers/agreement_provider.dart';
 import '../../providers/setup_provider.dart';
 
 import '../../providers/subject_provider.dart';
-import '../../providers/completion_type_provider.dart';
+// Removed completion_type_provider import
 import '../../providers/syllabus_provider.dart';
 import '../../providers/package_info_provider.dart';
 import '../../providers/progress_font_provider.dart';
@@ -40,6 +40,7 @@ import 'widgets/shell_common.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../database/backup_service.dart';
 import '../../widgets/settings/about_dialog.dart';
+import '../../utils/ui_scaling.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -198,51 +199,14 @@ class SettingsScreen extends ConsumerWidget {
       final payload = jsonDecode(raw);
       final db = ref.read(appDatabaseProvider);
 
-      if (payload is List || (payload is Map && !payload.containsKey('categories'))) {
-        // Fallback: old style progress restoration by subject name
-        final list = (payload is List ? payload : payload['subjects'] as List<dynamic>);
-        final existingSubjects = await db.select(db.subjects).get();
-        final subjectMap = {for (var s in existingSubjects) s.name.trim(): s};
+      // Full restore using BackupService
+      await BackupService.restoreDatabase(db, payload);
+      ref.read(syncProvider.notifier).clearDatabaseCaches();
 
-        int importedCount = 0;
-        await db.transaction(() async {
-          for (final item in list) {
-            final name = item['name'] as String?;
-            if (name == null) continue;
-
-            final s = subjectMap[name.trim()];
-            if (s != null) {
-              await db.updateSubjectDetails(
-                id: s.id,
-                name: s.name,
-                completed: (item['completedVideos'] as int?) ?? s.completedVideos,
-                total: (item['totalVideos'] as int?) ?? s.totalVideos,
-                sourceName: (item['sourceName'] as String?) ?? s.sourceName,
-                playlistLink: (item['playlistLink'] as String?) ?? s.playlistLink,
-                isActive: (item['isActive'] as bool?) ?? s.isActive,
-                color: item['color'] as int?,
-                categoryId: s.categoryId,
-              );
-              importedCount++;
-            }
-          }
-        });
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('✓ Restored progress for $importedCount matching subjects!')),
-          );
-        }
-      } else {
-        // Full restore using BackupService
-        await BackupService.restoreDatabase(db, payload);
-        ref.read(syncProvider.notifier).clearDatabaseCaches();
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('✓ Backup data successfully restored!')),
-          );
-        }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✓ Backup data successfully restored!')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -299,7 +263,6 @@ class SettingsScreen extends ConsumerWidget {
 
     try {
       if (everything) {
-        await ref.read(subjectControllerProvider.notifier).resetEverything();
         await ref.read(syllabusControllerProvider.notifier).resetEverything();
 
         // 1. Delete all focus sessions
@@ -340,14 +303,7 @@ class SettingsScreen extends ConsumerWidget {
         ref.invalidate(overallUiScaleProvider);
         await ref.read(overallProgressColorProvider.notifier).setAutoMode();
       } else {
-        final currentType = ref.read(completionTypeProvider);
-        if (currentType == CompletionType.syllabus) {
-          await ref.read(syllabusControllerProvider.notifier).resetTrackingData();
-        } else {
-          await ref
-              .read(subjectControllerProvider.notifier)
-              .resetTrackingData();
-        }
+        await ref.read(syllabusControllerProvider.notifier).resetTrackingData();
       }
 
       if (context.mounted) {
@@ -516,18 +472,22 @@ class SettingsScreen extends ConsumerWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isDesktop = screenWidth > 900;
 
-    final cloudSyncHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'CLOUD SYNC',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
+    Widget buildHeader(String title, {Color? color}) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
+        child: Text(
+          title,
+          style: TextStyle(
+            color: (color ?? accentColor).withValues(alpha: 0.7),
+            fontWeight: FontWeight.bold,
+            fontSize: context.s(11),
+            letterSpacing: context.s(1.2),
+          ),
         ),
-      ),
-    );
+      );
+    }
+
+    final cloudSyncHeader = buildHeader('CLOUD SYNC');
 
     final cloudSyncContent = isFirebaseSupported()
         ? Consumer(
@@ -986,18 +946,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           );
 
-    final profileSettingsHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'PROFILE SETTINGS',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final profileSettingsHeader = buildHeader('PROFILE SETTINGS');
 
     final profileSettingsContent = Consumer(
       builder: (context, ref, _) {
@@ -1173,18 +1122,7 @@ class SettingsScreen extends ConsumerWidget {
           },
         );
 
-    final localBackupsHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'LOCAL BACKUPS',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final localBackupsHeader = buildHeader('LOCAL BACKUPS');
 
     final localBackupsContent = Column(
       mainAxisSize: MainAxisSize.min,
@@ -1210,113 +1148,21 @@ class SettingsScreen extends ConsumerWidget {
       ],
     );
 
-    final completionTypeHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'COMPLETION TYPE',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final completionTypeHeader = buildHeader('PRESETS');
 
     final completionTypeContent = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Consumer(
         builder: (context, ref, _) {
-          final currentType = ref.watch(completionTypeProvider);
-
           return Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => ref
-                          .read(completionTypeProvider.notifier)
-                          .setCompletionType(CompletionType.resource),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: currentType == CompletionType.resource
-                              ? accentColor.withValues(alpha: 0.2)
-                              : Colors.white10,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: currentType == CompletionType.resource
-                                ? accentColor
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Resource Based',
-                            style: TextStyle(
-                              color: currentType == CompletionType.resource
-                                  ? accentColor
-                                  : Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => ref
-                          .read(completionTypeProvider.notifier)
-                          .setCompletionType(CompletionType.syllabus),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: currentType == CompletionType.syllabus
-                              ? accentColor.withValues(alpha: 0.2)
-                              : Colors.white10,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: currentType == CompletionType.syllabus
-                                ? accentColor
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Syllabus Based',
-                            style: TextStyle(
-                              color: currentType == CompletionType.syllabus
-                                  ? accentColor
-                                  : Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                title: Text(currentType == CompletionType.resource
-                    ? 'Apply Resource Preset'
-                    : 'Apply Syllabus Preset'),
-                subtitle: Text(
-                  currentType == CompletionType.resource
-                      ? 'Apply default GoClasses/YouTube sources'
-                      : 'Restore the default GATE CSE checklist',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                title: const Text('Apply Syllabus Preset'),
+                subtitle: const Text(
+                  'Restore the default GATE checklist',
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
                 onTap: () async {
                   final confirmed = await showDialog<bool>(
@@ -1326,14 +1172,10 @@ class SettingsScreen extends ConsumerWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      title: Text(currentType == CompletionType.resource
-                          ? 'Apply Resource Preset'
-                          : 'Apply Syllabus Preset'),
-                      content: Text(
-                        currentType == CompletionType.resource
-                            ? 'This will overwrite current sources and counts for some subjects. Continue?'
-                            : 'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
-                        style: const TextStyle(color: Colors.white70),
+                      title: const Text('Apply Syllabus Preset'),
+                      content: const Text(
+                        'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
+                        style: TextStyle(color: Colors.white70),
                       ),
                       actions: [
                         TextButton(
@@ -1354,15 +1196,9 @@ class SettingsScreen extends ConsumerWidget {
                   );
 
                   if (confirmed == true) {
-                    if (currentType == CompletionType.resource) {
-                      await ref
-                          .read(subjectControllerProvider.notifier)
-                          .applyPreset();
-                    } else {
-                      await ref
-                          .read(syllabusControllerProvider.notifier)
-                          .applyPreset();
-                    }
+                    await ref
+                        .read(syllabusControllerProvider.notifier)
+                        .applyPreset();
                   }
                 },
               ),
@@ -1372,18 +1208,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
 
-    final categoryOrderingHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'CATEGORY ORDERING',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final categoryOrderingHeader = buildHeader('CATEGORY ORDERING');
 
     final categoryOrderingContent = SwitchListTile(
       activeColor: accentColor,
@@ -1398,18 +1223,7 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final focusQuotesHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'FOCUS MODE Additional Options (Beta)',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final focusQuotesHeader = buildHeader('FOCUS SETTINGS');
 
     final focusQuotesContent = Consumer(
       builder: (context, ref, _) {
@@ -1523,18 +1337,7 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final accentColorHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'ACCENT COLOR OPTIONS',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final accentColorHeader = buildHeader('ACCENT COLOR OPTIONS');
 
     final accentColorContent = Consumer(
       builder: (context, ref, _) {
@@ -1573,18 +1376,7 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final fontHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'ACCENT & CATEGORY FONT',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final fontHeader = buildHeader('ACCENT & CATEGORY FONT');
 
     final fontContent = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -1661,18 +1453,7 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
 
-    final uiSwitchHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'LAYOUT',
-        style: TextStyle(
-          color: accentColor.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final uiSwitchHeader = buildHeader('LAYOUT');
 
     final uiSwitchContent = ListTile(
       leading: Icon(
@@ -1735,18 +1516,7 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final resetDataHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        'RESET DATA',
-        style: TextStyle(
-          color: Colors.redAccent.withValues(alpha: 0.7),
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    final resetDataHeader = buildHeader('RESET DATA', color: Colors.redAccent);
 
     final resetDataContent = Column(
       mainAxisSize: MainAxisSize.min,
@@ -1928,12 +1698,12 @@ class SettingsScreen extends ConsumerWidget {
           dense: true,
           titleTextStyle: GoogleFonts.outfit(
             color: Colors.white,
-            fontSize: 13,
+            fontSize: context.s(13),
             fontWeight: FontWeight.bold,
           ),
           subtitleTextStyle: GoogleFonts.outfit(
             color: Colors.white30,
-            fontSize: 11,
+            fontSize: context.s(11),
           ),
         ),
       ),
@@ -1942,9 +1712,9 @@ class SettingsScreen extends ConsumerWidget {
           title: Text(
             'SETTINGS',
             style: GoogleFonts.orbitron(
-              fontSize: 20,
+              fontSize: context.s(20),
               fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
+              letterSpacing: context.s(1.5),
             ),
           ),
           centerTitle: true,
@@ -2048,7 +1818,7 @@ class SettingsScreen extends ConsumerWidget {
               )
             : ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
                 children: [
                   cloudSyncHeader,
                   cloudSyncContent,
@@ -2068,39 +1838,39 @@ class SettingsScreen extends ConsumerWidget {
                   const Divider(color: Colors.white12),
                   completionTypeHeader,
                   completionTypeContent,
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.s(4)),
                   const Divider(color: Colors.white12),
                   categoryOrderingHeader,
                   categoryOrderingContent,
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.s(4)),
                   const Divider(color: Colors.white12),
                   focusQuotesHeader,
                   focusQuotesContent,
                   focusAnimationStyleContent,
                   resumeButtonStyleContent,
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.s(4)),
                   const Divider(color: Colors.white12),
                   accentColorHeader,
                   accentColorContent,
                   const Divider(color: Colors.white12),
                   fontHeader,
                   fontContent,
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.s(4)),
                   ChangeFontSizeTile(accentColor: accentColor),
                   const Divider(color: Colors.white12),
                   resetDataHeader,
                   resetDataContent,
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.s(4)),
                   const Divider(color: Colors.white10),
                   advancedOptionsContent,
-                  const SizedBox(height: 4),
+                  SizedBox(height: context.s(4)),
                   const Divider(color: Colors.white10),
                   aboutAppContent,
-                  const SizedBox(height: 8),
+                  SizedBox(height: context.s(8)),
                   const Divider(color: Colors.white10),
-                  const SizedBox(height: 8),
+                  SizedBox(height: context.s(8)),
                   versionText,
-                  const SizedBox(height: 16),
+                  SizedBox(height: context.s(16)),
                 ],
               ),
       ),

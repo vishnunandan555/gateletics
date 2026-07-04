@@ -7,9 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../database/app_database.dart';
 import '../database/backup_service.dart';
 import 'auth_provider.dart';
-import 'subject_provider.dart';
 import 'syllabus_provider.dart';
-import 'completion_type_provider.dart';
 import 'hide_download_banner_provider.dart';
 import '../database/syllabus_preset.dart';
 
@@ -202,55 +200,14 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
   }
 
   void clearDatabaseCaches() {
-    ref.read(resourceCategoriesOrderProvider.notifier).clear();
     ref.read(syllabusCategoriesOrderProvider.notifier).clear();
-    ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).clear();
     ref.read(expandedTopicsProvider.notifier).clear();
     ref.read(manuallyExpandedCompletedSyllabusCategoriesProvider.notifier).clear();
   }
 
   // Intelligent Merge local data with cloud data
   Future<Map<String, dynamic>> _mergeData(Map<String, dynamic> local, Map<String, dynamic> cloud) async {
-    // 1. Merge Resource Categories & Subjects
-    final localCats = List<Map<String, dynamic>>.from(local['categories'] ?? []);
-    final cloudCats = List<Map<String, dynamic>>.from(cloud['categories'] ?? []);
-    final localSubjs = List<Map<String, dynamic>>.from(local['subjects'] ?? []);
-    final cloudSubjs = List<Map<String, dynamic>>.from(cloud['subjects'] ?? []);
-
-    // Merge Categories by name
-    final mergedCats = <String, Map<String, dynamic>>{};
-    for (final c in [...localCats, ...cloudCats]) {
-      final name = c['name'] as String;
-      if (!mergedCats.containsKey(name)) {
-        mergedCats[name] = c;
-      } else {
-        // Keep the one with the newer interaction date
-        final currentIntStr = mergedCats[name]!['lastInteractedAt'] as String?;
-        final nextIntStr = c['lastInteractedAt'] as String?;
-        if (nextIntStr != null && (currentIntStr == null || nextIntStr.compareTo(currentIntStr) > 0)) {
-          mergedCats[name] = c;
-        }
-      }
-    }
-
-    // Merge Subjects by name & categoryName
-    final mergedSubjs = <String, Map<String, dynamic>>{};
-    for (final s in [...localSubjs, ...cloudSubjs]) {
-      final key = "${s['categoryName']}_${s['name']}";
-      if (!mergedSubjs.containsKey(key)) {
-        mergedSubjs[key] = s;
-      } else {
-        final existing = mergedSubjs[key]!;
-        // Choose higher progress/completed videos
-        final completed = (s['completedVideos'] as int).clamp(0, s['totalVideos'] as int);
-        final existingCompleted = (existing['completedVideos'] as int).clamp(0, existing['totalVideos'] as int);
-        if (completed > existingCompleted) {
-          mergedSubjs[key] = s;
-        }
-      }
-    }
-
-    // 2. Merge Syllabus Categories, Topics & Tasks
+    // Merge Syllabus Categories, Topics & Tasks
     final localSylCats = List<Map<String, dynamic>>.from(local['syllabusCategories'] ?? []);
     final cloudSylCats = List<Map<String, dynamic>>.from(cloud['syllabusCategories'] ?? []);
     final localSylTops = List<Map<String, dynamic>>.from(local['syllabusTopics'] ?? []);
@@ -385,8 +342,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
     return {
       'version': 3,
-      'categories': mergedCats.values.toList(),
-      'subjects': mergedSubjs.values.toList(),
       'syllabusCategories': finalSylCats,
       'syllabusTopics': finalSylTops,
       'syllabusTasks': finalSylTsks,
@@ -400,21 +355,9 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
   Future<bool> _hasLocalUserModifications() async {
     try {
-      // 1. Check if there is any progress in resource-based subjects
-      final subjects = await _db.select(_db.subjects).get();
-      if (subjects.any((s) => s.completedVideos > 0)) return true;
-
-      // 2. Check if there is any progress in syllabus tasks
+      // 1. Check if there is any progress in syllabus tasks
       final tasks = await _db.select(_db.syllabusTasks).get();
       if (tasks.any((t) => t.isCompleted)) return true;
-
-      // 3. Check if there are custom resource categories or missing default categories
-      final categories = await _db.select(_db.categories).get();
-      final defaultCatNames = {'Mathematics', 'Programming', 'Machine Logic', 'Core Systems', 'Aptitude'};
-      final currentCatNames = categories.map((c) => c.name).toSet();
-      if (currentCatNames.length != defaultCatNames.length || !currentCatNames.containsAll(defaultCatNames)) {
-        return true;
-      }
 
       // 4. Check if there are custom syllabus categories or missing default syllabus categories
       final sylCategories = await _db.select(_db.syllabusCategories).get();
@@ -465,7 +408,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       // Deep data comparison: if local and cloud are identical, bypass conflict check
       if (hasLocalData) {
         final localData = await exportLocalData();
-        localData['completionType'] = ref.read(completionTypeProvider).name;
         localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
         if (_areDataEqual(localData, cloudData)) {
           await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
@@ -476,16 +418,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (!hasLocalData) {
         // Local is empty (e.g., fresh install). Auto-download.
         await _restoreLocalData(cloudData);
-
-        // Restore completionType
-        final compTypeStr = cloudData['completionType'] as String?;
-        if (compTypeStr != null) {
-          final compType = CompletionType.values.firstWhere(
-            (e) => e.name == compTypeStr,
-            orElse: () => CompletionType.syllabus,
-          );
-          await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
-        }
 
         // Restore hideDownloadBanner
         final hideBanner = cloudData['hideDownloadBanner'] as bool?;
@@ -521,7 +453,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     await _updateSyncState(status: SyncStatus.syncing);
     try {
       final localData = await exportLocalData();
-      localData['completionType'] = ref.read(completionTypeProvider).name;
       localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
@@ -545,16 +476,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (doc.exists && doc.data()?['data'] != null) {
         final cloudData = doc.data()!['data'] as Map<String, dynamic>;
         await _restoreLocalData(cloudData);
-
-        // Restore completionType
-        final compTypeStr = cloudData['completionType'] as String?;
-        if (compTypeStr != null) {
-          final compType = CompletionType.values.firstWhere(
-            (e) => e.name == compTypeStr,
-            orElse: () => CompletionType.syllabus,
-          );
-          await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
-        }
 
         // Restore hideDownloadBanner
         final hideBanner = cloudData['hideDownloadBanner'] as bool?;
@@ -600,16 +521,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         // Restore local DB with merged data
         await _restoreLocalData(merged);
 
-        // Restore completionType
-        final compTypeStr = dataToMerge['completionType'] as String?;
-        if (compTypeStr != null) {
-          final compType = CompletionType.values.firstWhere(
-            (e) => e.name == compTypeStr,
-            orElse: () => CompletionType.syllabus,
-          );
-          await ref.read(completionTypeProvider.notifier).setCompletionType(compType);
-        }
-
         // Restore hideDownloadBanner
         final hideBanner = dataToMerge['hideDownloadBanner'] as bool?;
         if (hideBanner != null) {
@@ -617,7 +528,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         }
         
         // Write merged data back to Cloud
-        merged['completionType'] = ref.read(completionTypeProvider).name;
         merged['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'data': merged,
@@ -642,7 +552,6 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
     try {
       final localData = await exportLocalData();
-      localData['completionType'] = ref.read(completionTypeProvider).name;
       localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
@@ -658,54 +567,12 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
   bool _areDataEqual(Map<String, dynamic> local, Map<String, dynamic> cloud) {
     try {
-      // Compare completionType (default to syllabus)
-      final localCompType = local['completionType'] ?? 'syllabus';
-      final cloudCompType = cloud['completionType'] ?? 'syllabus';
-      if (localCompType != cloudCompType) {
-        debugPrint("Sync diff: completionType ($localCompType vs $cloudCompType)");
-        return false;
-      }
-
       // Compare hideDownloadBanner (default to false)
       final localHideBanner = local['hideDownloadBanner'] ?? false;
       final cloudHideBanner = cloud['hideDownloadBanner'] ?? false;
       if (localHideBanner != cloudHideBanner) {
         debugPrint("Sync diff: hideDownloadBanner ($localHideBanner vs $cloudHideBanner)");
         return false;
-      }
-
-      // Compare categories count
-      final localCats = local['categories'] as List? ?? [];
-      final cloudCats = cloud['categories'] as List? ?? [];
-      if (localCats.length != cloudCats.length) {
-        debugPrint("Sync diff: categories count (${localCats.length} vs ${cloudCats.length})");
-        return false;
-      }
-
-      // Compare subjects progress
-      final localSubjs = local['subjects'] as List? ?? [];
-      final cloudSubjs = cloud['subjects'] as List? ?? [];
-      if (localSubjs.length != cloudSubjs.length) {
-        debugPrint("Sync diff: subjects count (${localSubjs.length} vs ${cloudSubjs.length})");
-        return false;
-      }
-      
-      // Map local subjects by name for comparison
-      final localSubjMap = {
-        for (var s in localSubjs) 
-          "${s['categoryName'] ?? ''}_${s['name'] ?? ''}": s
-      };
-      for (final cs in cloudSubjs) {
-        final key = "${cs['categoryName'] ?? ''}_${cs['name'] ?? ''}";
-        final ls = localSubjMap[key];
-        if (ls == null) {
-          debugPrint("Sync diff: cloud subject not found in local ($key)");
-          return false;
-        }
-        if (ls['completedVideos'] != cs['completedVideos'] || ls['totalVideos'] != cs['totalVideos']) {
-          debugPrint("Sync diff: subject progress ($key) local: ${ls['completedVideos']}/${ls['totalVideos']}, cloud: ${cs['completedVideos']}/${cs['totalVideos']}");
-          return false;
-        }
       }
 
       // Compare syllabus tasks progress

@@ -326,9 +326,9 @@ class _SharedShellHeader extends ConsumerWidget {
         Color headerBgColor = Colors.transparent;
         if (isScrolled) {
           if (page > 0.0 && page <= 1.0) {
-            headerBgColor = Colors.black.withOpacity(page);
+            headerBgColor = Colors.black.withValues(alpha: page);
           } else if (page > 1.0) {
-            headerBgColor = Colors.black.withOpacity((2.0 - page).clamp(0.0, 1.0));
+            headerBgColor = Colors.black.withValues(alpha: (2.0 - page).clamp(0.0, 1.0));
           }
         }
 

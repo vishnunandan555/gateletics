@@ -7,6 +7,7 @@ import '../../../providers/syllabus_provider.dart';
 import '../../../providers/category_font_size_provider.dart';
 import 'syllabus_customization_sheets.dart';
 import '../../../utils/string_utils.dart';
+import '../../../utils/ui_scaling.dart';
 
 class SyllabusCategoryHeader extends ConsumerWidget {
   final SyllabusCategory category;
@@ -29,15 +30,15 @@ class SyllabusCategoryHeader extends ConsumerWidget {
     final normalized = (progress / 100).clamp(0.0, 1.0);
     final selectedFont = ref.watch(progressFontProvider);
     final sizeOpt = ref.watch(categoryFontSizeProvider);
-    final categoryFontSize = sizeOpt.size;
+    final categoryFontSize = context.s(sizeOpt.size);
     final scaleFactor = sizeOpt.scaleFactor;
     
-    final iconSize = (26.0 * scaleFactor).clamp(14.0, 26.0);
+    final iconSize = context.s((26.0 * scaleFactor).clamp(14.0, 26.0));
 
     final categoryBase = TextStyle(
       fontSize: categoryFontSize,
       fontWeight: FontWeight.w900,
-      letterSpacing: 1.2,
+      letterSpacing: context.s(1.2),
       color: Colors.white54,
     );
 
@@ -45,28 +46,28 @@ class SyllabusCategoryHeader extends ConsumerWidget {
       switch (selectedFont) {
         case ProgressFont.jersey15:
           return GoogleFonts.jersey15(
-            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -15),
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize + context.s(15)),
           );
         case ProgressFont.jersey10:
           return GoogleFonts.jersey10(
-            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -15),
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize + context.s(15)),
           );
         case ProgressFont.tektur:
           return GoogleFonts.tektur(
-            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -10),
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize + context.s(10)),
           );
         case ProgressFont.odibeeSans:
           return GoogleFonts.odibeeSans(
-            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - -10),
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize + context.s(10)),
           );
         case ProgressFont.pressStart2P:
           return GoogleFonts.pressStart2p(
-            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - 10),
+            textStyle: categoryBase.copyWith(fontSize: categoryFontSize - context.s(10)),
           );
         case ProgressFont.boldonse:
           return GoogleFonts.boldonse(
             textStyle: categoryBase.copyWith(
-              fontSize: categoryFontSize - 1,
+              fontSize: categoryFontSize - context.s(1),
               height: 1.6,
             ),
           );
@@ -149,7 +150,7 @@ class SyllabusCategoryHeader extends ConsumerWidget {
                         ),
                       ),
                       if (progress >= 100.0) ...[
-                        const SizedBox(width: 6),
+                        SizedBox(width: context.s(6)),
                         Icon(
                           Icons.check_circle_rounded,
                           color: color,
@@ -159,7 +160,7 @@ class SyllabusCategoryHeader extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: context.s(12)),
                 Text(
                   '${progress.toStringAsFixed(1)}%',
                   style: baseStyle.copyWith(color: color),
@@ -172,7 +173,7 @@ class SyllabusCategoryHeader extends ConsumerWidget {
           onTap: () => showSyllabusCategoryOptionsSheet(context, category, ref, topics),
           behavior: HitTestBehavior.translucent,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(2, 8, 0, 8),
+            padding: EdgeInsets.fromLTRB(context.s(2), context.s(8), 0, context.s(8)),
             child: Icon(
               Icons.more_vert_rounded,
               size: iconSize,

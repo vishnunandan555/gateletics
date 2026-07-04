@@ -6,8 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
-import 'subject_provider.dart';
-import 'completion_type_provider.dart';
+import 'syllabus_provider.dart';
 
 enum FocusMethod {
   freestyle,
@@ -265,7 +264,6 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
 
     // Capture initial snapshots for accomplishments comparison
     final initialCompletedTaskIds = <int>{};
-    final initialSubjectCompletedVideos = <int, int>{};
 
     try {
       final tasks = await db.select(db.syllabusTasks).get();
@@ -276,12 +274,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       }
     } catch (_) {}
 
-    try {
-      final subs = await db.select(db.subjects).get();
-      for (final s in subs) {
-        initialSubjectCompletedVideos[s.id] = s.completedVideos;
-      }
-    } catch (_) {}
+    // Removed resource tracking completion checks
 
     state = state.copyWith(
       status: FocusStatus.focusing,
@@ -290,7 +283,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       completedFocusIntervals: 0,
       sessionStartTime: startTime,
       initialCompletedTaskIds: initialCompletedTaskIds,
-      initialSubjectCompletedVideos: initialSubjectCompletedVideos,
+      initialSubjectCompletedVideos: const {},
       sessionAccomplishments: [],
       isBreakActive: false,
     );
@@ -356,17 +349,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       }
     } catch (_) {}
 
-    // Check resource achievements
-    try {
-      final subs = await db.select(db.subjects).get();
-      for (final s in subs) {
-        final initialCompleted = state.initialSubjectCompletedVideos[s.id] ?? 0;
-        if (s.completedVideos > initialCompleted && s.totalVideos > 0) {
-          final progressDeltaPercent = ((s.completedVideos - initialCompleted) / s.totalVideos) * 100;
-          accomplishments.add("${s.name} +${progressDeltaPercent.toStringAsFixed(1)}%");
-        }
-      }
-    } catch (_) {}
+    // Removed resource achievements check
 
     state = state.copyWith(sessionAccomplishments: accomplishments);
   }
@@ -381,23 +364,12 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
 
     double progressDelta = 0.0;
     try {
-      final completionType = ref.read(completionTypeProvider);
-      if (completionType == CompletionType.syllabus) {
-        final tasks = await db.select(db.syllabusTasks).get();
-        final totalTasks = tasks.length;
-        if (totalTasks > 0) {
-          final initialCount = state.initialCompletedTaskIds.length;
-          final currentCount = tasks.where((t) => t.isCompleted).length;
-          progressDelta = ((currentCount - initialCount) / totalTasks) * 100.0;
-        }
-      } else {
-        final subjects = await db.select(db.subjects).get();
-        final totalVideos = subjects.fold(0, (sum, s) => sum + s.totalVideos);
-        if (totalVideos > 0) {
-          final initialCount = state.initialSubjectCompletedVideos.values.fold(0, (sum, count) => sum + count);
-          final currentCount = subjects.fold(0, (sum, s) => sum + s.completedVideos);
-          progressDelta = ((currentCount - initialCount) / totalVideos) * 100.0;
-        }
+      final tasks = await db.select(db.syllabusTasks).get();
+      final totalTasks = tasks.length;
+      if (totalTasks > 0) {
+        final initialCount = state.initialCompletedTaskIds.length;
+        final currentCount = tasks.where((t) => t.isCompleted).length;
+        progressDelta = ((currentCount - initialCount) / totalTasks) * 100.0;
       }
     } catch (_) {}
     if (progressDelta < 0.0) progressDelta = 0.0;

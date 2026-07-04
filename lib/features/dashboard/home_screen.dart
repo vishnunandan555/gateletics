@@ -7,7 +7,8 @@ import '../../providers/subject_provider.dart';
 import '../../providers/target_date_provider.dart';
 import '../../providers/progress_font_provider.dart';
 import '../../providers/profile_provider.dart';
-import '../../providers/completion_type_provider.dart';
+import '../../providers/syllabus_provider.dart';
+import '../../utils/ui_scaling.dart';
 import '../../providers/completion_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/glow_strength_provider.dart';
@@ -48,7 +49,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final profileImage = ref.watch(displayProfileImageProvider);
     final profileState = ref.watch(profileProvider);
     final launchQuote = ref.watch(launchQuoteProvider);
-    final completionType = ref.watch(completionTypeProvider);
     final glowStrength = ref.watch(glowStrengthProvider);
 
     final focusState = ref.watch(focusProvider);
@@ -92,144 +92,149 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               constraints: BoxConstraints(
                 maxWidth: isDesktop ? 520 : double.infinity,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(height: isDesktop ? 24 : 72),
-                    const Spacer(flex: 4),      // Push content down so it starts above middle
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: context.s(20.0), vertical: context.s(16.0)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(height: isDesktop ? 24 : context.s(72)),
+                          SizedBox(height: context.s(40)), // Push content down so it starts above middle
 
-                // Profile Avatar & Dynamic Greetings
-                if (profileState.profilePhotoMode != 'none') ...[
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: accentColor, width: 1.5),
-                      ),
-                      child: CircleAvatar(
-                        radius: profileState.profilePhotoSize,
-                        backgroundImage: profileImage,
-                        backgroundColor: accentColor.withAlpha(30),
-                        child: profileImage == null
-                            ? Icon(Icons.person_rounded, color: accentColor, size: profileState.profilePhotoSize)
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
+                          // Profile Avatar & Dynamic Greetings
+                          if (profileState.profilePhotoMode != 'none') ...[
+                            Center(
+                              child: Container(
+                                padding: EdgeInsets.all(context.s(3)),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: accentColor, width: context.s(1.5)),
+                                ),
+                                child: CircleAvatar(
+                                  radius: context.s(profileState.profilePhotoSize),
+                                  backgroundImage: profileImage,
+                                  backgroundColor: accentColor.withAlpha(30),
+                                  child: profileImage == null
+                                      ? Icon(Icons.person_rounded, color: accentColor, size: context.s(profileState.profilePhotoSize))
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: context.s(10)),
+                          ],
 
-                Center(
-                  child: Column(
-                    children: [
-                      Text(
-                        displayName != null ? "Welcome Back," : "Welcome Back!",
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      if (displayName != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          "$displayName!",
-                          style: GoogleFonts.outfit(
-                            color: accentColor,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(color: accentColor.withAlpha(102), blurRadius: 12),
-                            ],
+                          Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  displayName != null ? "Welcome Back," : "Welcome Back!",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontSize: context.s(20),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (displayName != null) ...[
+                                  SizedBox(height: context.s(4)),
+                                  Text(
+                                    "$displayName!",
+                                    style: GoogleFonts.outfit(
+                                      color: accentColor,
+                                      fontSize: context.s(26),
+                                      fontWeight: FontWeight.bold,
+                                      shadows: [
+                                        Shadow(color: accentColor.withAlpha(102), blurRadius: context.s(12)),
+                                      ],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
 
-                const Spacer(flex: 2),
+                          SizedBox(height: context.s(20)),
 
-                // Big Countdown Timer (DAYS : HRS : MINS : SECS)
-                const _TickingCountdownTimer(),
+                          // Big Countdown Timer (DAYS : HRS : MINS : SECS)
+                          const _TickingCountdownTimer(),
 
-                const SizedBox(height: 16),
+                          SizedBox(height: context.s(16)),
 
-                // Static Launch Quote
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Text(
-                      "“$launchQuote”",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white60,
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
+                          // Static Launch Quote
+                          Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                              child: Text(
+                                "“$launchQuote”",
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white60,
+                                  fontSize: context.s(13),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: context.s(30)),
+
+                          // Syllabus/Resource Completion Card
+                          Center(
+                            child: _buildCompletionCard(
+                              completionPercent,
+                              accentColor,
+                            ),
+                          ),
+
+                          SizedBox(height: context.s(20)),
+
+                           // Resume Prep / Active Focus Button
+                          isFocusActive
+                              ? ActiveFocusWaveWidget(
+                                  accentColor: accentColor,
+                                  onTap: () => _navigateToTab(2),
+                                )
+                              : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
+
+                          // Daily Goal Reached Tick Indicator
+                          if (isDailyGoalReached) ...[
+                            SizedBox(height: context.s(8)),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_rounded, color: accentColor, size: context.s(14)),
+                                SizedBox(width: context.s(4)),
+                                Text(
+                                  "Daily Goal Reached",
+                                  style: GoogleFonts.outfit(
+                                    color: accentColor,
+                                    fontSize: context.s(11),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+
+                          SizedBox(height: context.s(30)),
+
+                          // Bottom Consistency Grid
+                          _buildConsistencyGrid(accentColor, dailyGoalMinutes),
+
+                          SizedBox(height: context.s(8)),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ),
-
-                const Spacer(flex: 3),
-
-                // Syllabus/Resource Completion Card
-                Center(
-                  child: _buildCompletionCard(
-                    completionPercent,
-                    completionType,
-                    accentColor,
-                  ),
-                ),
-
-                const Spacer(flex: 2),
-
-                 // Resume Prep / Active Focus Button
-                isFocusActive
-                    ? ActiveFocusWaveWidget(
-                        accentColor: accentColor,
-                        onTap: () => _navigateToTab(2),
-                      )
-                    : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
-
-                // Daily Goal Reached Tick Indicator
-                if (isDailyGoalReached) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle_rounded, color: accentColor, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        "Daily Goal Reached",
-                        style: GoogleFonts.outfit(
-                          color: accentColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-
-                const Spacer(flex: 3),
-
-                // Bottom Consistency Grid
-                _buildConsistencyGrid(accentColor, dailyGoalMinutes),
-
-                const SizedBox(height: 8),
-              ],
+                  );
+                },
+              ),
             ),
           ),
         ),
-      ),
-    ),
   ),
 );
   }
@@ -237,32 +242,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Tap-to-completion Page Card
   Widget _buildCompletionCard(
     double percentage,
-    CompletionType type,
     Color accentColor,
   ) {
-    final typeStr = type == CompletionType.syllabus ? 'SYLLABUS' : 'RESOURCE';
+    const typeStr = 'SYLLABUS';
     final selectedFont = ref.watch(progressFontProvider);
 
     TextStyle getAccentStyle(double size, Color col) {
       final base = TextStyle(
-        fontSize: size,
+        fontSize: context.s(size),
         fontWeight: FontWeight.bold,
         color: col,
         height: 1.0,
       );
       switch (selectedFont) {
         case ProgressFont.jersey15:
-          return GoogleFonts.jersey15(textStyle: base.copyWith(fontSize: size + 8));
+          return GoogleFonts.jersey15(textStyle: base.copyWith(fontSize: context.s(size + 8)));
         case ProgressFont.jersey10:
-          return GoogleFonts.jersey10(textStyle: base.copyWith(fontSize: size + 8));
+          return GoogleFonts.jersey10(textStyle: base.copyWith(fontSize: context.s(size + 8)));
         case ProgressFont.tektur:
           return GoogleFonts.tektur(textStyle: base);
         case ProgressFont.odibeeSans:
-          return GoogleFonts.odibeeSans(textStyle: base.copyWith(fontSize: size + 4));
+          return GoogleFonts.odibeeSans(textStyle: base.copyWith(fontSize: context.s(size + 4)));
         case ProgressFont.pressStart2P:
-          return GoogleFonts.pressStart2p(textStyle: base.copyWith(fontSize: size - 8));
+          return GoogleFonts.pressStart2p(textStyle: base.copyWith(fontSize: context.s(size - 8)));
         case ProgressFont.boldonse:
-          return GoogleFonts.boldonse(textStyle: base.copyWith(fontSize: size - 2, height: 1.2));
+          return GoogleFonts.boldonse(textStyle: base.copyWith(fontSize: context.s(size - 2), height: 1.2));
         case ProgressFont.orbitron:
           return GoogleFonts.orbitron(textStyle: base);
       }
@@ -272,16 +276,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onTap: () => _navigateToTab(1),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(10)),
         color: Colors.transparent,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: context.s(10), vertical: context.s(8)),
               decoration: BoxDecoration(
                 color: accentColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(context.s(4)),
               ),
               alignment: Alignment.center,
               child: Text(
@@ -289,7 +293,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 style: getAccentStyle(22, Colors.black),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: context.s(12)),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -298,18 +302,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   typeStr,
                   style: GoogleFonts.orbitron(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: context.s(14),
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
+                    letterSpacing: context.s(1.0),
                   ),
                 ),
                 Text(
                   'COMPLETION',
                   style: GoogleFonts.orbitron(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: context.s(14),
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1.0,
+                    letterSpacing: context.s(1.0),
                   ),
                 ),
               ],
@@ -355,8 +359,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    accentColor.withOpacity(0.45),
-                    accentColor.withOpacity(0.15),
+                    accentColor.withValues(alpha: 0.45),
+                    accentColor.withValues(alpha: 0.15),
                   ],
                 ),
               ),
@@ -373,7 +377,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           left: 0,
           right: 0,
           bottom: 0,
-          height: 3.5,
+          height: context.s(3.5),
           child: FractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: progress,
@@ -382,9 +386,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 color: accentColor,
                 boxShadow: [
                   BoxShadow(
-                    color: accentColor.withOpacity(0.6),
-                    blurRadius: 6,
-                    offset: const Offset(0, -1),
+                    color: accentColor.withValues(alpha: 0.6),
+                    blurRadius: context.s(6),
+                    offset: Offset(0, context.s(-1)),
                   ),
                 ],
               ),
@@ -403,12 +407,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: GestureDetector(
           onTap: () => _navigateToTab(2),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(context.s(30)),
             child: Container(
-              height: 48,
+              height: context.s(48),
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(12), // Unfilled background
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(context.s(30)),
                 border: Border.all(color: Colors.white.withAlpha(20)),
               ),
               child: Stack(
@@ -421,7 +425,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: EdgeInsets.all(context.s(4)),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: iconBgColor,
@@ -429,17 +433,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: Icon(
                             Icons.play_arrow_rounded,
                             color: iconColor,
-                            size: 16,
+                            size: context.s(16),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: context.s(8)),
                         Text(
                           buttonText,
                           style: GoogleFonts.outfit(
                             color: labelColor,
                             fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            letterSpacing: 0.5,
+                            fontSize: context.s(12),
+                            letterSpacing: context.s(0.5),
                           ),
                         ),
                       ],
@@ -487,12 +491,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // Solid filled background for today
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  padding: EdgeInsets.symmetric(horizontal: context.s(4.0)),
                   child: Container(
-                    height: 52,
+                    height: context.s(52),
                     decoration: BoxDecoration(
                       color: accentColor,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(context.s(8)),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -501,16 +505,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           dayName,
                           style: GoogleFonts.outfit(
                             color: Colors.black,
-                            fontSize: 10,
+                            fontSize: context.s(10),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: context.s(2)),
                         Text(
                           dayNumber,
                           style: GoogleFonts.outfit(
                             color: Colors.black,
-                            fontSize: 12,
+                            fontSize: context.s(12),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -525,19 +529,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // Past days: accent outlines representing focus goal progress
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  padding: EdgeInsets.symmetric(horizontal: context.s(4.0)),
                   child: CustomPaint(
                     painter: DailyGoalOutlinePainter(
                       progress: progress,
                       color: progress >= 1.0 ? Colors.green : accentColor,
-                      borderRadius: 8.0,
-                      strokeWidth: 1.8,
+                      borderRadius: context.s(8.0),
+                      strokeWidth: context.s(1.8),
                     ),
                     child: Container(
-                      height: 52,
+                      height: context.s(52),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E22),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(context.s(8)),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -546,16 +550,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             dayName,
                             style: GoogleFonts.outfit(
                               color: progress > 0 ? (progress >= 1.0 ? Colors.green : accentColor) : Colors.white38,
-                              fontSize: 10,
+                              fontSize: context.s(10),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: context.s(2)),
                           Text(
                             dayNumber,
                             style: GoogleFonts.outfit(
                               color: Colors.white,
-                              fontSize: 12,
+                              fontSize: context.s(12),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -570,15 +574,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // Future days: subtle grey outline
             return Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                padding: EdgeInsets.symmetric(horizontal: context.s(4.0)),
                 child: Container(
-                  height: 52,
+                  height: context.s(52),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E22),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(context.s(8)),
                     border: Border.all(
                       color: Colors.white.withAlpha(20),
-                      width: 1.2,
+                      width: context.s(1.2),
                     ),
                   ),
                   child: Column(
@@ -588,16 +592,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         dayName,
                         style: GoogleFonts.outfit(
                           color: Colors.white38,
-                          fontSize: 10,
+                          fontSize: context.s(10),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: context.s(2)),
                       Text(
                         dayNumber,
                         style: GoogleFonts.outfit(
                           color: Colors.white,
-                          fontSize: 12,
+                          fontSize: context.s(12),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -694,7 +698,8 @@ final recentDaysFocusProvider = StreamProvider<Map<DateTime, int>>((ref) {
     final map = <DateTime, int>{};
     for (final s in sessions) {
       final studyDay = studyDayFor(s.startTime);
-      map[studyDay] = (map[studyDay] ?? 0) + s.durationSeconds;
+      final current = map[studyDay] ?? 0;
+      map[studyDay] = current + s.durationSeconds.toInt();
     }
     return map;
   });
@@ -740,24 +745,24 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
 
   TextStyle getAccentStyle(double size, Color col, ProgressFont selectedFont) {
     final base = TextStyle(
-      fontSize: size,
+      fontSize: context.s(size),
       fontWeight: FontWeight.bold,
       color: col,
       height: 1.0,
     );
     switch (selectedFont) {
       case ProgressFont.jersey15:
-        return GoogleFonts.jersey15(textStyle: base.copyWith(fontSize: size + 8));
+        return GoogleFonts.jersey15(textStyle: base.copyWith(fontSize: context.s(size + 8)));
       case ProgressFont.jersey10:
-        return GoogleFonts.jersey10(textStyle: base.copyWith(fontSize: size + 8));
+        return GoogleFonts.jersey10(textStyle: base.copyWith(fontSize: context.s(size + 8)));
       case ProgressFont.tektur:
         return GoogleFonts.tektur(textStyle: base);
       case ProgressFont.odibeeSans:
-        return GoogleFonts.odibeeSans(textStyle: base.copyWith(fontSize: size + 4));
+        return GoogleFonts.odibeeSans(textStyle: base.copyWith(fontSize: context.s(size + 4)));
       case ProgressFont.pressStart2P:
-        return GoogleFonts.pressStart2p(textStyle: base.copyWith(fontSize: size - 8));
+        return GoogleFonts.pressStart2p(textStyle: base.copyWith(fontSize: context.s(size - 8)));
       case ProgressFont.boldonse:
-        return GoogleFonts.boldonse(textStyle: base.copyWith(fontSize: size - 2, height: 1.2));
+        return GoogleFonts.boldonse(textStyle: base.copyWith(fontSize: context.s(size - 2), height: 1.2));
       case ProgressFont.orbitron:
         return GoogleFonts.orbitron(textStyle: base);
     }
@@ -785,13 +790,13 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
               height: 1.1,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: context.s(4)),
           Text(
             label,
             style: GoogleFonts.outfit(
               color: Colors.white60,
-              fontSize: 8,
-              letterSpacing: 0.8,
+              fontSize: context.s(8),
+              letterSpacing: context.s(0.8),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -801,12 +806,12 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
 
     Widget buildColon() {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
+        padding: EdgeInsets.only(bottom: context.s(12.0)),
         child: Text(
           ':',
           style: GoogleFonts.orbitron(
             color: accentColor,
-            fontSize: 22,
+            fontSize: context.s(22),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -817,11 +822,11 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
       child: FractionallySizedBox(
         widthFactor: 0.9,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: EdgeInsets.symmetric(vertical: context.s(12), horizontal: context.s(16)),
           decoration: BoxDecoration(
             color: Colors.transparent,
-            border: Border.all(color: accentColor.withAlpha(102), width: 1.2),
-            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: accentColor.withAlpha(102), width: context.s(1.2)),
+            borderRadius: BorderRadius.circular(context.s(8)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -933,28 +938,28 @@ class _ActiveFocusWaveWidgetState extends ConsumerState<ActiveFocusWaveWidget> w
                       return CustomPaint(
                         painter: _PulseDotsPainter(
                           phase: _waveController.value,
-                          color: widget.accentColor.withOpacity(0.7),
+                          color: widget.accentColor.withValues(alpha: 0.7),
                         ),
                       );
                     case FocusAnimationType.sonicEqualizer:
                       return CustomPaint(
                         painter: _EqualizerPainter(
                           phase: _waveController.value,
-                          color: widget.accentColor.withOpacity(0.7),
+                          color: widget.accentColor.withValues(alpha: 0.7),
                         ),
                       );
                     case FocusAnimationType.heartbeatECG:
                       return CustomPaint(
                         painter: _ECGPainter(
                           phase: _waveController.value,
-                          color: widget.accentColor.withOpacity(0.7),
+                          color: widget.accentColor.withValues(alpha: 0.7),
                         ),
                       );
                     case FocusAnimationType.singleWave:
                       return CustomPaint(
                         painter: _WavePainter(
                           phase: _waveController.value,
-                          color: widget.accentColor.withOpacity(0.35),
+                          color: widget.accentColor.withValues(alpha: 0.35),
                           isDouble: false,
                         ),
                       );
@@ -962,7 +967,7 @@ class _ActiveFocusWaveWidgetState extends ConsumerState<ActiveFocusWaveWidget> w
                       return CustomPaint(
                         painter: _WavePainter(
                           phase: _waveController.value,
-                          color: widget.accentColor.withOpacity(0.35),
+                          color: widget.accentColor.withValues(alpha: 0.35),
                           isDouble: true,
                         ),
                       );
@@ -1008,7 +1013,7 @@ class _WavePainter extends CustomPainter {
     if (isDouble) {
       // Draw a secondary out-of-phase wave for extra aesthetic depth
       final secondaryPaint = Paint()
-        ..color = color.withOpacity(color.opacity * 0.5)
+        ..color = color.withValues(alpha: color.a * 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
 
@@ -1045,7 +1050,7 @@ class _PulseDotsPainter extends CustomPainter {
       final dotPhase = (phase * 2 * pi - (i * pi / 1.5)) % (2 * pi);
       final scale = 0.4 + 0.6 * (0.5 + 0.5 * sin(dotPhase));
       final dotPaint = Paint()
-        ..color = color.withOpacity(color.opacity * scale)
+        ..color = color.withValues(alpha: color.a * scale)
         ..style = PaintingStyle.fill;
 
       canvas.drawCircle(Offset(startX + i * spacing, yCenter), 4.5 * scale, dotPaint);

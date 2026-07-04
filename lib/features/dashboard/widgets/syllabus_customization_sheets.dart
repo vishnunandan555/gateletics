@@ -3,8 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/syllabus_provider.dart';
-import 'customization_sheets.dart' show neonPalette;
 import '../../../utils/string_utils.dart';
+
+const List<int> neonPalette = [
+  0xFFFF0000, // Red
+  0xFF00F0FF, // Cyan
+  0xFF39FF14, // Green
+  0xFFE040FB, // Purple
+  0xFFFFAD00, // Orange
+  0xFFFF0055, // Hot Pink
+  0xFF00FFCC, // Teal
+  0xFFFFEA00, // Yellow
+];
 
 // Show Category Options Sheet
 void showSyllabusCategoryOptionsSheet(

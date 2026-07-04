@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import '../database/app_database.dart';
-import 'subject_provider.dart';
 
 import 'category_autosort_provider.dart';
 import 'sync_provider.dart';
+
+final appDatabaseProvider = Provider<AppDatabase>((ref) => AppDatabase());
 
 // Stream of categories
 final syllabusCategoriesProvider = StreamProvider<List<SyllabusCategory>>((ref) {

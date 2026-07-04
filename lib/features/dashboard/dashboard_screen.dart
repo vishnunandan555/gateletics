@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/subject_provider.dart';
-import 'widgets/customization_sheets.dart';
-import 'widgets/category_header.dart';
-import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
-import '../../providers/completion_type_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import 'widgets/syllabus_category_header.dart';
 import 'widgets/syllabus_topic_card.dart';
 import 'widgets/syllabus_customization_sheets.dart';
+import '../../utils/ui_scaling.dart';
 
 class CompletionIsScrolledNotifier extends Notifier<bool> {
   @override
@@ -39,26 +36,21 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
-    final categoriesAsync = ref.watch(categoriesWithSubjectsProvider);
-    final completionType = ref.watch(completionTypeProvider);
-
-    if (completionType == CompletionType.syllabus) {
-      final syllabusAsync = ref.watch(syllabusProvider);
-      return Scaffold(
-        body: NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            final isScrolled = notification.metrics.pixels > 10.0;
-            if (ref.read(completionIsScrolledProvider) != isScrolled) {
-              Future.microtask(() {
-                ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
-              });
-            }
-            return false;
-          },
-          child: syllabusAsync.when(
-            data: (syllabusData) {
-              final isSyllabusEmpty = syllabusData.isEmpty;
+    final syllabusAsync = ref.watch(syllabusProvider);
+    return Scaffold(
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          final isScrolled = notification.metrics.pixels > 10.0;
+          if (ref.read(completionIsScrolledProvider) != isScrolled) {
+            Future.microtask(() {
+              ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
+            });
+          }
+          return false;
+        },
+        child: syllabusAsync.when(
+          data: (syllabusData) {
+            final isSyllabusEmpty = syllabusData.isEmpty;
 
             int totalCompleted = 0, totalTasks = 0;
             if (!isSyllabusEmpty) {
@@ -75,11 +67,11 @@ class DashboardScreen extends ConsumerWidget {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
-                  child: SizedBox(height: 72 + MediaQuery.of(context).padding.top),
+                  child: SizedBox(height: context.s(72) + MediaQuery.of(context).padding.top),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                    padding: EdgeInsets.fromLTRB(context.s(20), context.s(24), context.s(20), context.s(20)),
                     child: PillProgressWidget(
                       percentage: overallProgress,
                       totalCompleted: totalCompleted,
@@ -88,11 +80,11 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
                 if (isSyllabusEmpty)
-                  const SliverFillRemaining(
+                  SliverFillRemaining(
                     hasScrollBody: false,
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-                      child: WelcomeWidget(),
+                      padding: EdgeInsets.symmetric(horizontal: context.s(32.0), vertical: context.s(24.0)),
+                      child: const WelcomeWidget(),
                     ),
                   )
                 else ...[
@@ -113,9 +105,8 @@ class DashboardScreen extends ConsumerWidget {
                     final manuallyExpanded = ref.watch(manuallyExpandedCompletedSyllabusCategoriesProvider);
                     final isCompleted = catProgress >= 100.0 && catTotal > 0;
                     final isCollapsed = isCompleted && !manuallyExpanded.contains(category.id);
-
-                    bool isPrevCollapsed = false;
-                    if (index > 0) {
+                    final isPrevCollapsed = () {
+                      if (index <= 0) return false;
                       final prevCat = syllabusData[index - 1];
                       int prevCompleted = 0, prevTotal = 0;
                       for (final topic in prevCat.topics) {
@@ -124,14 +115,14 @@ class DashboardScreen extends ConsumerWidget {
                       }
                       final prevProgress = prevTotal == 0 ? 0.0 : (prevCompleted / prevTotal) * 100;
                       final prevCompletedCheck = prevProgress >= 100.0 && prevTotal > 0;
-                      isPrevCollapsed = prevCompletedCheck && !manuallyExpanded.contains(prevCat.category.id);
-                    }
+                      return prevCompletedCheck && !manuallyExpanded.contains(prevCat.category.id);
+                    }();
 
                     final headerPadding = isCollapsed
-                        ? const EdgeInsets.fromLTRB(16, 12, 16, 0)
+                        ? EdgeInsets.fromLTRB(context.s(16), context.s(12), context.s(16), 0)
                         : (isPrevCollapsed
-                            ? const EdgeInsets.fromLTRB(16, 12, 16, 8)
-                            : const EdgeInsets.fromLTRB(16, 24, 16, 8));
+                            ? EdgeInsets.fromLTRB(context.s(16), context.s(12), context.s(16), context.s(8))
+                            : EdgeInsets.fromLTRB(context.s(16), context.s(24), context.s(16), context.s(8)));
 
                     return SliverMainAxisGroup(
                       slivers: [
@@ -162,7 +153,7 @@ class DashboardScreen extends ConsumerWidget {
                       ],
                     );
                   }),
-                  const SliverToBoxAdapter(child: SizedBox(height: 48)),
+                  SliverToBoxAdapter(child: SizedBox(height: context.s(48))),
                 ],
               ],
             ));
@@ -173,232 +164,27 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
-
-    return Scaffold(
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          final isScrolled = notification.metrics.pixels > 10.0;
-          if (ref.read(completionIsScrolledProvider) != isScrolled) {
-            Future.microtask(() {
-              ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
-            });
-          }
-          return false;
-        },
-        child: categoriesAsync.when(
-          data: (categoriesWithSubs) {
-            final isEmpty = categoriesWithSubs.isEmpty;
-
-          int totalCompleted = 0, totalVideos = 0;
-          if (!isEmpty) {
-            for (final cat in categoriesWithSubs) {
-              for (final s in cat.subjects) {
-                if (s.isActive) {
-                  totalCompleted += s.completedVideos;
-                  totalVideos += s.totalVideos;
-                }
-              }
-            }
-          }
-          final overallProgress = totalVideos == 0 ? 0.0 : (totalCompleted / totalVideos) * 100;
-
-          return _buildConstrainedBody(CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: SizedBox(height: 72 + MediaQuery.of(context).padding.top),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-                  child: PillProgressWidget(
-                    percentage: overallProgress,
-                    totalCompleted: totalCompleted,
-                    totalVideos: totalVideos,
-                  ),
-                ),
-              ),
-              if (isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-                    child: WelcomeWidget(),
-                  ),
-                )
-                else
-                  ...categoriesWithSubs.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final catWithSubs = entry.value;
-                    final category = catWithSubs.category;
-                    final catSubjects = catWithSubs.subjects;
-                    final catColor = Color(category.color);
-
-                    int catCompleted = 0, catTotal = 0;
-                    for (final s in catSubjects) {
-                      if (s.isActive) {
-                        catCompleted += s.completedVideos;
-                        catTotal += s.totalVideos;
-                      }
-                    }
-                    final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
-
-                    final manuallyExpanded = ref.watch(manuallyExpandedCompletedCategoriesProvider);
-                    final isCompleted = catProgress >= 100.0 && catTotal > 0;
-                    final isCollapsed = isCompleted && !manuallyExpanded.contains(category.id);
-
-                    bool isPrevCollapsed = false;
-                    if (index > 0) {
-                      final prevCat = categoriesWithSubs[index - 1];
-                      int prevCompleted = 0, prevTotal = 0;
-                      for (final s in prevCat.subjects) {
-                        if (s.isActive) {
-                          prevCompleted += s.completedVideos;
-                          prevTotal += s.totalVideos;
-                        }
-                      }
-                      final prevProgress = prevTotal == 0 ? 0.0 : (prevCompleted / prevTotal) * 100;
-                      final prevCompletedCheck = prevProgress >= 100.0 && prevTotal > 0;
-                      isPrevCollapsed = prevCompletedCheck && !manuallyExpanded.contains(prevCat.category.id);
-                    }
-
-                    final headerPadding = isCollapsed
-                        ? const EdgeInsets.fromLTRB(20, 16, 20, 0)
-                        : (isPrevCollapsed
-                            ? const EdgeInsets.fromLTRB(20, 16, 20, 12)
-                            : const EdgeInsets.fromLTRB(20, 32, 20, 12));
-
-                    return SliverMainAxisGroup(
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: headerPadding,
-                            child: CategoryHeader(
-                              category: category,
-                              progress: catProgress,
-                              isCollapsed: isCollapsed,
-                            ),
-                          ),
-                        ),
-                        if (!isCollapsed)
-                          SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final s = catSubjects[index];
-                                return SubjectCard(
-                                  subject: s,
-                                  color: s.color != null ? Color(s.color!) : catColor,
-                                  onIncrement: () => ref.read(subjectControllerProvider.notifier).increment(s),
-                                  onDecrement: () => ref.read(subjectControllerProvider.notifier).decrement(s),
-                                  onEdit: ({required completed, required total, required sourceName, required playlistLink, required isActive}) =>
-                                      ref.read(subjectControllerProvider.notifier).updateSubjectDetails(
-                                        s, completed: completed, total: total, sourceName: sourceName, playlistLink: playlistLink, isActive: isActive,
-                                      ),
-                                );
-                              },
-                              childCount: catSubjects.length,
-                            ),
-                          ),
-                      ],
-                    );
-                  }),
-                if (!isEmpty)
-                  const SliverToBoxAdapter(child: SizedBox(height: 48)),
-            ],
-          ));
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-      ),
-    ),
-  );
-}
 }
 
 class WelcomeWidget extends ConsumerWidget {
   const WelcomeWidget({super.key});
 
-  void _showInstructionsThenCreateCategoryDialog(BuildContext context, WidgetRef ref) {
-    final progressColor = ref.read(overallProgressColorProvider);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF18181B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: progressColor.withValues(alpha: 0.2), width: 1),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.info_outline_rounded, color: progressColor),
-            const SizedBox(width: 10),
-            Text(
-              'QUICK GUIDE',
-              style: GoogleFonts.jersey15(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: progressColor,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'To Create New Category, Long Press on any Category Name and to Create New Subjects (inside category) Tap on three vertical dots beside Category % to its right',
-          style: GoogleFonts.outfit(
-            color: Colors.white70,
-            fontSize: 14,
-            height: 1.6,
-          ),
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Close guide dialog
-                showCreateCategoryDialog(context, ref); // Open category creation dialog
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: progressColor,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                'Understood',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final completionType = ref.watch(completionTypeProvider);
     final progressColor = ref.watch(overallProgressColorProvider);
-    final isSyllabus = completionType == CompletionType.syllabus;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(
-          isSyllabus ? Icons.checklist_rtl_rounded : Icons.video_library_rounded,
+          Icons.checklist_rtl_rounded,
           size: 64,
           color: progressColor.withValues(alpha: 0.8),
         ),
         const SizedBox(height: 24),
         Text(
-          isSyllabus ? "EMPTY SYLLABUS TRACKER" : "EMPTY RESOURCE TRACKER",
+          "EMPTY SYLLABUS TRACKER",
           style: GoogleFonts.jersey15(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -409,9 +195,7 @@ class WelcomeWidget extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          isSyllabus
-              ? "Create your first syllabus category to start building your custom exam check-list."
-              : "Create your first resource category to start tracking study play-lists and course counts.",
+          "Create your first syllabus category to start building your custom exam check-list.",
           style: GoogleFonts.outfit(
             fontSize: 13,
             color: Colors.white38,
@@ -425,11 +209,7 @@ class WelcomeWidget extends ConsumerWidget {
           height: 48,
           child: ElevatedButton(
             onPressed: () {
-              if (isSyllabus) {
-                showCreateSyllabusCategoryDialog(context, ref);
-              } else {
-                _showInstructionsThenCreateCategoryDialog(context, ref);
-              }
+              showCreateSyllabusCategoryDialog(context, ref);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: progressColor,

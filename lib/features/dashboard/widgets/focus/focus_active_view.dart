@@ -6,6 +6,7 @@ import '../../../../database/app_database.dart';
 import '../../../../providers/focus_provider.dart';
 import '../../../../providers/quotes_provider.dart';
 import 'timer_painters.dart';
+import '../../../../utils/ui_scaling.dart';
 
 class FocusActiveView extends ConsumerStatefulWidget {
   final Color accentColor;
@@ -53,266 +54,275 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Top Technique Tag
-            const SizedBox(height: 16),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: ringColor, width: 1.5),
-                ),
-                child: Text(
-                  isBreak ? "Break Period" : sessionState.details.name,
-                  style: GoogleFonts.outfit(
-                    color: ringColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ),
-
-            // Motivational quotes (standard modes only, not freestyle, and only if enabled in Settings)
-            if (!isCountUp && !isBreak && ref.watch(focusQuotesEnabledProvider)) ...[
-              const SizedBox(height: 28),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Center(
-                  child: Text(
-                    "“$quoteText”",
-                    style: GoogleFonts.caveat(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white.withAlpha(204),
-                      height: 1.3,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            ],
-
-            const Spacer(),
-
-            // ── Timer Display ──────────────────────────────────────────────
-            if (isCountUp)
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildTimerUnit(hours.toString().padLeft(2, '0'), 'hr'),
-                    const SizedBox(width: 8),
-                    _buildTimerUnit(minutes.toString().padLeft(2, '0'), 'min'),
-                    const SizedBox(width: 8),
-                    _buildTimerUnit(seconds.toString().padLeft(2, '0'), 's', highlightColor: accentColor),
-                  ],
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Center(
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 140,
-                    child: CustomPaint(
-                      painter: SquircleTimerPainter(
-                        progress: progress,
-                        color: ringColor,
-                        trackColor: Colors.white.withAlpha(18),
-                        strokeWidth: 10,
+                    // Top Technique Tag
+                    SizedBox(height: context.s(16)),
+                    Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(6)),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(context.s(20)),
+                          border: Border.all(color: ringColor, width: context.s(1.5)),
+                        ),
+                        child: Text(
+                          isBreak ? "Break Period" : sessionState.details.name,
+                          style: GoogleFonts.outfit(
+                            color: ringColor,
+                            fontSize: context.s(12),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: context.s(0.5),
+                          ),
+                        ),
                       ),
-                      child: Center(
-                        child: Column(
+                    ),
+
+                    // Motivational quotes (standard modes only, not freestyle, and only if enabled in Settings)
+                    if (!isCountUp && !isBreak && ref.watch(focusQuotesEnabledProvider)) ...[
+                      SizedBox(height: context.s(28)),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: context.s(32.0)),
+                        child: Center(
+                          child: Text(
+                            "“$quoteText”",
+                            style: GoogleFonts.caveat(
+                              fontSize: context.s(18),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withAlpha(204),
+                              height: 1.3,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    SizedBox(height: context.s(40)),
+
+                    // ── Timer Display ──────────────────────────────────────────────
+                    if (isCountUp)
+                      Center(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Text(
-                              "${totalMinutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
-                              style: GoogleFonts.orbitron(
-                                fontSize: 52,
-                                fontWeight: FontWeight.w900,
-                                color: ringColor,
-                                shadows: [
-                                  Shadow(color: ringColor.withAlpha(120), blurRadius: 18),
-                                ],
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isBreak ? "Break Time" : (isPaused ? "Paused" : "Focusing"),
-                              style: GoogleFonts.outfit(
-                                color: Colors.white54,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
+                            _buildTimerUnit(hours.toString().padLeft(2, '0'), 'hr'),
+                            SizedBox(width: context.s(8)),
+                            _buildTimerUnit(minutes.toString().padLeft(2, '0'), 'min'),
+                            SizedBox(width: context.s(8)),
+                            _buildTimerUnit(seconds.toString().padLeft(2, '0'), 's', highlightColor: accentColor),
                           ],
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-            // Status label (freestyle only)
-            if (isCountUp) ...[
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  isPaused ? "Paused" : "Focusing...",
-                  style: GoogleFonts.outfit(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: accentColor,
-                  ),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 16),
-
-            // Session indicator circles (timed modes)
-            if (!isCountUp)
-              _buildSessionIndicators(sessionState, accentColor),
-
-            const SizedBox(height: 8),
-
-            // Total focus chip
-            if (!isCountUp)
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF18181F),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withAlpha(5)),
-                  ),
-                  child: Text(
-                    _formatTotalDuration(sessionState.totalSecondsFocused),
-                    style: GoogleFonts.outfit(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-
-            const Spacer(),
-
-            // Controls section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                children: [
-                  if (isBreak) ...[
-                    // Accomplishments box during break
-                    if (sessionState.sessionAccomplishments.isNotEmpty) ...[
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "This session:",
-                          style: GoogleFonts.outfit(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF131316),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: accentColor.withAlpha(60)),
-                        ),
-                        constraints: const BoxConstraints(maxHeight: 90),
-                        child: SingleChildScrollView(
-                          child: Text(
-                            sessionState.sessionAccomplishments.join('\n'),
-                            style: GoogleFonts.outfit(
-                              color: Colors.white.withAlpha(220),
-                              fontSize: 12,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: FilledButton.icon(
-                        onPressed: () => _handleStopSessionConfirm(context, sessionState),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF221111),
-                          foregroundColor: Colors.redAccent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                          ),
-                        ),
-                        icon: const Icon(Icons.stop_rounded),
-                        label: Text(
-                          "Stop Session",
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    if (isCountUp) ...[
-                      // Pause/Resume button (Freestyle only, horizontally smaller)
-                      Center(
-                        child: SizedBox(
-                          width: 150,
-                          height: 48,
-                          child: FilledButton.icon(
-                            onPressed: () {
-                              if (isPaused) {
-                                ref.read(focusProvider.notifier).resumeSession();
-                              } else {
-                                ref.read(focusProvider.notifier).pauseSession();
-                              }
-                            },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E1E24),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                side: BorderSide(color: ringColor.withAlpha(100)),
+                      )
+                    else
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                        child: Center(
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: context.s(140),
+                            child: CustomPaint(
+                              painter: SquircleTimerPainter(
+                                progress: progress,
+                                color: ringColor,
+                                trackColor: Colors.white.withAlpha(18),
+                                strokeWidth: context.s(10),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "${totalMinutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
+                                      style: GoogleFonts.orbitron(
+                                        fontSize: context.s(52),
+                                        fontWeight: FontWeight.w900,
+                                        color: ringColor,
+                                        shadows: [
+                                          Shadow(color: ringColor.withAlpha(120), blurRadius: context.s(18)),
+                                        ],
+                                        letterSpacing: context.s(2),
+                                      ),
+                                    ),
+                                    SizedBox(height: context.s(2)),
+                                    Text(
+                                      isBreak ? "Break Time" : (isPaused ? "Paused" : "Focusing"),
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white54,
+                                        fontSize: context.s(11),
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: context.s(0.5),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                            icon: Icon(isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, color: ringColor),
-                            label: Text(
-                              isPaused ? "Resume" : "Pause",
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+
+                    // Status label (freestyle only)
+                    if (isCountUp) ...[
+                      SizedBox(height: context.s(16)),
+                      Center(
+                        child: Text(
+                          isPaused ? "Paused" : "Focusing...",
+                          style: GoogleFonts.outfit(
+                            fontSize: context.s(18),
+                            fontWeight: FontWeight.bold,
+                            color: accentColor,
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    SizedBox(height: context.s(16)),
+
+                    // Session indicator circles (timed modes)
+                    if (!isCountUp)
+                      _buildSessionIndicators(sessionState, accentColor),
+
+                    SizedBox(height: context.s(8)),
+
+                    // Total focus chip
+                    if (!isCountUp)
+                      Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: context.s(14), vertical: context.s(6)),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF18181F),
+                            borderRadius: BorderRadius.circular(context.s(16)),
+                            border: Border.all(color: Colors.white.withAlpha(5)),
+                          ),
+                          child: Text(
+                            _formatTotalDuration(sessionState.totalSecondsFocused),
+                            style: GoogleFonts.outfit(
+                              color: Colors.white70,
+                              fontSize: context.s(12),
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                    _buildSlideToStop(sessionState),
-                  ],
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 8),
-          ],
+                    SizedBox(height: context.s(40)),
+
+                    // Controls section
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                      child: Column(
+                        children: [
+                          if (isBreak) ...[
+                            // Accomplishments box during break
+                            if (sessionState.sessionAccomplishments.isNotEmpty) ...[
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  "This session:",
+                                  style: GoogleFonts.outfit(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: context.s(13),
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: context.s(6)),
+                              Container(
+                                padding: EdgeInsets.all(context.s(12)),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF131316),
+                                  borderRadius: BorderRadius.circular(context.s(12)),
+                                  border: Border.all(color: accentColor.withAlpha(60)),
+                                ),
+                                constraints: BoxConstraints(maxHeight: context.s(90)),
+                                child: SingleChildScrollView(
+                                  child: Text(
+                                    sessionState.sessionAccomplishments.join('\n'),
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white.withAlpha(220),
+                                      fontSize: context.s(12),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: context.s(12)),
+                            ],
+                            SizedBox(
+                              width: double.infinity,
+                              height: context.s(48),
+                              child: FilledButton.icon(
+                                onPressed: () => _handleStopSessionConfirm(context, sessionState),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF221111),
+                                  foregroundColor: Colors.redAccent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(context.s(14)),
+                                    side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.stop_rounded),
+                                label: Text(
+                                  "Stop Session",
+                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            if (isCountUp) ...[
+                              // Pause/Resume button (Freestyle only, horizontally smaller)
+                              Center(
+                                child: SizedBox(
+                                  width: context.s(150),
+                                  height: context.s(48),
+                                  child: FilledButton.icon(
+                                    onPressed: () {
+                                      if (isPaused) {
+                                        ref.read(focusProvider.notifier).resumeSession();
+                                      } else {
+                                        ref.read(focusProvider.notifier).pauseSession();
+                                      }
+                                    },
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: const Color(0xFF1E1E24),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(context.s(14)),
+                                        side: BorderSide(color: ringColor.withAlpha(100)),
+                                      ),
+                                    ),
+                                    icon: Icon(isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, color: ringColor),
+                                    label: Text(
+                                      isPaused ? "Resume" : "Pause",
+                                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(height: context.s(16)),
+                            ],
+                            _buildSlideToStop(sessionState),
+                          ],
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: context.s(8)),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -326,16 +336,16 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
         Text(
           val,
           style: GoogleFonts.orbitron(
-            fontSize: 32,
+            fontSize: context.s(32),
             fontWeight: FontWeight.bold,
             color: highlightColor ?? Colors.white,
           ),
         ),
-        const SizedBox(width: 2),
+        SizedBox(width: context.s(2)),
         Text(
           label,
           style: GoogleFonts.outfit(
-            fontSize: 10,
+            fontSize: context.s(10),
             color: Colors.white38,
             fontWeight: FontWeight.bold,
           ),
@@ -349,7 +359,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
     final isBreakActive = sessionState.isBreakActive;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+      padding: EdgeInsets.symmetric(horizontal: context.s(24.0), vertical: context.s(12.0)),
       child: Center(
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -362,14 +372,14 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
                 children: [
                   if (isCompletedCircle)
                     Container(
-                      width: 24,
-                      height: 24,
+                      width: context.s(24),
+                      height: context.s(24),
                       decoration: BoxDecoration(
                         color: Colors.transparent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: accentColor, width: 2),
+                        border: Border.all(color: accentColor, width: context.s(2)),
                       ),
-                      child: Icon(Icons.check_rounded, color: accentColor, size: 14),
+                      child: Icon(Icons.check_rounded, color: accentColor, size: context.s(14)),
                     )
                   else
                     PulsingIndicatorNode(
@@ -397,7 +407,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
         setState(() {
           _swipeDelta -= details.delta.dy;
           if (_swipeDelta < 0.0) _swipeDelta = 0.0;
-          if (_swipeDelta > 80.0) {
+          if (_swipeDelta > context.s(80.0)) {
             _swipeDelta = 0.0;
             _handleStopSessionConfirm(context, sessionState);
           }
@@ -409,27 +419,27 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
         });
       },
       child: Container(
-        height: 60,
+        height: context.s(60),
         alignment: Alignment.bottomCenter,
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.only(bottom: context.s(12)),
         color: Colors.transparent,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Opacity(
-              opacity: (1.0 - (_swipeDelta / 80.0)).clamp(0.2, 1.0),
-              child: const Icon(
+              opacity: (1.0 - (_swipeDelta / context.s(80.0))).clamp(0.2, 1.0),
+              child: Icon(
                 Icons.keyboard_double_arrow_up_rounded,
                 color: Colors.white38,
-                size: 18,
+                size: context.s(18),
               ),
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: context.s(2)),
             Text(
               "Slide up to Stop",
               style: GoogleFonts.outfit(
                 color: Colors.white38,
-                fontSize: 10,
+                fontSize: context.s(10),
                 fontWeight: FontWeight.bold,
               ),
             ),
