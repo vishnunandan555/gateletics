@@ -18,6 +18,12 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val hasKeyProperties = keystorePropertiesFile.exists() &&
+    keystoreProperties.containsKey("keyAlias") &&
+    keystoreProperties.containsKey("keyPassword") &&
+    keystoreProperties.containsKey("storeFile") &&
+    keystoreProperties.containsKey("storePassword")
+
 android {
     namespace = "com.vishnunandan.gateletics"
     compileSdk = flutter.compileSdkVersion
@@ -43,11 +49,13 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-            storeFile = keystoreProperties["storeFile"]?.let { file(it) }
-            storePassword = keystoreProperties["storePassword"] as String
+        if (hasKeyProperties) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                storePassword = keystoreProperties["storePassword"] as String
+            }
         }
     }
 
@@ -59,7 +67,11 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasKeyProperties) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
