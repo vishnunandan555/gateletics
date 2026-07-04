@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'shell_common.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/sync_provider.dart';
 import '../../../providers/completion_type_provider.dart';
@@ -72,6 +73,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   }
 
   void _showSyncConflictDialog() {
+    final accentColor = ref.read(overallProgressColorProvider);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -92,7 +94,28 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 "Both your local device and cloud backup contain study tracking progress. How would you like to resolve this conflict?",
                 style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final localData = await ref.read(syncProvider.notifier).exportLocalData();
+                  final cloudData = ref.read(syncProvider).pendingCloudData;
+                  if (cloudData != null && ctx.mounted) {
+                    showConflictDetailsDialog(ctx, localData, cloudData, accentColor);
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: accentColor.withAlpha(100)),
+                  foregroundColor: accentColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                icon: const Icon(Icons.compare_arrows_rounded, size: 16),
+                label: Text(
+                  "Compare Data (View Conflicts)",
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
+              ),
+              const SizedBox(height: 16),
               _buildDialogOption(
                 title: "Merge Progress (Recommended)",
                 subtitle: "Combine local and cloud progress (no data lost)",

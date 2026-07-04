@@ -48,7 +48,28 @@ void showSyncConflictDialog(BuildContext context, WidgetRef ref, Color accentCol
               "Both your local device and cloud backup contain study tracking progress. How would you like to resolve this conflict?",
               style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final localData = await ref.read(syncProvider.notifier).exportLocalData();
+                final cloudData = ref.read(syncProvider).pendingCloudData;
+                if (cloudData != null && context.mounted) {
+                  showConflictDetailsDialog(context, localData, cloudData, accentColor);
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: accentColor.withAlpha(100)),
+                foregroundColor: accentColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              icon: const Icon(Icons.compare_arrows_rounded, size: 16),
+              label: Text(
+                "Compare Data (View Conflicts)",
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
+              ),
+            ),
+            const SizedBox(height: 16),
             _SyncDialogOption(
               title: "Merge Progress (Recommended)",
               subtitle: "Combine local and cloud progress (no data lost)",
@@ -238,4 +259,152 @@ Future<void> checkAppVersionUpdate(BuildContext context, WidgetRef ref) async {
   } catch (e) {
     debugPrint("Error checking app version update: $e");
   }
+}
+
+void showConflictDetailsDialog(
+  BuildContext context,
+  Map<String, dynamic> local,
+  Map<String, dynamic> cloud,
+  Color accentColor,
+) {
+  final localSessions = local['focusSessions'] as List? ?? [];
+  final cloudSessions = cloud['focusSessions'] as List? ?? [];
+
+  final localHours = localSessions.fold<double>(0.0, (sum, s) => sum + ((s['durationSeconds'] ?? 0) as num).toDouble()) / 3600.0;
+  final cloudHours = cloudSessions.fold<double>(0.0, (sum, s) => sum + ((s['durationSeconds'] ?? 0) as num).toDouble()) / 3600.0;
+
+  final localTasks = (local['syllabusTasks'] as List? ?? []).where((t) => t['isCompleted'] == true).length;
+  final cloudTasks = (cloud['syllabusTasks'] as List? ?? []).where((t) => t['isCompleted'] == true).length;
+
+  final localVideos = (local['subjects'] as List? ?? []).fold<int>(0, (sum, s) => sum + ((s['completedVideos'] ?? 0) as int));
+  final cloudVideos = (cloud['subjects'] as List? ?? []).fold<int>(0, (sum, s) => sum + ((s['completedVideos'] ?? 0) as int));
+
+  String formatTime(List sessions) {
+    if (sessions.isEmpty) return "No activity";
+    try {
+      DateTime? latest;
+      for (final s in sessions) {
+        final startStr = s['startTime'] as String?;
+        if (startStr != null) {
+          final dt = DateTime.parse(startStr);
+          if (latest == null || dt.isAfter(latest)) {
+            latest = dt;
+          }
+        }
+      }
+      if (latest != null) {
+        final now = DateTime.now();
+        final diff = now.difference(latest);
+        if (diff.inDays == 0) return "Today";
+        if (diff.inDays == 1) return "Yesterday";
+        return "${diff.inDays} days ago";
+      }
+    } catch (_) {}
+    return "Unknown";
+  }
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF18181B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text(
+        "Data Comparison",
+        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "LOCAL DEVICE",
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: accentColor, fontSize: 11),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      "CLOUD BACKUP",
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.cyanAccent, fontSize: 11),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildStatComparisonRow("Focus Sessions", "${localSessions.length}", "${cloudSessions.length}"),
+            _buildStatComparisonRow("Hours Studied", "${localHours.toStringAsFixed(1)}h", "${cloudHours.toStringAsFixed(1)}h"),
+            _buildStatComparisonRow("Syllabus Tasks", "$localTasks completed", "$cloudTasks completed"),
+            _buildStatComparisonRow("Videos Tracked", "$localVideos completed", "$cloudVideos completed"),
+            _buildStatComparisonRow("Last Study Session", formatTime(localSessions), formatTime(cloudSessions)),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Close', style: TextStyle(color: accentColor)),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildStatComparisonRow(String label, String localVal, String cloudVal) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Text(
+            label,
+            style: GoogleFonts.outfit(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  localVal,
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(4),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  cloudVal,
+                  style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 }

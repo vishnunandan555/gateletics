@@ -10,19 +10,28 @@ enum TopicFontSize {
 }
 
 extension TopicFontSizeExt on TopicFontSize {
-  double get scaleFactor {
+  double get scaleFactor => getScaleFactor(1.0);
+
+  double getScaleFactor([double overallScale = 1.0]) {
+    double baseScale = 1.0;
     switch (this) {
       case TopicFontSize.level1:
-        return 17.0 / 26.0;
+        baseScale = 17.0 / 26.0;
+        break;
       case TopicFontSize.level2:
-        return 20.0 / 26.0;
+        baseScale = 20.0 / 26.0;
+        break;
       case TopicFontSize.level3:
-        return 23.0 / 26.0;
+        baseScale = 23.0 / 26.0;
+        break;
       case TopicFontSize.level4:
-        return 1.0;
+        baseScale = 1.0;
+        break;
       case TopicFontSize.level5:
-        return 29.0 / 26.0;
+        baseScale = 29.0 / 26.0;
+        break;
     }
+    return baseScale * overallScale;
   }
 }
 

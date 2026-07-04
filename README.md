@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.5-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.6-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -42,14 +42,20 @@ GATEletics is fully offline-first, requiring no network connection to operate. A
 
 ## ✨ Features
 
+- **Unified Home Dashboard:** A premium landing screen featuring a real-time `DAYS : HRS : MINS : SECS` countdown to the GATE exam, a motivational launch quote, a syllabus/resource completion card, a 7-day consistency grid, and an animated "Resume Preparation" button that tracks daily goal progress.
 - **Progress Analytics:** Overall exam completion index visualized using a high-fidelity animated progress ring.
 - **Relational Structure:** Subjects are dynamically assigned to parent Categories (Syllabus Areas) with progress rolling up automatically.
 - **Customizable Subjects:** Tap-to-edit video syllabus counts, customized source channels, and direct course/playlist URLs.
 - **Pre-configured Presets:** Instantly bootstrap your tracking with complete syllabus and video count presets (e.g., GoClasses/YouTube).
+- **Study Focus Mode (Pomodoro & Ultradian):** A dedicated productivity workspace with configurable focus timers and daily goal tracking. Sessions are permanently saved to the local database.
 - **JSON Import/Export:** Secure backup utility that lets you export or import your progress as a relational JSON schema, facilitating backup portability.
-- **Premium Snapping Settings Panel:** A restructured settings bottom sheet using a custom `DraggableScrollableSheet` with:
-  - **Height Locking:** Covers exactly 75% of the screen height upon opening, scrollable up to 95%, or drag-to-dismiss.
-  - **Optimized Lazy Scrolling:** Built using a lazy `ListView` coordinated with the sheet's controller to eliminate drag stuttering and maximize frame rates.
+- **Firebase Authentication & Cloud Sync:** Sign in with Google to enable automatic, offline-first progress backups with intelligent merge conflict resolution.
+- **Premium Customization System:**
+  - Profile customization (display name, photo mode, photo size).
+  - 7 premium progress fonts (Orbitron, Jersey 15, Jersey 10, Tektur, OdibeeSans, PressStart2P, Boldonse).
+  - Animated home screen glow, focus animation styles (Wave/Ripple), and Resume button fill styles.
+  - Per-element font size controls (Category headers, Syllabus Topics, Syllabus Tasks) and a global UI scale.
+- **Cross-Platform Promo Banner (Web):** A subtle informational card in Settings for web users promoting the native Android, Windows, and Linux versions, with a toggle to dismiss it permanently.
 
 ## 🌐 Web Deployment (Vercel)
 
@@ -107,6 +113,17 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.6 Highlights
+
+- **Unified Home Dashboard:** Introduced a new premium home screen as the app's entry point. Features a ticking real-time GATE countdown, a dynamic launch quote, an overall completion card, an animated "Resume / Start Preparation" button with three fill style modes, and a 7-day horizontal consistency grid showing daily focus goal progress.
+- **Active Focus Wave Indicator:** When a focus session is actively running, the Resume button on the home screen morphs into an animated wave/ripple indicator that navigates directly to the Focus tab on tap.
+- **Profile Customization System:** New profile settings letting users set a custom display name, choose between Google photo/custom photo/initials avatar, and configure the avatar size.
+- **Glow Strength & Animation Settings:** Added sliders and toggles for the home screen radial glow intensity and the focus animation style (Wave vs. Ripple).
+- **Resume Button Fill Style:** Three new button fill styles (Rectangular Fill, Neon Gradient, Bottom Micro Indicator) to personalize the home screen's call-to-action button.
+- **Font Size Granularity:** Separate font size controls for Syllabus Topics and Syllabus Tasks, in addition to the existing Category font size setting.
+- **Overall UI Scale Control:** A global text scale factor setting in Advanced Options affecting the entire application.
+- **Cross-Platform Download Banner:** Added an informational banner in Cloud Sync settings (web only) promoting native apps, with a cloud-synced "Hide Promo" toggle in Advanced Options.
 
 ## 🌟 Version 1.2.5 Highlights
 

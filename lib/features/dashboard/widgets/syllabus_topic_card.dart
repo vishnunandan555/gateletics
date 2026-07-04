@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/syllabus_provider.dart';
 import '../../../providers/topic_font_size_provider.dart';
+import '../../../providers/task_font_size_provider.dart';
+import '../../../providers/overall_ui_scale_provider.dart';
 import '../../../widgets/progress_bar.dart';
 import 'syllabus_customization_sheets.dart';
 
@@ -29,22 +31,24 @@ class SyllabusTopicCard extends ConsumerWidget {
     final expandedSet = ref.watch(expandedTopicsProvider);
     final isExpanded = expandedSet.contains(topic.id);
 
+    final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
     final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
+    final taskScaleFactor = ref.watch(taskFontSizeProvider).scaleFactor;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Adaptive font sizes based on screen width
-    final topicFontSize = (screenWidth * 0.04).clamp(13.0, 16.0) * topicScaleFactor;
-    final percentFontSize = (screenWidth * 0.08).clamp(24.0, 32.0) * topicScaleFactor;
-    final countFontSize = (screenWidth * 0.028).clamp(10.0, 12.0) * topicScaleFactor;
-    final taskFontSize = (screenWidth * 0.035).clamp(12.0, 15.0);
+    final topicFontSize = (screenWidth * 0.042).clamp(13.0, 16.0) * topicScaleFactor;
+    final percentFontSize = (screenWidth * 0.09).clamp(22.0, 27.0) * topicScaleFactor;
+    final countFontSize = (screenWidth * 0.03).clamp(10.0, 11.5) * topicScaleFactor;
+    final taskFontSize = (screenWidth * 0.035).clamp(12.0, 15.0) * taskScaleFactor;
 
     late TapDownDetails topicTapDetails;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.5 * overallScale),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E22),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: categoryColor.withAlpha(20),
           width: 1.0,
@@ -73,7 +77,7 @@ class SyllabusTopicCard extends ConsumerWidget {
               _showTopicContextMenu(context, topicTapDetails, topic, tasks, ref);
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12 * overallScale, vertical: 8 * overallScale),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -93,21 +97,21 @@ class SyllabusTopicCard extends ConsumerWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 6 * overallScale),
                         ProgressBar(
                           percentage: percentage,
-                          height: 8,
+                          height: 8 * overallScale,
                           color: categoryColor,
-                          showTicks: true,
+                          showTicks: false,
                           tickCount: 10,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16 * overallScale),
                   // RIGHT: Big % & Fraction count
                   Container(
-                    width: 80,
+                    width: 80 * overallScale,
                     alignment: Alignment.centerRight,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -129,7 +133,7 @@ class SyllabusTopicCard extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4 * overallScale),
                         Text(
                           '$completedCount/$totalCount',
                           style: GoogleFonts.outfit(
@@ -152,7 +156,7 @@ class SyllabusTopicCard extends ConsumerWidget {
             const Divider(color: Colors.white10, height: 1),
             if (totalCount == 0)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                padding: EdgeInsets.symmetric(vertical: 16 * overallScale, horizontal: 16 * overallScale),
                 child: Center(
                   child: Text(
                     'No tasks in this topic. Long press topic name to add tasks!',
@@ -184,14 +188,14 @@ class SyllabusTopicCard extends ConsumerWidget {
                     _showTaskContextMenu(context, taskTapDetails, task, ref);
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 14 * overallScale, vertical: 8 * overallScale),
                     child: Row(
                       children: [
                         // Custom Checkbox
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          width: 18,
-                          height: 18,
+                          width: 18 * overallScale,
+                          height: 18 * overallScale,
                           decoration: BoxDecoration(
                             color: task.isCompleted
                                 ? categoryColor.withAlpha(38)
@@ -205,12 +209,12 @@ class SyllabusTopicCard extends ConsumerWidget {
                           child: task.isCompleted
                               ? Icon(
                                   Icons.check_rounded,
-                                  size: 14,
+                                  size: 14 * overallScale,
                                   color: categoryColor,
                                 )
                               : null,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12 * overallScale),
                         // Task Name
                         Expanded(
                           child: Text(

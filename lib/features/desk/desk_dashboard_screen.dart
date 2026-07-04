@@ -28,9 +28,10 @@ class DeskDashboardScreen extends ConsumerWidget {
     );
   }
 
-  int _gridCrossAxisCount(double width) {
-    if (width >= 1500) return 3;
-    if (width >= 900) return 2;
+  int _gridCrossAxisCount(double availableWidth) {
+    if (availableWidth >= 1200) return 4;
+    if (availableWidth >= 800) return 3;
+    if (availableWidth >= 500) return 2;
     return 1;
   }
 
@@ -39,12 +40,12 @@ class DeskDashboardScreen extends ConsumerWidget {
     final categoriesAsync = ref.watch(categoriesWithSubjectsProvider);
     final completionType = ref.watch(completionTypeProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final crossAxisCount = _gridCrossAxisCount(screenWidth);
     final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
 
     // Calculate dynamic child aspect ratio for SubjectCard to target a constant height of 132px * scale factor
     final double sidebarWidth = screenWidth < 768 ? 76.0 : 220.0;
     final double availableWidth = (screenWidth - sidebarWidth).clamp(0.0, 1600.0);
+    final crossAxisCount = _gridCrossAxisCount(availableWidth);
     final double gridWidth = availableWidth - 32.0; // horizontal margins
     final double spacingTotal = (crossAxisCount - 1) * 8.0;
     final double cardWidth = (gridWidth - spacingTotal) / crossAxisCount;
@@ -105,8 +106,9 @@ class DeskDashboardScreen extends ConsumerWidget {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(24, 8, 24, 48),
-                      child: _SyllabusTwoColumnLayout(
+                      child: _SyllabusMultiColumnLayout(
                         syllabusData: syllabusData,
+                        availableWidth: availableWidth,
                       ),
                     ),
                   ),
@@ -277,11 +279,13 @@ class DeskDashboardScreen extends ConsumerWidget {
   }
 }
 
-class _SyllabusTwoColumnLayout extends StatelessWidget {
+class _SyllabusMultiColumnLayout extends StatelessWidget {
   final List<SyllabusCategoryWithTopics> syllabusData;
+  final double availableWidth;
 
-  const _SyllabusTwoColumnLayout({
+  const _SyllabusMultiColumnLayout({
     required this.syllabusData,
+    required this.availableWidth,
   });
 
   @override
@@ -301,8 +305,16 @@ class _SyllabusTwoColumnLayout extends StatelessWidget {
       );
     }
 
-    final leftColumn = <Widget>[];
-    final rightColumn = <Widget>[];
+    int columnCount = 2;
+    if (availableWidth >= 1300) {
+      columnCount = 3;
+    }
+    if (availableWidth >= 1600) {
+      columnCount = 4;
+    }
+
+    // Build lists for each column
+    final columns = List.generate(columnCount, (_) => <Widget>[]);
 
     for (final entry in syllabusData.asMap().entries) {
       final index = entry.key;
@@ -312,20 +324,22 @@ class _SyllabusTwoColumnLayout extends StatelessWidget {
         catWithTopics: catWithTopics,
         syllabusData: syllabusData,
       );
-      if (index.isEven) {
-        leftColumn.add(widget);
-      } else {
-        rightColumn.add(widget);
-      }
+      columns[index % columnCount].add(widget);
     }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: Column(children: leftColumn)),
-        const SizedBox(width: 16),
-        Expanded(child: Column(children: rightColumn)),
-      ],
+      children: List.generate(columnCount, (colIndex) {
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: colIndex == 0 ? 0 : 8,
+              right: colIndex == columnCount - 1 ? 0 : 8,
+            ),
+            child: Column(children: columns[colIndex]),
+          ),
+        );
+      }),
     );
   }
 }

@@ -56,8 +56,8 @@ class CountdownWidget extends ConsumerWidget {
         }
       },
       child: Container(
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.only(left: 12, right: 0, top: 4, bottom: 4),
         color: Colors.transparent,
         child: FittedBox(
           fit: BoxFit.scaleDown,

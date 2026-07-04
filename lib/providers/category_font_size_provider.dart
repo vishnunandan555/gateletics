@@ -10,49 +10,73 @@ enum CategoryFontSize {
 }
 
 extension CategoryFontSizeExt on CategoryFontSize {
-  double get size {
+  double get size => getSize(1.0);
+  double get scaleFactor => getScaleFactor(1.0);
+
+  double getSize([double overallScale = 1.0]) {
+    double baseSize = 22.0;
     switch (this) {
       case CategoryFontSize.level1:
-        return 14.0;
+        baseSize = 16.0;
+        break;
       case CategoryFontSize.level2:
-        return 17.0;
+        baseSize = 19.0;
+        break;
       case CategoryFontSize.level3:
-        return 20.0;
+        baseSize = 22.0;
+        break;
       case CategoryFontSize.level4:
-        return 23.0;
+        baseSize = 25.0;
+        break;
       case CategoryFontSize.level5:
-        return 26.0;
+        baseSize = 28.0;
+        break;
     }
+    return baseSize * overallScale;
   }
 
-  double get scaleFactor {
+  double getScaleFactor([double overallScale = 1.0]) {
+    double baseScale = 1.0;
     switch (this) {
       case CategoryFontSize.level1:
-        return 14.0 / 26.0;
+        baseScale = 16.0 / 28.0;
+        break;
       case CategoryFontSize.level2:
-        return 17.0 / 26.0;
+        baseScale = 19.0 / 28.0;
+        break;
       case CategoryFontSize.level3:
-        return 20.0 / 26.0;
+        baseScale = 22.0 / 28.0;
+        break;
       case CategoryFontSize.level4:
-        return 23.0 / 26.0;
+        baseScale = 25.0 / 28.0;
+        break;
       case CategoryFontSize.level5:
-        return 1.0;
+        baseScale = 1.0;
+        break;
     }
+    return baseScale * overallScale;
   }
 
-  double get topicScaleFactor {
+  double getTopicScaleFactor([double overallScale = 1.0]) {
+    double baseScale = 1.0;
     switch (this) {
       case CategoryFontSize.level1:
-        return 17.0 / 26.0;
+        baseScale = 17.0 / 26.0;
+        break;
       case CategoryFontSize.level2:
-        return 20.0 / 26.0;
+        baseScale = 20.0 / 26.0;
+        break;
       case CategoryFontSize.level3:
-        return 23.0 / 26.0;
+        baseScale = 23.0 / 26.0;
+        break;
       case CategoryFontSize.level4:
-        return 1.0;
+        baseScale = 1.0;
+        break;
       case CategoryFontSize.level5:
-        return 29.0 / 26.0;
+        baseScale = 29.0 / 26.0;
+        break;
     }
+    return baseScale * overallScale;
   }
 }
 

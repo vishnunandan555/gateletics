@@ -8,13 +8,14 @@ This document provides a comprehensive, step-by-step checklist to prepare, build
 - [x] **Google Play Developer Account Verification:**
   - Complete identity verification with government ID (and D-U-N-S business registry if registering under an Organization account).
   - Ensure 2-Factor Authentication (2FA) is turned on for the developer Google account.
-- [ ] **Data Safety Declarations (Google Play Console):**
-  - **No Ads:** Declare that the app does not contain ads.
-  - **No Restricted Content:** Complete the news, government app, and financial features declarations (mark "No" to all).
+- [x] **Data Safety Declarations (Google Play Console):**
+  - **No Ads:** Declare that the app does not contain ads. ✅ Done.
+  - **No Restricted Content:** Completed the news, government app, and financial features declarations (marked "No" to all). ✅ Done.
+  - **Advertising ID:** Declared that the app does NOT use advertising ID. ✅ Done.
   - **Data Safety Form:** 
-    - Declare that user authentication credentials (email/name) are collected for account creation/auth when using Google Sign-In.
-    - Declare that database sync backups (syllabus checklist & focus sessions) are collected/stored.
-    - Clarify that all transmission is securely encrypted in transit (HTTPS) and that users can request permanent deletion of their account & data (in compliance with the new Account Deletion rules).
+    - Declared that user authentication credentials (email/name) are collected for account creation/auth when using Google Sign-In.
+    - Declared that database sync backups (syllabus checklist & focus sessions) are collected/stored.
+    - Clarified that all transmission is securely encrypted in transit (HTTPS) and that users can request permanent deletion of their account & data (in compliance with the new Account Deletion rules).
 
 ---
 
@@ -126,7 +127,7 @@ android {
 
 ## 🛠️ 5. Build, Obfuscate & Package
 - [ ] **Bump App Version:**
-  - Verify that the app version is bumped in `pubspec.yaml` (e.g. `version: 1.2.5+6`).
+  - Verify that the app version is bumped in `pubspec.yaml` (currently `version: 1.2.5+8`).
 - [ ] **Clean Build Cache:**
   ```bash
   flutter clean

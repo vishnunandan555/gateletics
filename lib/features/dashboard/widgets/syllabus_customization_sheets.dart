@@ -67,6 +67,16 @@ void showSyllabusCategoryOptionsSheet(
               },
             ),
             ListTile(
+              leading: Icon(Icons.create_new_folder_outlined, color: color),
+              title: Text('Create New Category', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                showCreateSyllabusCategoryDialog(context, ref);
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.check_circle_outline_rounded, color: color),
               title: Text('Mark as Complete', style: GoogleFonts.outfit(color: Colors.white)),
               dense: true,

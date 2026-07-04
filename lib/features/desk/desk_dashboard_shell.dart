@@ -6,12 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
-import '../../providers/syllabus_provider.dart';
 import '../dashboard/settings_screen.dart';
+import '../dashboard/home_screen.dart';
 import '../dashboard/widgets/focus_screen.dart';
 import '../../providers/focus_provider.dart';
 import '../dashboard/widgets/shell_common.dart';
 import 'desk_dashboard_screen.dart';
+import '../../providers/overall_ui_scale_provider.dart';
 
 class DeskDashboardShell extends ConsumerStatefulWidget {
   const DeskDashboardShell({super.key});
@@ -43,10 +44,6 @@ class _DeskDashboardShellState extends ConsumerState<DeskDashboardShell> {
   }
 
   void _onTabSelected(int index) {
-    if (index == 0 && _currentIndex != 0) {
-      ref.read(resourceCategoriesOrderProvider.notifier).clear();
-      ref.read(syllabusCategoriesOrderProvider.notifier).clear();
-    }
     setState(() => _currentIndex = index);
   }
 
@@ -60,26 +57,38 @@ class _DeskDashboardShellState extends ConsumerState<DeskDashboardShell> {
       }
     });
 
-    return Scaffold(
-      body: Row(
-        children: [
-          _DeskSidebar(
-            currentIndex: _currentIndex,
-            progressColor: progressColor,
-            onTabSelected: _onTabSelected,
-            onMobileUiTap: () => context.go('/'),
-          ),
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                const KeepAliveWrapper(child: DeskDashboardScreen()),
-                KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
-                const KeepAliveWrapper(child: SettingsScreen()),
-              ],
+    final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
+
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(overallScale),
+      ),
+      child: Scaffold(
+        body: Row(
+          children: [
+            _DeskSidebar(
+              currentIndex: _currentIndex,
+              progressColor: progressColor,
+              onTabSelected: _onTabSelected,
+              onMobileUiTap: () => context.go('/'),
             ),
-          ),
-        ],
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  KeepAliveWrapper(
+                    child: HomeScreen(
+                      onNavigate: _onTabSelected,
+                    ),
+                  ),
+                  const KeepAliveWrapper(child: DeskDashboardScreen()),
+                  KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
+                  const KeepAliveWrapper(child: SettingsScreen()),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -157,8 +166,8 @@ class _DeskSidebar extends StatelessWidget {
           _SidebarNavItem(
             index: 0,
             currentIndex: currentIndex,
-            icon: Icons.percent_rounded,
-            label: 'Completion',
+            icon: Icons.home_rounded,
+            label: 'Home',
             color: progressColor,
             isCompact: isCompact,
             onTap: onTabSelected,
@@ -166,14 +175,23 @@ class _DeskSidebar extends StatelessWidget {
           _SidebarNavItem(
             index: 1,
             currentIndex: currentIndex,
-            icon: Icons.auto_awesome_rounded,
-            label: 'Future',
+            icon: Icons.percent_rounded,
+            label: 'Completion',
             color: progressColor,
             isCompact: isCompact,
             onTap: onTabSelected,
           ),
           _SidebarNavItem(
             index: 2,
+            currentIndex: currentIndex,
+            icon: Icons.hourglass_empty_rounded,
+            label: 'Focus',
+            color: progressColor,
+            isCompact: isCompact,
+            onTap: onTabSelected,
+          ),
+          _SidebarNavItem(
+            index: 3,
             currentIndex: currentIndex,
             icon: Icons.settings_rounded,
             label: 'Settings',
@@ -257,7 +275,7 @@ class _SidebarNavItem extends ConsumerWidget {
 
     Widget? timerBadge;
 
-    if (index == 1) {
+    if (index == 2) {
       final sessionState = ref.watch(focusProvider);
       final hasActiveSession = sessionState.status != FocusStatus.idle;
       displayIcon = Icons.hourglass_empty_rounded;
@@ -323,7 +341,7 @@ class _SidebarNavItem extends ConsumerWidget {
               children: [
                 Icon(
                   displayIcon,
-                  color: isSelected ? (index == 1 ? displayColor : color) : (index == 1 ? displayColor.withAlpha(150) : Colors.white30),
+                  color: isSelected ? (index == 2 ? displayColor : color) : (index == 2 ? displayColor.withAlpha(150) : Colors.white30),
                   size: 22,
                 ),
                 if (!isCompact) ...[
@@ -332,7 +350,7 @@ class _SidebarNavItem extends ConsumerWidget {
                     child: Text(
                       displayLabel,
                       style: GoogleFonts.outfit(
-                        color: isSelected ? (index == 1 ? displayColor : color) : (index == 1 ? displayColor.withAlpha(150) : Colors.white30),
+                        color: isSelected ? (index == 2 ? displayColor : color) : (index == 2 ? displayColor.withAlpha(150) : Colors.white30),
                         fontSize: 14,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),

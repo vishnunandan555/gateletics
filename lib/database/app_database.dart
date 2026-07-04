@@ -306,13 +306,13 @@ class AppDatabase extends _$AppDatabase {
       final systemsCatId = await into(categories).insert(CategoriesCompanion.insert(
         name: 'Core Systems',
         position: 3,
-        color: 0xFFD500F9,
+        color: 0xFFE040FB,
       ));
 
       final aptiCatId = await into(categories).insert(CategoriesCompanion.insert(
         name: 'Aptitude',
         position: 4,
-        color: 0xFFFFE500,
+        color: 0xFFFFAD00,
       ));
 
       // Seed subjects under categories
@@ -824,6 +824,15 @@ class AppDatabase extends _$AppDatabase {
     return watchTodayFocusSessions().map((sessions) {
       return sessions.fold(0, (sum, s) => sum + s.durationSeconds);
     });
+  }
+
+  Stream<List<FocusSession>> watchRecentFocusSessions(int daysCount) {
+    final now = DateTime.now();
+    final since = getStudyDayStart(now).subtract(Duration(days: daysCount - 1));
+    return (select(focusSessions)
+          ..where((t) => t.startTime.isBiggerOrEqualValue(since))
+          ..orderBy([(t) => OrderingTerm(expression: t.startTime, mode: OrderingMode.asc)]))
+        .watch();
   }
 }
 

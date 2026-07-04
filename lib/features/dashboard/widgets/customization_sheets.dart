@@ -6,14 +6,19 @@ import '../../../providers/subject_provider.dart';
 import '../../../utils/string_utils.dart';
 
 final neonPalette = [
-  0xFFFF0000, // Neon Red
   0xFF00F0FF, // Neon Cyan
   0xFF39FF14, // Neon Green
-  0xFFD500F9, // Neon Purple
-  0xFFFFE500, // Neon Yellow
-  0xFFFF6C00, // Neon Orange
-  0xFFFF1493, // Deep Pink
-  0xFF2979FF, // Vibrant Blue
+  0xFFFF0000, // Neon Scarlet Red
+  0xFFFFAD00, // Neon Golden Amber
+  0xFFE040FB, // Neon Magenta/Purple
+  0xFFFF5E00, // Neon Orange
+  0xFF00B0FF, // Neon Electric Blue
+  0xFF00FFCC, // Neon Mint/Teal
+  0xFF9D5AFF, // Indigo/Purple
+  0xFF4C73FF, // Electric Blue
+  0xFFC58D39, // Bronze
+  0xFFFFFC00, // Neon Yellow
+  0xFFC1FF72, // Neon Lime
 ];
 
 void showCategoryOptionsSheet(BuildContext context, Category category, WidgetRef ref) {
@@ -72,6 +77,16 @@ void showCategoryOptionsSheet(BuildContext context, Category category, WidgetRef
               onTap: () {
                 Navigator.pop(context);
                 showEditCategoryDialog(context, category, ref);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.create_new_folder_outlined, color: color),
+              title: Text('Create New Category', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                showCreateCategoryDialog(context, ref);
               },
             ),
             ListTile(

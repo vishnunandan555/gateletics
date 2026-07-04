@@ -10,8 +10,12 @@ class AppColors {
     Color(0xFFFF5E00), // Neon orange
     Color(0xFF00B0FF), // Neon electric blue
     Color(0xFF00FFCC), // Neon mint/teal
+    Color(0xFF9D5AFF), // Indigo/Purple
+    Color(0xFF4C73FF), // Electric Blue
+    Color(0xFFC58D39), // Bronze
+    Color(0xFFFFFC00), // Neon Yellow
+    Color(0xFFC1FF72), // Neon Lime
   ];
-
   static const Color background = Color(0xFF18181B);
   static const Color cardBackground = Color(0xFF18181B);
   static const Color surface = Color(0xFF18181B);

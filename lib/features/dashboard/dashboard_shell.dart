@@ -1,16 +1,20 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
-import '../../providers/syllabus_provider.dart';
 import 'dashboard_screen.dart';
+import 'home_screen.dart';
 import 'widgets/focus_screen.dart';
 import '../../providers/focus_provider.dart';
 import 'widgets/shell_common.dart';
 import 'settings_screen.dart';
+import 'widgets/app_bar_title.dart';
+import 'widgets/countdown_widget.dart';
+import '../../providers/overall_ui_scale_provider.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -60,22 +64,38 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
       }
     });
 
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          if (index == 0) {
-            ref.read(resourceCategoriesOrderProvider.notifier).clear();
-            ref.read(syllabusCategoriesOrderProvider.notifier).clear();
-          }
-        },
+    final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
+
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(overallScale),
+      ),
+      child: Scaffold(
+        body: Stack(
         children: [
-          const KeepAliveWrapper(child: DashboardScreen()),
-          KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
-          const KeepAliveWrapper(child: SettingsScreen()),
+          PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            children: [
+              KeepAliveWrapper(child: HomeScreen(shellPageController: _pageController)),
+              const KeepAliveWrapper(child: DashboardScreen()),
+              KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
+              const KeepAliveWrapper(child: SettingsScreen()),
+            ],
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _SharedShellHeader(
+              pageController: _pageController,
+              currentIndex: _currentIndex,
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: Theme(
@@ -97,22 +117,28 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
           child: SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
+              padding: const EdgeInsets.only(top: 0.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(
                     index: 0,
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    color: progressColor,
+                  ),
+                  _buildNavItem(
+                    index: 1,
                     icon: Icons.percent_rounded,
                     label: 'Completion',
                     color: progressColor,
                   ),
                   _buildFocusNavItem(
-                    index: 1,
+                    index: 2,
                     color: progressColor,
                   ),
                   _buildNavItem(
-                    index: 2,
+                    index: 3,
                     icon: Icons.settings_rounded,
                     label: 'Settings',
                     color: progressColor,
@@ -123,8 +149,9 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildNavItem({
     required int index,
@@ -135,10 +162,6 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     final isSelected = _currentIndex == index;
     return InkWell(
       onTap: () {
-        if (index == 0 && _currentIndex != 0) {
-          ref.read(resourceCategoriesOrderProvider.notifier).clear();
-          ref.read(syllabusCategoriesOrderProvider.notifier).clear();
-        }
         _pageController.animateToPage(
           index,
           duration: const Duration(milliseconds: 250),
@@ -195,10 +218,6 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
 
     return InkWell(
       onTap: () {
-        if (index == 0 && _currentIndex != 0) {
-          ref.read(resourceCategoriesOrderProvider.notifier).clear();
-          ref.read(syllabusCategoriesOrderProvider.notifier).clear();
-        }
         _pageController.animateToPage(
           index,
           duration: const Duration(milliseconds: 250),
@@ -271,4 +290,83 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     // Prompting dialog removed. Auto-routing based on preference / screen size is active.
   }
 
+}
+
+class _SharedShellHeader extends ConsumerWidget {
+  final PageController pageController;
+  final int currentIndex;
+
+  const _SharedShellHeader({
+    required this.pageController,
+    required this.currentIndex,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    final isScrolled = ref.watch(completionIsScrolledProvider);
+
+    return AnimatedBuilder(
+      animation: pageController,
+      builder: (context, child) {
+        double page = 0.0;
+        if (pageController.hasClients && pageController.position.hasContentDimensions) {
+          page = pageController.page ?? 0.0;
+        } else {
+          page = currentIndex.toDouble();
+        }
+
+        // Header opacity: 1.0 when page <= 1.0, smoothly fading to 0.0 as page moves to 2.0.
+        double headerOpacity = 1.0;
+        if (page > 1.0) {
+          headerOpacity = (2.0 - page).clamp(0.0, 1.0);
+        }
+
+        // Background transition from transparent to solid black when scrolled down in Completion screen
+        Color headerBgColor = Colors.transparent;
+        if (isScrolled) {
+          if (page > 0.0 && page <= 1.0) {
+            headerBgColor = Colors.black.withOpacity(page);
+          } else if (page > 1.0) {
+            headerBgColor = Colors.black.withOpacity((2.0 - page).clamp(0.0, 1.0));
+          }
+        }
+
+        // Countdown widget opacity: 0.0 at page 0.0, smoothly fading to 1.0 at page 1.0.
+        // It stays at 1.0 for page > 1.0.
+        double countdownOpacity = 0.0;
+        if (page >= 0.0 && page <= 1.0) {
+          countdownOpacity = page;
+        } else if (page > 1.0) {
+          countdownOpacity = 1.0;
+        }
+
+        final ignorePointer = page >= 1.5;
+
+        return IgnorePointer(
+          ignoring: ignorePointer,
+          child: Opacity(
+            opacity: headerOpacity,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              height: 72 + topPadding,
+              padding: EdgeInsets.fromLTRB(20, topPadding, 20, 0),
+              color: headerBgColor,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const AppBarTitle(),
+                  Opacity(
+                    opacity: countdownOpacity,
+                    child: const CountdownWidget(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }

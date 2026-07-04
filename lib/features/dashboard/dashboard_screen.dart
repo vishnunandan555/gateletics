@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/subject_provider.dart';
 import 'widgets/customization_sheets.dart';
-import 'widgets/app_bar_title.dart';
-import 'widgets/countdown_widget.dart';
 import 'widgets/category_header.dart';
 import '../../widgets/subject_card.dart';
 import '../../widgets/pill_progress_widget.dart';
@@ -13,6 +11,19 @@ import '../../providers/syllabus_provider.dart';
 import 'widgets/syllabus_category_header.dart';
 import 'widgets/syllabus_topic_card.dart';
 import 'widgets/syllabus_customization_sheets.dart';
+
+class CompletionIsScrolledNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setScrolled(bool val) {
+    state = val;
+  }
+}
+
+final completionIsScrolledProvider = NotifierProvider<CompletionIsScrolledNotifier, bool>(() {
+  return CompletionIsScrolledNotifier();
+});
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -35,9 +46,19 @@ class DashboardScreen extends ConsumerWidget {
     if (completionType == CompletionType.syllabus) {
       final syllabusAsync = ref.watch(syllabusProvider);
       return Scaffold(
-        body: syllabusAsync.when(
-          data: (syllabusData) {
-            final isSyllabusEmpty = syllabusData.isEmpty;
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            final isScrolled = notification.metrics.pixels > 10.0;
+            if (ref.read(completionIsScrolledProvider) != isScrolled) {
+              Future.microtask(() {
+                ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
+              });
+            }
+            return false;
+          },
+          child: syllabusAsync.when(
+            data: (syllabusData) {
+              final isSyllabusEmpty = syllabusData.isEmpty;
 
             int totalCompleted = 0, totalTasks = 0;
             if (!isSyllabusEmpty) {
@@ -53,18 +74,8 @@ class DashboardScreen extends ConsumerWidget {
             return _buildConstrainedBody(CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                SliverAppBar(
-                  toolbarHeight: 72,
-                  floating: true,
-                  pinned: true,
-                  elevation: 0,
-                  scrolledUnderElevation: 2,
-                  centerTitle: false,
-                  automaticallyImplyLeading: false,
-                  title: const AppBarTitle(),
-                  actions: const [
-                    CountdownWidget(),
-                  ],
+                SliverToBoxAdapter(
+                  child: SizedBox(height: 72 + MediaQuery.of(context).padding.top),
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
@@ -159,13 +170,24 @@ class DashboardScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) => Center(child: Text('Error: $err')),
         ),
-      );
-    }
+      ),
+    );
+  }
 
     return Scaffold(
-      body: categoriesAsync.when(
-        data: (categoriesWithSubs) {
-          final isEmpty = categoriesWithSubs.isEmpty;
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          final isScrolled = notification.metrics.pixels > 10.0;
+          if (ref.read(completionIsScrolledProvider) != isScrolled) {
+            Future.microtask(() {
+              ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
+            });
+          }
+          return false;
+        },
+        child: categoriesAsync.when(
+          data: (categoriesWithSubs) {
+            final isEmpty = categoriesWithSubs.isEmpty;
 
           int totalCompleted = 0, totalVideos = 0;
           if (!isEmpty) {
@@ -183,18 +205,8 @@ class DashboardScreen extends ConsumerWidget {
           return _buildConstrainedBody(CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              SliverAppBar(
-                toolbarHeight: 72,
-                floating: true,
-                pinned: true,
-                elevation: 0,
-                scrolledUnderElevation: 2,
-                centerTitle: false,
-                automaticallyImplyLeading: false,
-                title: const AppBarTitle(),
-                actions: const [
-                  CountdownWidget(),
-                ],
+              SliverToBoxAdapter(
+                child: SizedBox(height: 72 + MediaQuery.of(context).padding.top),
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -298,8 +310,9 @@ class DashboardScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Error: $err')),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class WelcomeWidget extends ConsumerWidget {

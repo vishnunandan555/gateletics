@@ -218,51 +218,53 @@ If you have any questions about this Privacy Policy, please contact us at: vishn
                         const SizedBox(height: 24),
 
                         // Agreement Toggles in a clean Card style
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(5),
+                        Material(
+                          color: Colors.white.withAlpha(5),
+                          shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withAlpha(8)),
+                            side: BorderSide(color: Colors.white.withAlpha(8)),
                           ),
-                          child: Theme(
-                            data: ThemeData(unselectedWidgetColor: Colors.white30),
-                            child: Column(
-                              children: [
-                                CheckboxListTile(
-                                  activeColor: Colors.cyanAccent,
-                                  checkColor: Colors.black,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                  value: _tosAgreed,
-                                  title: Text(
-                                    "I read and agree to the Terms of Service",
-                                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                            child: Theme(
+                              data: ThemeData(unselectedWidgetColor: Colors.white30),
+                              child: Column(
+                                children: [
+                                  CheckboxListTile(
+                                    activeColor: Colors.cyanAccent,
+                                    checkColor: Colors.black,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                    value: _tosAgreed,
+                                    title: Text(
+                                      "I read and agree to the Terms of Service",
+                                      style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                    ),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _tosAgreed = val ?? false;
+                                      });
+                                    },
                                   ),
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _tosAgreed = val ?? false;
-                                    });
-                                  },
-                                ),
-                                const Divider(color: Colors.white10, height: 1),
-                                CheckboxListTile(
-                                  activeColor: Colors.cyanAccent,
-                                  checkColor: Colors.black,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                  value: _privacyAgreed,
-                                  title: Text(
-                                    "I read and agree to the Privacy Policy",
-                                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                  const Divider(color: Colors.white10, height: 1),
+                                  CheckboxListTile(
+                                    activeColor: Colors.cyanAccent,
+                                    checkColor: Colors.black,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                    value: _privacyAgreed,
+                                    title: Text(
+                                      "I read and agree to the Privacy Policy",
+                                      style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                                    ),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _privacyAgreed = val ?? false;
+                                      });
+                                    },
                                   ),
-                                  controlAffinity: ListTileControlAffinity.leading,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _privacyAgreed = val ?? false;
-                                    });
-                                  },
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

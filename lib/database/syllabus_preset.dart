@@ -208,7 +208,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'C Programming',
-    color: 0xFFD500F9,
+    color: 0xFFE040FB,
     topics: [
       PresetTopic(
         name: 'C Language Fundamentals',
@@ -238,7 +238,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Data Structures',
-    color: 0xFFFFE500,
+    color: 0xFFFFFC00,
     topics: [
       PresetTopic(
         name: 'Linear Data Structures',
@@ -267,7 +267,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Algorithms',
-    color: 0xFFFF6C00,
+    color: 0xFFFF5E00,
     topics: [
       PresetTopic(
         name: 'Complexity Analysis & Searching/Sorting',
@@ -307,7 +307,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Theory of Computation',
-    color: 0xFFFF1493,
+    color: 0xFFFFAD00,
     topics: [
       PresetTopic(
         name: 'Regular Languages & Finite Automata',
@@ -350,7 +350,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Compiler Design',
-    color: 0xFF2979FF,
+    color: 0xFF00FFCC,
     topics: [
       PresetTopic(
         name: 'Lexical and Syntax Analysis',
@@ -392,7 +392,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Operating Systems',
-    color: 0xFFFF0000,
+    color: 0xFF00B0FF,
     topics: [
       PresetTopic(
         name: 'Processes, Threads & IPC',
@@ -456,7 +456,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Databases',
-    color: 0xFF39FF14,
+    color: 0xFF9D5AFF,
     topics: [
       PresetTopic(
         name: 'Database Design & Relational Model',
@@ -505,7 +505,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Computer Networks',
-    color: 0xFF00F0FF,
+    color: 0xFF4C73FF,
     topics: [
       PresetTopic(
         name: 'Network Layering & Switching',
@@ -574,7 +574,7 @@ const List<PresetCategory> defaultSyllabusPreset = [
   ),
   PresetCategory(
     name: 'Aptitude',
-    color: 0xFFD500F9,
+    color: 0xFFC58D39,
     topics: [
       PresetTopic(
         name: 'Verbal & Analytical Aptitude',

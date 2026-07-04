@@ -24,11 +24,19 @@ import '../../providers/progress_font_provider.dart';
 import '../../providers/quotes_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/category_autosort_provider.dart';
+import '../../providers/focus_animation_provider.dart';
+import '../../providers/category_font_size_provider.dart';
+import '../../providers/topic_font_size_provider.dart';
+import '../../providers/task_font_size_provider.dart';
+import '../../providers/overall_ui_scale_provider.dart';
 import 'widgets/settings/change_font_size_tile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
+import '../../providers/profile_provider.dart';
 import '../../providers/hide_download_banner_provider.dart';
+import '../../providers/glow_strength_provider.dart';
+import 'widgets/shell_common.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../database/backup_service.dart';
 import '../../widgets/settings/about_dialog.dart';
@@ -312,6 +320,10 @@ class SettingsScreen extends ConsumerWidget {
         await prefs.remove('has_seen_desktop_warning');
         await prefs.remove('last_seen_desktop_warning_version');
         await prefs.remove('desktop_warning_seen_time_ms');
+        await prefs.remove('category_font_size');
+        await prefs.remove('topic_font_size');
+        await prefs.remove('task_font_size');
+        await prefs.remove('overall_ui_scale');
 
         // 3. Reset/invalidate all focus-related providers
         ref.read(focusProvider.notifier).resetState();
@@ -322,6 +334,10 @@ class SettingsScreen extends ConsumerWidget {
 
         ref.invalidate(agreementProvider);
         ref.invalidate(setupCompletedProvider);
+        ref.invalidate(categoryFontSizeProvider);
+        ref.invalidate(topicFontSizeProvider);
+        ref.invalidate(taskFontSizeProvider);
+        ref.invalidate(overallUiScaleProvider);
         await ref.read(overallProgressColorProvider.notifier).setAutoMode();
       } else {
         final currentType = ref.read(completionTypeProvider);
@@ -349,6 +365,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _showSyncConflictDialog(BuildContext context, WidgetRef ref) {
+    final accentColor = ref.read(overallProgressColorProvider);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -369,7 +386,28 @@ class SettingsScreen extends ConsumerWidget {
                 "Both your local device and cloud backup contain study tracking progress. How would you like to resolve this conflict?",
                 style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final localData = await ref.read(syncProvider.notifier).exportLocalData();
+                  final cloudData = ref.read(syncProvider).pendingCloudData;
+                  if (cloudData != null && context.mounted) {
+                    showConflictDetailsDialog(context, localData, cloudData, accentColor);
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: accentColor.withAlpha(100)),
+                  foregroundColor: accentColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                icon: const Icon(Icons.compare_arrows_rounded, size: 16),
+                label: Text(
+                  "Compare Data (View Conflicts)",
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
+              ),
+              const SizedBox(height: 16),
               _buildDialogOption(
                 context: context,
                 title: "Merge Progress (Recommended)",
@@ -948,6 +986,193 @@ class SettingsScreen extends ConsumerWidget {
             ),
           );
 
+    final profileSettingsHeader = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Text(
+        'PROFILE SETTINGS',
+        style: TextStyle(
+          color: accentColor.withValues(alpha: 0.7),
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+
+    final profileSettingsContent = Consumer(
+      builder: (context, ref, _) {
+        final profile = ref.watch(profileProvider);
+        final displayName = ref.watch(displayNameProvider);
+        final displayImage = ref.watch(displayProfileImageProvider);
+        final authAsync = ref.watch(authProvider);
+        final isGoogleUser = authAsync.value?.user != null;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ListTile(
+                  leading: const Icon(Icons.badge_rounded, color: Colors.cyanAccent),
+                  title: const Text('Set Display Name'),
+                  subtitle: Text(
+                    profile.customDisplayName != null
+                        ? profile.customDisplayName!
+                        : (displayName ?? 'Not set'),
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.edit_rounded, color: accentColor),
+                    onPressed: () async {
+                      final controller = TextEditingController(text: profile.customDisplayName ?? displayName ?? '');
+                      final result = await showDialog<String>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: const Color(0xFF18181B),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          title: const Text("Set Custom Name"),
+                          content: TextField(
+                            controller: controller,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: "Enter name",
+                              hintStyle: const TextStyle(color: Colors.white30),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(color: accentColor),
+                              ),
+                            ),
+                            maxLength: 30,
+                            autofocus: true,
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                ref.read(profileProvider.notifier).setCustomDisplayName(null);
+                                Navigator.pop(ctx);
+                              },
+                              child: Text('Reset', style: TextStyle(color: Colors.redAccent)),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(ctx, controller.text),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: accentColor,
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Save'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (result != null) {
+                        await ref.read(profileProvider.notifier).setCustomDisplayName(result);
+                      }
+                    },
+                  ),
+                ),
+                const Divider(color: Colors.white10, height: 1),
+                ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: accentColor, width: 1),
+                    ),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundImage: displayImage,
+                      backgroundColor: Colors.white12,
+                      child: displayImage == null ? const Icon(Icons.person, size: 18, color: Colors.white54) : null,
+                    ),
+                  ),
+                  title: const Text('Set Profile Photo'),
+                  subtitle: Text(
+                    profile.profilePhotoMode == 'custom'
+                        ? 'Custom Photo'
+                        : profile.profilePhotoMode == 'google'
+                            ? 'Google Account Avatar'
+                            : 'No Profile Photo',
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  trailing: PopupMenuButton<String>(
+                    icon: Icon(Icons.photo_camera_rounded, color: accentColor),
+                    color: const Color(0xFF1F1F23),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    onSelected: (val) async {
+                      if (val == 'none') {
+                        await ref.read(profileProvider.notifier).setProfilePhotoMode('none');
+                      } else if (val == 'google') {
+                        await ref.read(profileProvider.notifier).setProfilePhotoMode('google');
+                      } else if (val == 'pick') {
+                        final result = await FilePicker.pickFiles(
+                          type: FileType.image,
+                        );
+                        if (result != null && result.files.single.path != null) {
+                          final path = result.files.single.path!;
+                          final bytes = result.files.single.bytes;
+                          
+                          String savedPath = path;
+                          if (!kIsWeb) {
+                            final dir = await getApplicationDocumentsDirectory();
+                            final targetFile = File('${dir.path}/custom_profile_${DateTime.now().millisecondsSinceEpoch}.png');
+                            await File(path).copy(targetFile.path);
+                            savedPath = targetFile.path;
+                          } else if (bytes != null) {
+                            savedPath = 'data:image/png;base64,${base64Encode(bytes)}';
+                          }
+
+                          await ref.read(profileProvider.notifier).setCustomProfilePhotoPath(savedPath);
+                          await ref.read(profileProvider.notifier).setProfilePhotoMode('custom');
+                        } else if (result != null && result.files.single.bytes != null) {
+                          final bytes = result.files.single.bytes!;
+                          final savedPath = 'data:image/png;base64,${base64Encode(bytes)}';
+                          await ref.read(profileProvider.notifier).setCustomProfilePhotoPath(savedPath);
+                          await ref.read(profileProvider.notifier).setProfilePhotoMode('custom');
+                        }
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'pick',
+                        child: Row(
+                          children: [
+                            Icon(Icons.photo_library_rounded, size: 18, color: Colors.white70),
+                            SizedBox(width: 8),
+                            Text('Choose Custom Photo', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                      if (isGoogleUser)
+                        const PopupMenuItem(
+                          value: 'google',
+                          child: Row(
+                            children: [
+                              Icon(Icons.account_circle_rounded, size: 18, color: Colors.white70),
+                              SizedBox(width: 8),
+                              Text('Use Google Photo', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'none',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent),
+                            SizedBox(width: 8),
+                            Text('Remove Photo', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+
     final localBackupsHeader = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
@@ -1176,7 +1401,7 @@ class SettingsScreen extends ConsumerWidget {
     final focusQuotesHeader = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Text(
-        'FOCUS MODE (BETA)',
+        'FOCUS MODE Additional Options (Beta)',
         style: TextStyle(
           color: accentColor.withValues(alpha: 0.7),
           fontWeight: FontWeight.bold,
@@ -1200,6 +1425,100 @@ class SettingsScreen extends ConsumerWidget {
           onChanged: (val) {
             ref.read(focusQuotesEnabledProvider.notifier).setEnabled(val);
           },
+        );
+      },
+    );
+
+    final focusAnimationStyleContent = Consumer(
+      builder: (context, ref, _) {
+        final animType = ref.watch(focusAnimationProvider);
+        return ListTile(
+          title: const Text('Active Focus Animation'),
+          subtitle: const Text(
+            'Change the style of the looping animation shown on the Home Screen when focusing',
+            style: TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+          trailing: DropdownButton<FocusAnimationType>(
+            value: animType,
+            dropdownColor: const Color(0xFF18181B),
+            underline: const SizedBox(),
+            items: FocusAnimationType.values.map((type) {
+              String name = '';
+              switch (type) {
+                case FocusAnimationType.doubleWave:
+                  name = 'Double Wave';
+                  break;
+                case FocusAnimationType.singleWave:
+                  name = 'Single Wave';
+                  break;
+                case FocusAnimationType.pulseDots:
+                  name = 'Pulsing Dots';
+                  break;
+                case FocusAnimationType.sonicEqualizer:
+                  name = 'Sonic Equalizer';
+                  break;
+                case FocusAnimationType.heartbeatECG:
+                  name = 'Heartbeat ECG';
+                  break;
+              }
+              return DropdownMenuItem(
+                value: type,
+                child: Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                ref.read(focusAnimationProvider.notifier).setFocusAnimationType(val);
+              }
+            },
+          ),
+        );
+      },
+    );
+
+    final resumeButtonStyleContent = Consumer(
+      builder: (context, ref, _) {
+        final fillStyle = ref.watch(resumeFillStyleProvider);
+        return ListTile(
+          title: const Text('Resume Button Style'),
+          subtitle: const Text(
+            'Change the progress filling style of the Start/Resume button on the Home Screen',
+            style: TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+          trailing: DropdownButton<ResumeFillStyle>(
+            value: fillStyle,
+            dropdownColor: const Color(0xFF18181B),
+            underline: const SizedBox(),
+            items: ResumeFillStyle.values.map((type) {
+              String name = '';
+              switch (type) {
+                case ResumeFillStyle.rectangularFill:
+                  name = 'Rectangular Fill';
+                  break;
+                case ResumeFillStyle.neonGradient:
+                  name = 'Neon Gradient';
+                  break;
+                case ResumeFillStyle.bottomMicroIndicator:
+                  name = 'Bottom Micro Line';
+                  break;
+              }
+              return DropdownMenuItem(
+                value: type,
+                child: Text(
+                  name,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                ref.read(resumeFillStyleProvider.notifier).setResumeFillStyle(val);
+              }
+            },
+          ),
         );
       },
     );
@@ -1230,11 +1549,9 @@ class SettingsScreen extends ConsumerWidget {
           ),
           title: const Text(
             'Accent Color Options',
-            style: TextStyle(color: Colors.white, fontSize: 15),
           ),
           subtitle: Text(
             isAuto ? 'Auto-cycling' : 'Frozen custom color',
-            style: const TextStyle(color: Colors.white30, fontSize: 12),
           ),
           trailing: Container(
             width: 24,
@@ -1522,6 +1839,62 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
+              final strength = ref.watch(glowStrengthProvider);
+              return ListTile(
+                leading: Icon(Icons.blur_circular_rounded, color: accentColor),
+                title: const Text('Home Glow Strength'),
+                subtitle: Text(
+                  '${(strength * 100).toStringAsFixed(0)}% intensity',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                trailing: SizedBox(
+                  width: 140,
+                  child: Slider(
+                    min: 0.0,
+                    max: 4.0,
+                    divisions: 16,
+                    activeColor: accentColor,
+                    inactiveColor: Colors.white10,
+                    value: strength.clamp(0.0, 4.0),
+                    onChanged: (val) async {
+                      await ref.read(glowStrengthProvider.notifier).setStrength(val);
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
+              final profile = ref.watch(profileProvider);
+              return ListTile(
+                leading: Icon(Icons.photo_size_select_large_rounded, color: accentColor),
+                title: const Text('Profile Photo Size'),
+                subtitle: Text(
+                  '${profile.profilePhotoSize.toStringAsFixed(0)} px radius',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                trailing: SizedBox(
+                  width: 140,
+                  child: Slider(
+                    min: 15.0,
+                    max: 60.0,
+                    divisions: 9,
+                    activeColor: accentColor,
+                    inactiveColor: Colors.white10,
+                    value: profile.profilePhotoSize.clamp(15.0, 60.0),
+                    onChanged: (val) async {
+                      await ref.read(profileProvider.notifier).setProfilePhotoSize(val);
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -1549,18 +1922,33 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'SETTINGS',
-          style: GoogleFonts.orbitron(
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.5,
+    return Theme(
+      data: Theme.of(context).copyWith(
+        listTileTheme: ListTileThemeData(
+          dense: true,
+          titleTextStyle: GoogleFonts.outfit(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+          subtitleTextStyle: GoogleFonts.outfit(
+            color: Colors.white30,
+            fontSize: 11,
           ),
         ),
-        centerTitle: true,
       ),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'SETTINGS',
+            style: GoogleFonts.orbitron(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+            ),
+          ),
+          centerTitle: true,
+        ),
       body: SafeArea(
         child: isDesktop
             ? SingleChildScrollView(
@@ -1577,33 +1965,38 @@ class SettingsScreen extends ConsumerWidget {
                             children: [
                               cloudSyncHeader,
                               cloudSyncContent,
+                              const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
+                              profileSettingsHeader,
+                              profileSettingsContent,
                               if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
                                   defaultTargetPlatform != TargetPlatform.android &&
                                   defaultTargetPlatform != TargetPlatform.iOS) ...[
-                                const SizedBox(height: 16),
-                                const Divider(color: Colors.white12),
                                 const SizedBox(height: 8),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 4),
                                 uiSwitchHeader,
                                 uiSwitchContent,
                               ],
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               localBackupsHeader,
                               localBackupsContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               completionTypeHeader,
                               completionTypeContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               resetDataHeader,
                               resetDataContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               aboutAppContent,
                             ],
                           ),
@@ -1615,39 +2008,41 @@ class SettingsScreen extends ConsumerWidget {
                             children: [
                               categoryOrderingHeader,
                               categoryOrderingContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               focusQuotesHeader,
                               focusQuotesContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
+                              focusAnimationStyleContent,
+                              resumeButtonStyleContent,
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               accentColorHeader,
                               accentColorContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               fontHeader,
                               fontContent,
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               ChangeFontSizeTile(accentColor: accentColor),
-                              const SizedBox(height: 16),
-                              const Divider(color: Colors.white12),
                               const SizedBox(height: 8),
+                              const Divider(color: Colors.white12),
+                              const SizedBox(height: 4),
                               advancedOptionsContent,
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     const Divider(color: Colors.white10),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     versionText,
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                   ],
                 ),
               )
@@ -1657,6 +2052,9 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   cloudSyncHeader,
                   cloudSyncContent,
+                  const Divider(color: Colors.white12),
+                  profileSettingsHeader,
+                  profileSettingsContent,
                   if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
                       defaultTargetPlatform != TargetPlatform.android &&
                       defaultTargetPlatform != TargetPlatform.iOS) ...[
@@ -1670,42 +2068,45 @@ class SettingsScreen extends ConsumerWidget {
                   const Divider(color: Colors.white12),
                   completionTypeHeader,
                   completionTypeContent,
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   const Divider(color: Colors.white12),
                   categoryOrderingHeader,
                   categoryOrderingContent,
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   const Divider(color: Colors.white12),
                   focusQuotesHeader,
                   focusQuotesContent,
-                  const SizedBox(height: 8),
+                  focusAnimationStyleContent,
+                  resumeButtonStyleContent,
+                  const SizedBox(height: 4),
                   const Divider(color: Colors.white12),
                   accentColorHeader,
                   accentColorContent,
                   const Divider(color: Colors.white12),
                   fontHeader,
                   fontContent,
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   ChangeFontSizeTile(accentColor: accentColor),
                   const Divider(color: Colors.white12),
                   resetDataHeader,
                   resetDataContent,
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   const Divider(color: Colors.white10),
                   advancedOptionsContent,
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   const Divider(color: Colors.white10),
                   aboutAppContent,
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   const Divider(color: Colors.white10),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   versionText,
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                 ],
               ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _showSyncFrequencyDialog(
       BuildContext context, WidgetRef ref, SyncFrequency currentFreq, Color accentColor) {

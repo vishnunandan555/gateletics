@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../database/app_database.dart';
 import '../providers/subject_provider.dart';
 import '../providers/topic_font_size_provider.dart';
+import '../providers/overall_ui_scale_provider.dart';
 import 'progress_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -339,6 +340,7 @@ class SubjectCard extends ConsumerWidget {
             ? 0.0
             : (subject.completedVideos / subject.totalVideos) * 100);
 
+    final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
     final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -347,9 +349,12 @@ class SubjectCard extends ConsumerWidget {
       color: Colors.transparent,
       child: InkWell(
         onLongPress: () => _showEditDialog(context, ref),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(
+            horizontal: 12 * overallScale,
+            vertical: 8 * overallScale,
+          ),
           child: Opacity(
             opacity: isNotReady ? 0.4 : 1.0,
             child: Row(
@@ -368,16 +373,16 @@ class SubjectCard extends ConsumerWidget {
                           Icon(
                             _getIconForSubject(subject.name),
                             color: color,
-                            size: 18,
+                            size: 18 * overallScale,
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6 * overallScale),
                           Expanded(
                             child: Text(
                               subject.name,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
-                                fontSize: (screenWidth * 0.038).clamp(12.0, 15.0) * topicScaleFactor,
+                                fontSize: (screenWidth * 0.042).clamp(13.0, 16.0) * topicScaleFactor,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -386,18 +391,18 @@ class SubjectCard extends ConsumerWidget {
                         ],
                       ),
 
-                      const SizedBox(height: 8),
+                      SizedBox(height: 6 * overallScale),
 
                       // Row 2: progress bar
                       ProgressBar(
                         percentage: percentage,
-                        height: 10,
+                        height: 8 * overallScale,
                         color: color,
-                        showTicks: true,
+                        showTicks: false,
                         tickCount: 10,
                       ),
 
-                      const SizedBox(height: 10),
+                      SizedBox(height: 6 * overallScale),
 
                       // Row 3: source label (left) + counter buttons (right)
                       Row(
@@ -409,13 +414,14 @@ class SubjectCard extends ConsumerWidget {
                                 child: _PillButton(
                                   label: _getSourceLabel(),
                                   color: color,
+                                  overallScale: overallScale,
                                   onTap: subject.playlistLink.trim().isEmpty
                                       ? null
                                       : _launchUrl,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8 * overallScale),
                           ] else
                             const Spacer(),
                           _CircleButton(
@@ -423,13 +429,15 @@ class SubjectCard extends ConsumerWidget {
                             onTap: isNotReady ? null : onDecrement,
                             bgColor: Colors.white.withValues(alpha: 0.06),
                             iconColor: Colors.white54,
+                            overallScale: overallScale,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 6 * overallScale),
                           _CircleButton(
                             icon: Icons.add_rounded,
                             onTap: isNotReady ? null : onIncrement,
                             bgColor: color.withValues(alpha: 0.18),
                             iconColor: color,
+                            overallScale: overallScale,
                           ),
                         ],
                       ),
@@ -437,20 +445,20 @@ class SubjectCard extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(width: 6),
+                SizedBox(width: 6 * overallScale),
 
                 // ── RIGHT: big % + completion info ──────────
                 Container(
-                  width: 80,
+                  width: 72 * overallScale,
                   alignment: Alignment.centerRight,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
+                       Text(
                         '${percentage.toStringAsFixed(0)}%',
                         style: TextStyle(
-                          fontSize: (screenWidth * 1).clamp(28.0, 38.0) * topicScaleFactor,
+                          fontSize: (screenWidth * 1).clamp(22.0, 30.0) * topicScaleFactor,
                           fontWeight: FontWeight.w900,
                           color: color,
                           letterSpacing: -1.5,
@@ -463,12 +471,12 @@ class SubjectCard extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4 * overallScale),
                       Text(
                         '${subject.completedVideos}/${subject.totalVideos}',
                         style: TextStyle(
                           color: Colors.white70,
-                          fontSize: (screenWidth * 0.028).clamp(9.0, 11.0) * topicScaleFactor,
+                          fontSize: (screenWidth * 0.03).clamp(10.0, 11.5) * topicScaleFactor,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
                         ),
@@ -485,10 +493,10 @@ class SubjectCard extends ConsumerWidget {
 
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.5 * overallScale),
       decoration: BoxDecoration(
         color: const Color(0xFF18181B),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.06),
           width: 1,
@@ -504,7 +512,7 @@ class SubjectCard extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
                     child: Container(
@@ -583,12 +591,14 @@ class _CircleButton extends StatelessWidget {
   final VoidCallback? onTap;
   final Color bgColor;
   final Color iconColor;
+  final double overallScale;
 
   const _CircleButton({
     required this.icon,
     required this.onTap,
     required this.bgColor,
     required this.iconColor,
+    required this.overallScale,
   });
 
   @override
@@ -596,10 +606,10 @@ class _CircleButton extends StatelessWidget {
     return AnimatedScaleButton(
       onTap: onTap,
       child: Container(
-        width: 38,
-        height: 38,
+        width: 32 * overallScale,
+        height: 32 * overallScale,
         decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
-        child: Icon(icon, color: iconColor, size: 22),
+        child: Icon(icon, color: iconColor, size: 18 * overallScale),
       ),
     );
   }
@@ -609,11 +619,13 @@ class _PillButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback? onTap;
+  final double overallScale;
 
   const _PillButton({
     required this.label,
     required this.color,
     required this.onTap,
+    required this.overallScale,
   });
 
   @override
@@ -621,11 +633,11 @@ class _PillButton extends StatelessWidget {
     return AnimatedScaleButton(
       onTap: onTap,
       child: Container(
-        height: 38,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        height: 28 * overallScale,
+        padding: EdgeInsets.symmetric(horizontal: 8 * overallScale),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(19),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Row(
@@ -639,7 +651,7 @@ class _PillButton extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 10.5 * overallScale,
                   fontWeight: FontWeight.bold,
                   color: color.withValues(alpha: 0.9),
                   letterSpacing: 0.5,

@@ -191,7 +191,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
   // Helper: Export local database to backup JSON format
-  Future<Map<String, dynamic>> _exportLocalData() {
+  Future<Map<String, dynamic>> exportLocalData() {
     return BackupService.exportDatabase(_db);
   }
 
@@ -464,7 +464,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       // Deep data comparison: if local and cloud are identical, bypass conflict check
       if (hasLocalData) {
-        final localData = await _exportLocalData();
+        final localData = await exportLocalData();
         localData['completionType'] = ref.read(completionTypeProvider).name;
         localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
         if (_areDataEqual(localData, cloudData)) {
@@ -520,7 +520,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
     await _updateSyncState(status: SyncStatus.syncing);
     try {
-      final localData = await _exportLocalData();
+      final localData = await exportLocalData();
       localData['completionType'] = ref.read(completionTypeProvider).name;
       localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
@@ -594,7 +594,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       }
 
       if (dataToMerge != null) {
-        final localData = await _exportLocalData();
+        final localData = await exportLocalData();
         final merged = await _mergeData(localData, dataToMerge);
         
         // Restore local DB with merged data
@@ -641,7 +641,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     _syncTimer = null;
 
     try {
-      final localData = await _exportLocalData();
+      final localData = await exportLocalData();
       localData['completionType'] = ref.read(completionTypeProvider).name;
       localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
@@ -658,39 +658,63 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
   bool _areDataEqual(Map<String, dynamic> local, Map<String, dynamic> cloud) {
     try {
-      // Compare completionType
-      if (local['completionType'] != cloud['completionType']) return false;
+      // Compare completionType (default to syllabus)
+      final localCompType = local['completionType'] ?? 'syllabus';
+      final cloudCompType = cloud['completionType'] ?? 'syllabus';
+      if (localCompType != cloudCompType) {
+        debugPrint("Sync diff: completionType ($localCompType vs $cloudCompType)");
+        return false;
+      }
 
-      // Compare hideDownloadBanner
-      if (local['hideDownloadBanner'] != cloud['hideDownloadBanner']) return false;
+      // Compare hideDownloadBanner (default to false)
+      final localHideBanner = local['hideDownloadBanner'] ?? false;
+      final cloudHideBanner = cloud['hideDownloadBanner'] ?? false;
+      if (localHideBanner != cloudHideBanner) {
+        debugPrint("Sync diff: hideDownloadBanner ($localHideBanner vs $cloudHideBanner)");
+        return false;
+      }
 
-      // Compare categories count and names
-      final localCats = local['categories'] as List?;
-      final cloudCats = cloud['categories'] as List?;
-      if (localCats?.length != cloudCats?.length) return false;
+      // Compare categories count
+      final localCats = local['categories'] as List? ?? [];
+      final cloudCats = cloud['categories'] as List? ?? [];
+      if (localCats.length != cloudCats.length) {
+        debugPrint("Sync diff: categories count (${localCats.length} vs ${cloudCats.length})");
+        return false;
+      }
 
       // Compare subjects progress
-      final localSubjs = local['subjects'] as List?;
-      final cloudSubjs = cloud['subjects'] as List?;
-      if (localSubjs?.length != cloudSubjs?.length) return false;
+      final localSubjs = local['subjects'] as List? ?? [];
+      final cloudSubjs = cloud['subjects'] as List? ?? [];
+      if (localSubjs.length != cloudSubjs.length) {
+        debugPrint("Sync diff: subjects count (${localSubjs.length} vs ${cloudSubjs.length})");
+        return false;
+      }
       
       // Map local subjects by name for comparison
       final localSubjMap = {
-        for (var s in (localSubjs ?? [])) 
+        for (var s in localSubjs) 
           "${s['categoryName'] ?? ''}_${s['name'] ?? ''}": s
       };
-      for (final cs in (cloudSubjs ?? [])) {
+      for (final cs in cloudSubjs) {
         final key = "${cs['categoryName'] ?? ''}_${cs['name'] ?? ''}";
         final ls = localSubjMap[key];
-        if (ls == null) return false;
-        if (ls['completedVideos'] != cs['completedVideos']) return false;
-        if (ls['totalVideos'] != cs['totalVideos']) return false;
+        if (ls == null) {
+          debugPrint("Sync diff: cloud subject not found in local ($key)");
+          return false;
+        }
+        if (ls['completedVideos'] != cs['completedVideos'] || ls['totalVideos'] != cs['totalVideos']) {
+          debugPrint("Sync diff: subject progress ($key) local: ${ls['completedVideos']}/${ls['totalVideos']}, cloud: ${cs['completedVideos']}/${cs['totalVideos']}");
+          return false;
+        }
       }
 
       // Compare syllabus tasks progress
-      final localTasks = local['syllabusTasks'] as List?;
-      final cloudTasks = cloud['syllabusTasks'] as List?;
-      if (localTasks?.length != cloudTasks?.length) return false;
+      final localTasks = local['syllabusTasks'] as List? ?? [];
+      final cloudTasks = cloud['syllabusTasks'] as List? ?? [];
+      if (localTasks.length != cloudTasks.length) {
+        debugPrint("Sync diff: syllabus tasks count (${localTasks.length} vs ${cloudTasks.length})");
+        return false;
+      }
 
       final localSylCats = local['syllabusCategories'] as List? ?? [];
       final localSylTops = local['syllabusTopics'] as List? ?? [];
@@ -715,22 +739,29 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       // Map local syllabus tasks by stable path key: "categoryName/topicName/taskName"
       final localTaskMap = <String, Map<String, dynamic>>{};
-      for (var t in (localTasks ?? [])) {
+      for (var t in localTasks) {
         final topicPath = localTopicMap[t['topicId']] ?? 'Unknown/Unknown';
         final key = "$topicPath/${t['name'] ?? ''}";
         localTaskMap[key] = Map<String, dynamic>.from(t);
       }
 
-      for (final ct in (cloudTasks ?? [])) {
+      for (final ct in cloudTasks) {
         final topicPath = cloudTopicMap[ct['topicId']] ?? 'Unknown/Unknown';
         final key = "$topicPath/${ct['name'] ?? ''}";
         final lt = localTaskMap[key];
-        if (lt == null) return false;
-        if (lt['isCompleted'] != ct['isCompleted']) return false;
+        if (lt == null) {
+          debugPrint("Sync diff: cloud syllabus task not found in local ($key)");
+          return false;
+        }
+        if (lt['isCompleted'] != ct['isCompleted']) {
+          debugPrint("Sync diff: task completion ($key) local: ${lt['isCompleted']}, cloud: ${ct['isCompleted']}");
+          return false;
+        }
       }
 
       return true;
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint("AreDataEqual check exception: $e\n$stack");
       return false;
     }
   }

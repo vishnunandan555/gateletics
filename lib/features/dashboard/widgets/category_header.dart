@@ -30,9 +30,7 @@ class CategoryHeader extends ConsumerWidget {
     final categoryFontSize = sizeOpt.size;
     final scaleFactor = sizeOpt.scaleFactor;
     
-    final progressFontSize = (20.0 * scaleFactor).clamp(11.0, 20.0);
     final iconSize = (26.0 * scaleFactor).clamp(14.0, 26.0);
-    final splashRadius = (16.0 * scaleFactor).clamp(10.0, 16.0);
 
     final categoryBase = TextStyle(
       fontSize: categoryFontSize,
@@ -82,115 +80,106 @@ class CategoryHeader extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0, end: normalized),
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOutCubic,
-            builder: (context, animValue, _) {
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  final shortName = getCategoryShortName(title);
-
-                  // 1. Measure the full name
-                  var textPainter = TextPainter(
-                    text: TextSpan(text: title.toUpperCase(), style: baseStyle),
-                    textDirection: TextDirection.ltr,
-                    maxLines: 1,
-                  )..layout(maxWidth: double.infinity);
-
-                  String actualName = title;
-                  // If the full name's width exceeds constraints.maxWidth, use the shortName!
-                  if (textPainter.width > constraints.maxWidth) {
-                    actualName = shortName;
-                    // Re-measure with short name
-                    textPainter = TextPainter(
-                      text: TextSpan(text: shortName.toUpperCase(), style: baseStyle),
-                      textDirection: TextDirection.ltr,
-                      maxLines: 1,
-                    )..layout(maxWidth: constraints.maxWidth);
-                  } else {
-                    textPainter.layout(maxWidth: constraints.maxWidth);
-                  }
-
-                  final fillWidth = textPainter.width * animValue;
-
-                  return GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onLongPress: () => showCreateCategoryDialog(context, ref),
-                    onTap: isCollapsed
-                        ? null
-                        : () {
-                            if (progress >= 100.0) {
-                              ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
-                            }
-                          },
-                    child: Stack(
-                      children: [
-                        Text(actualName.toUpperCase(), style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ClipRect(
-                          clipper: _ProgressClipper(fillWidth),
-                          child: Text(
-                            actualName.toUpperCase(),
-                            style: baseStyle.copyWith(color: color),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        Text(
-          '${progress.toStringAsFixed(1)}%',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: progressFontSize,
-          ),
-        ),
-        const SizedBox(width: 6),
-        IconButton(
-          icon: Icon(Icons.more_vert_rounded, size: iconSize, color: Colors.white54),
-          onPressed: () => showCategoryOptionsSheet(context, category, ref),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          splashRadius: splashRadius,
-          tooltip: 'Category Settings',
-        ),
-      ],
-    );
-
-    if (isCollapsed) {
-      headerContent = Align(
-        alignment: Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () {
-              ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
+              if (progress >= 100.0) {
+                ref.read(manuallyExpandedCompletedCategoriesProvider.notifier).toggle(category.id);
+              }
             },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: color.withValues(alpha: 0.8),
-                  width: 1.5,
+            onLongPress: () => showCategoryOptionsSheet(context, category, ref),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 0, end: normalized),
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, animValue, _) {
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                final shortName = getCategoryShortName(title);
+
+                                // 1. Measure the full name
+                                var textPainter = TextPainter(
+                                  text: TextSpan(text: title.toUpperCase(), style: baseStyle),
+                                  textDirection: TextDirection.ltr,
+                                  maxLines: 1,
+                                )..layout(maxWidth: double.infinity);
+
+                                String actualName = title;
+                                // If the full name's width exceeds constraints.maxWidth, use the shortName!
+                                if (textPainter.width > constraints.maxWidth) {
+                                  actualName = shortName;
+                                  // Re-measure with short name
+                                  textPainter = TextPainter(
+                                    text: TextSpan(text: shortName.toUpperCase(), style: baseStyle),
+                                    textDirection: TextDirection.ltr,
+                                    maxLines: 1,
+                                  )..layout(maxWidth: constraints.maxWidth);
+                                } else {
+                                  textPainter.layout(maxWidth: constraints.maxWidth);
+                                }
+
+                                final fillWidth = textPainter.width * animValue;
+
+                                return Stack(
+                                  children: [
+                                    Text(actualName.toUpperCase(), style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    ClipRect(
+                                      clipper: _ProgressClipper(fillWidth),
+                                      child: Text(
+                                        actualName.toUpperCase(),
+                                        style: baseStyle.copyWith(color: color),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      if (progress >= 100.0) ...[
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: color,
+                          size: baseStyle.fontSize ?? categoryFontSize,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-              child: headerContent,
+                const SizedBox(width: 12),
+                Text(
+                  '${progress.toStringAsFixed(1)}%',
+                  style: baseStyle.copyWith(color: color),
+                ),
+              ],
             ),
           ),
         ),
-      );
-    }
+        GestureDetector(
+          onTap: () => showCategoryOptionsSheet(context, category, ref),
+          behavior: HitTestBehavior.translucent,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(2, 8, 0, 8),
+            child: Icon(
+              Icons.more_vert_rounded,
+              size: iconSize,
+              color: Colors.white54,
+            ),
+          ),
+        ),
+      ],
+    );
 
     return headerContent;
   }
