@@ -1114,6 +1114,20 @@ class $FocusSessionsTable extends FocusSessions
     requiredDuringInsert: false,
     defaultValue: const Constant(0.0),
   );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_categories (id) ON DELETE SET NULL',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1122,6 +1136,7 @@ class $FocusSessionsTable extends FocusSessions
     durationSeconds,
     accomplishments,
     progressDelta,
+    categoryId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1183,6 +1198,12 @@ class $FocusSessionsTable extends FocusSessions
         ),
       );
     }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
     return context;
   }
 
@@ -1216,6 +1237,10 @@ class $FocusSessionsTable extends FocusSessions
         DriftSqlType.double,
         data['${effectivePrefix}progress_delta'],
       )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      ),
     );
   }
 
@@ -1232,6 +1257,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
   final int durationSeconds;
   final String? accomplishments;
   final double progressDelta;
+  final int? categoryId;
   const FocusSession({
     required this.id,
     required this.method,
@@ -1239,6 +1265,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     required this.durationSeconds,
     this.accomplishments,
     required this.progressDelta,
+    this.categoryId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1251,6 +1278,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       map['accomplishments'] = Variable<String>(accomplishments);
     }
     map['progress_delta'] = Variable<double>(progressDelta);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<int>(categoryId);
+    }
     return map;
   }
 
@@ -1264,6 +1294,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           ? const Value.absent()
           : Value(accomplishments),
       progressDelta: Value(progressDelta),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
     );
   }
 
@@ -1279,6 +1312,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       durationSeconds: serializer.fromJson<int>(json['durationSeconds']),
       accomplishments: serializer.fromJson<String?>(json['accomplishments']),
       progressDelta: serializer.fromJson<double>(json['progressDelta']),
+      categoryId: serializer.fromJson<int?>(json['categoryId']),
     );
   }
   @override
@@ -1291,6 +1325,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       'durationSeconds': serializer.toJson<int>(durationSeconds),
       'accomplishments': serializer.toJson<String?>(accomplishments),
       'progressDelta': serializer.toJson<double>(progressDelta),
+      'categoryId': serializer.toJson<int?>(categoryId),
     };
   }
 
@@ -1301,6 +1336,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     int? durationSeconds,
     Value<String?> accomplishments = const Value.absent(),
     double? progressDelta,
+    Value<int?> categoryId = const Value.absent(),
   }) => FocusSession(
     id: id ?? this.id,
     method: method ?? this.method,
@@ -1310,6 +1346,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
         ? accomplishments.value
         : this.accomplishments,
     progressDelta: progressDelta ?? this.progressDelta,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
   );
   FocusSession copyWithCompanion(FocusSessionsCompanion data) {
     return FocusSession(
@@ -1325,6 +1362,9 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
       progressDelta: data.progressDelta.present
           ? data.progressDelta.value
           : this.progressDelta,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
     );
   }
 
@@ -1336,7 +1376,8 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           ..write('startTime: $startTime, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('accomplishments: $accomplishments, ')
-          ..write('progressDelta: $progressDelta')
+          ..write('progressDelta: $progressDelta, ')
+          ..write('categoryId: $categoryId')
           ..write(')'))
         .toString();
   }
@@ -1349,6 +1390,7 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
     durationSeconds,
     accomplishments,
     progressDelta,
+    categoryId,
   );
   @override
   bool operator ==(Object other) =>
@@ -1359,7 +1401,8 @@ class FocusSession extends DataClass implements Insertable<FocusSession> {
           other.startTime == this.startTime &&
           other.durationSeconds == this.durationSeconds &&
           other.accomplishments == this.accomplishments &&
-          other.progressDelta == this.progressDelta);
+          other.progressDelta == this.progressDelta &&
+          other.categoryId == this.categoryId);
 }
 
 class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
@@ -1369,6 +1412,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
   final Value<int> durationSeconds;
   final Value<String?> accomplishments;
   final Value<double> progressDelta;
+  final Value<int?> categoryId;
   const FocusSessionsCompanion({
     this.id = const Value.absent(),
     this.method = const Value.absent(),
@@ -1376,6 +1420,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     this.durationSeconds = const Value.absent(),
     this.accomplishments = const Value.absent(),
     this.progressDelta = const Value.absent(),
+    this.categoryId = const Value.absent(),
   });
   FocusSessionsCompanion.insert({
     this.id = const Value.absent(),
@@ -1384,6 +1429,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     required int durationSeconds,
     this.accomplishments = const Value.absent(),
     this.progressDelta = const Value.absent(),
+    this.categoryId = const Value.absent(),
   }) : method = Value(method),
        startTime = Value(startTime),
        durationSeconds = Value(durationSeconds);
@@ -1394,6 +1440,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     Expression<int>? durationSeconds,
     Expression<String>? accomplishments,
     Expression<double>? progressDelta,
+    Expression<int>? categoryId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1402,6 +1449,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
       if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (accomplishments != null) 'accomplishments': accomplishments,
       if (progressDelta != null) 'progress_delta': progressDelta,
+      if (categoryId != null) 'category_id': categoryId,
     });
   }
 
@@ -1412,6 +1460,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     Value<int>? durationSeconds,
     Value<String?>? accomplishments,
     Value<double>? progressDelta,
+    Value<int?>? categoryId,
   }) {
     return FocusSessionsCompanion(
       id: id ?? this.id,
@@ -1420,6 +1469,7 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       accomplishments: accomplishments ?? this.accomplishments,
       progressDelta: progressDelta ?? this.progressDelta,
+      categoryId: categoryId ?? this.categoryId,
     );
   }
 
@@ -1444,6 +1494,9 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
     if (progressDelta.present) {
       map['progress_delta'] = Variable<double>(progressDelta.value);
     }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
     return map;
   }
 
@@ -1455,7 +1508,8 @@ class FocusSessionsCompanion extends UpdateCompanion<FocusSession> {
           ..write('startTime: $startTime, ')
           ..write('durationSeconds: $durationSeconds, ')
           ..write('accomplishments: $accomplishments, ')
-          ..write('progressDelta: $progressDelta')
+          ..write('progressDelta: $progressDelta, ')
+          ..write('categoryId: $categoryId')
           ..write(')'))
         .toString();
   }
@@ -1895,6 +1949,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       ),
       result: [TableUpdate('syllabus_tasks', kind: UpdateKind.delete)],
     ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'syllabus_categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('focus_sessions', kind: UpdateKind.update)],
+    ),
   ]);
 }
 
@@ -1944,6 +2005,27 @@ final class $$SyllabusCategoriesTableReferences
     ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_syllabusTopicsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$FocusSessionsTable, List<FocusSession>>
+  _focusSessionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.focusSessions,
+    aliasName: $_aliasNameGenerator(
+      db.syllabusCategories.id,
+      db.focusSessions.categoryId,
+    ),
+  );
+
+  $$FocusSessionsTableProcessedTableManager get focusSessionsRefs {
+    final manager = $$FocusSessionsTableTableManager(
+      $_db,
+      $_db.focusSessions,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_focusSessionsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2000,6 +2082,31 @@ class $$SyllabusCategoriesTableFilterComposer
           }) => $$SyllabusTopicsTableFilterComposer(
             $db: $db,
             $table: $db.syllabusTopics,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> focusSessionsRefs(
+    Expression<bool> Function($$FocusSessionsTableFilterComposer f) f,
+  ) {
+    final $$FocusSessionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.focusSessions,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FocusSessionsTableFilterComposer(
+            $db: $db,
+            $table: $db.focusSessions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2095,6 +2202,31 @@ class $$SyllabusCategoriesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> focusSessionsRefs<T extends Object>(
+    Expression<T> Function($$FocusSessionsTableAnnotationComposer a) f,
+  ) {
+    final $$FocusSessionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.focusSessions,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FocusSessionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.focusSessions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SyllabusCategoriesTableTableManager
@@ -2110,7 +2242,10 @@ class $$SyllabusCategoriesTableTableManager
           $$SyllabusCategoriesTableUpdateCompanionBuilder,
           (SyllabusCategory, $$SyllabusCategoriesTableReferences),
           SyllabusCategory,
-          PrefetchHooks Function({bool syllabusTopicsRefs})
+          PrefetchHooks Function({
+            bool syllabusTopicsRefs,
+            bool focusSessionsRefs,
+          })
         > {
   $$SyllabusCategoriesTableTableManager(
     _$AppDatabase db,
@@ -2164,38 +2299,63 @@ class $$SyllabusCategoriesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({syllabusTopicsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (syllabusTopicsRefs) db.syllabusTopics,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (syllabusTopicsRefs)
-                    await $_getPrefetchedData<
-                      SyllabusCategory,
-                      $SyllabusCategoriesTable,
-                      SyllabusTopic
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SyllabusCategoriesTableReferences
-                          ._syllabusTopicsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$SyllabusCategoriesTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).syllabusTopicsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.categoryId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({syllabusTopicsRefs = false, focusSessionsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (syllabusTopicsRefs) db.syllabusTopics,
+                    if (focusSessionsRefs) db.focusSessions,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (syllabusTopicsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusCategory,
+                          $SyllabusCategoriesTable,
+                          SyllabusTopic
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusCategoriesTableReferences
+                              ._syllabusTopicsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).syllabusTopicsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (focusSessionsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusCategory,
+                          $SyllabusCategoriesTable,
+                          FocusSession
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusCategoriesTableReferences
+                              ._focusSessionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).focusSessionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -2212,7 +2372,7 @@ typedef $$SyllabusCategoriesTableProcessedTableManager =
       $$SyllabusCategoriesTableUpdateCompanionBuilder,
       (SyllabusCategory, $$SyllabusCategoriesTableReferences),
       SyllabusCategory,
-      PrefetchHooks Function({bool syllabusTopicsRefs})
+      PrefetchHooks Function({bool syllabusTopicsRefs, bool focusSessionsRefs})
     >;
 typedef $$SyllabusTopicsTableCreateCompanionBuilder =
     SyllabusTopicsCompanion Function({
@@ -2943,6 +3103,7 @@ typedef $$FocusSessionsTableCreateCompanionBuilder =
       required int durationSeconds,
       Value<String?> accomplishments,
       Value<double> progressDelta,
+      Value<int?> categoryId,
     });
 typedef $$FocusSessionsTableUpdateCompanionBuilder =
     FocusSessionsCompanion Function({
@@ -2952,7 +3113,39 @@ typedef $$FocusSessionsTableUpdateCompanionBuilder =
       Value<int> durationSeconds,
       Value<String?> accomplishments,
       Value<double> progressDelta,
+      Value<int?> categoryId,
     });
+
+final class $$FocusSessionsTableReferences
+    extends BaseReferences<_$AppDatabase, $FocusSessionsTable, FocusSession> {
+  $$FocusSessionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SyllabusCategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.syllabusCategories.createAlias(
+        $_aliasNameGenerator(
+          db.focusSessions.categoryId,
+          db.syllabusCategories.id,
+        ),
+      );
+
+  $$SyllabusCategoriesTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<int>('category_id');
+    if ($_column == null) return null;
+    final manager = $$SyllabusCategoriesTableTableManager(
+      $_db,
+      $_db.syllabusCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
 
 class $$FocusSessionsTableFilterComposer
     extends Composer<_$AppDatabase, $FocusSessionsTable> {
@@ -2992,6 +3185,29 @@ class $$FocusSessionsTableFilterComposer
     column: $table.progressDelta,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$SyllabusCategoriesTableFilterComposer get categoryId {
+    final $$SyllabusCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.syllabusCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$FocusSessionsTableOrderingComposer
@@ -3032,6 +3248,29 @@ class $$FocusSessionsTableOrderingComposer
     column: $table.progressDelta,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$SyllabusCategoriesTableOrderingComposer get categoryId {
+    final $$SyllabusCategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.syllabusCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusCategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$FocusSessionsTableAnnotationComposer
@@ -3066,6 +3305,30 @@ class $$FocusSessionsTableAnnotationComposer
     column: $table.progressDelta,
     builder: (column) => column,
   );
+
+  $$SyllabusCategoriesTableAnnotationComposer get categoryId {
+    final $$SyllabusCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.syllabusCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SyllabusCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.syllabusCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$FocusSessionsTableTableManager
@@ -3079,12 +3342,9 @@ class $$FocusSessionsTableTableManager
           $$FocusSessionsTableAnnotationComposer,
           $$FocusSessionsTableCreateCompanionBuilder,
           $$FocusSessionsTableUpdateCompanionBuilder,
-          (
-            FocusSession,
-            BaseReferences<_$AppDatabase, $FocusSessionsTable, FocusSession>,
-          ),
+          (FocusSession, $$FocusSessionsTableReferences),
           FocusSession,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool categoryId})
         > {
   $$FocusSessionsTableTableManager(_$AppDatabase db, $FocusSessionsTable table)
     : super(
@@ -3105,6 +3365,7 @@ class $$FocusSessionsTableTableManager
                 Value<int> durationSeconds = const Value.absent(),
                 Value<String?> accomplishments = const Value.absent(),
                 Value<double> progressDelta = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
               }) => FocusSessionsCompanion(
                 id: id,
                 method: method,
@@ -3112,6 +3373,7 @@ class $$FocusSessionsTableTableManager
                 durationSeconds: durationSeconds,
                 accomplishments: accomplishments,
                 progressDelta: progressDelta,
+                categoryId: categoryId,
               ),
           createCompanionCallback:
               ({
@@ -3121,6 +3383,7 @@ class $$FocusSessionsTableTableManager
                 required int durationSeconds,
                 Value<String?> accomplishments = const Value.absent(),
                 Value<double> progressDelta = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
               }) => FocusSessionsCompanion.insert(
                 id: id,
                 method: method,
@@ -3128,11 +3391,57 @@ class $$FocusSessionsTableTableManager
                 durationSeconds: durationSeconds,
                 accomplishments: accomplishments,
                 progressDelta: progressDelta,
+                categoryId: categoryId,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$FocusSessionsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({categoryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (categoryId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.categoryId,
+                                referencedTable: $$FocusSessionsTableReferences
+                                    ._categoryIdTable(db),
+                                referencedColumn: $$FocusSessionsTableReferences
+                                    ._categoryIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -3147,12 +3456,9 @@ typedef $$FocusSessionsTableProcessedTableManager =
       $$FocusSessionsTableAnnotationComposer,
       $$FocusSessionsTableCreateCompanionBuilder,
       $$FocusSessionsTableUpdateCompanionBuilder,
-      (
-        FocusSession,
-        BaseReferences<_$AppDatabase, $FocusSessionsTable, FocusSession>,
-      ),
+      (FocusSession, $$FocusSessionsTableReferences),
       FocusSession,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool categoryId})
     >;
 typedef $$DailyHistoryTableCreateCompanionBuilder =
     DailyHistoryCompanion Function({

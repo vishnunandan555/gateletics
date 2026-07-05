@@ -25,3 +25,7 @@ timer.png
 ultradian 120.png
 
 <a href="https://www.flaticon.com/free-icons/wind" title="wind icons">Wind icons created by Freepik - Flaticon</a>
+
+bar chart
+
+<a href="https://www.flaticon.com/free-icons/graph" title="graph icons">Graph icons created by Freepik - Flaticon</a>

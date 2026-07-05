@@ -128,6 +128,7 @@ class FocusSessionState {
   final List<String> sessionAccomplishments;
   final DateTime? sessionStartTime;
   final bool isBreakActive;
+  final int? selectedCategoryId;
 
   FocusSessionState({
     required this.status,
@@ -141,6 +142,7 @@ class FocusSessionState {
     required this.sessionAccomplishments,
     required this.isBreakActive,
     this.sessionStartTime,
+    this.selectedCategoryId,
   });
 
   FocusSessionState copyWith({
@@ -155,6 +157,7 @@ class FocusSessionState {
     List<String>? sessionAccomplishments,
     DateTime? sessionStartTime,
     bool? isBreakActive,
+    int? selectedCategoryId,
   }) {
     return FocusSessionState(
       status: status ?? this.status,
@@ -168,6 +171,7 @@ class FocusSessionState {
       sessionAccomplishments: sessionAccomplishments ?? this.sessionAccomplishments,
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
       isBreakActive: isBreakActive ?? this.isBreakActive,
+      selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
     );
   }
 
@@ -184,6 +188,7 @@ class FocusSessionState {
       sessionAccomplishments: const [],
       sessionStartTime: null,
       isBreakActive: false,
+      selectedCategoryId: null,
     );
   }
 
@@ -249,6 +254,10 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     if (state.status != FocusStatus.idle) return;
     state = state.copyWith(customTimerMinutes: minutes);
     _saveSelection();
+  }
+
+  void setSelectedCategory(int? categoryId) {
+    state = state.copyWith(selectedCategoryId: categoryId);
   }
 
   void resetState() {
@@ -381,6 +390,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       durationSeconds: state.totalSecondsFocused,
       accomplishments: Value(finalAccomplishments.isNotEmpty ? finalAccomplishments : null),
       progressDelta: Value(progressDelta),
+      categoryId: Value(state.selectedCategoryId),
     );
 
     int insertedId = -1;

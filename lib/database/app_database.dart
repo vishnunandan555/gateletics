@@ -37,6 +37,7 @@ class FocusSessions extends Table {
   IntColumn get durationSeconds => integer()();
   TextColumn get accomplishments => text().nullable()();
   RealColumn get progressDelta => real().withDefault(const Constant(0.0))();
+  IntColumn get categoryId => integer().nullable().references(SyllabusCategories, #id, onDelete: KeyAction.setNull)();
 }
 
 class DailyHistory extends Table {
@@ -114,20 +115,34 @@ class AppDatabase extends _$AppDatabase {
             await seedSyllabus();
           }
           if (from < 3) {
-            if (from >= 2) {
+            try {
               await m.addColumn(syllabusCategories, syllabusCategories.lastInteractedAt);
-            }
+            } catch (_) {}
           }
           if (from < 4) {
-            await m.createTable(focusSessions);
+            try {
+              await m.createTable(focusSessions);
+            } catch (_) {}
           }
           if (from < 5) {
-            if (from >= 4) {
+            try {
               await m.addColumn(focusSessions, focusSessions.progressDelta);
-            }
+            } catch (_) {}
           }
           if (from < 6) {
-            await m.createTable(dailyHistory);
+            try {
+              await m.createTable(dailyHistory);
+            } catch (_) {}
+          }
+          if (from < 7) {
+            try {
+              await m.addColumn(focusSessions, focusSessions.categoryId);
+            } catch (_) {}
+          }
+          if (from < 8) {
+            try {
+              await m.addColumn(focusSessions, focusSessions.categoryId);
+            } catch (_) {}
           }
         },
       );

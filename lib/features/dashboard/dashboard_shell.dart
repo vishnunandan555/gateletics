@@ -7,6 +7,7 @@ import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
 import 'dashboard_screen.dart';
 import 'home_screen.dart';
+import 'progress_history_screen.dart';
 import 'widgets/focus_screen.dart';
 import '../../providers/focus_provider.dart';
 import 'widgets/shell_common.dart';
@@ -24,12 +25,12 @@ class DashboardShell extends ConsumerStatefulWidget {
 
 class _DashboardShellState extends ConsumerState<DashboardShell> {
   late PageController _pageController;
-  int _currentIndex = 0;
+  int _currentIndex = 2;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 0);
+    _pageController = PageController(initialPage: 2);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAndInitSync();
       _checkDesktopWarning();
@@ -80,8 +81,9 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
               });
             },
             children: [
-              KeepAliveWrapper(child: HomeScreen(shellPageController: _pageController)),
               const KeepAliveWrapper(child: DashboardScreen()),
+              const KeepAliveWrapper(child: ProgressHistoryScreen()),
+              KeepAliveWrapper(child: HomeScreen(shellPageController: _pageController)),
               KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
               const KeepAliveWrapper(child: SettingsScreen()),
             ],
@@ -122,22 +124,28 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 children: [
                   _buildNavItem(
                     index: 0,
-                    icon: Icons.home_rounded,
-                    label: 'Home',
-                    color: progressColor,
-                  ),
-                  _buildNavItem(
-                    index: 1,
                     icon: Icons.percent_rounded,
                     label: 'Completion',
                     color: progressColor,
                   ),
-                  _buildFocusNavItem(
-                    index: 2,
+                  _buildNavItem(
+                    index: 1,
+                    icon: Icons.analytics_rounded,
+                    label: 'Stats',
                     color: progressColor,
                   ),
                   _buildNavItem(
+                    index: 2,
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    color: progressColor,
+                  ),
+                  _buildFocusNavItem(
                     index: 3,
+                    color: progressColor,
+                  ),
+                  _buildNavItem(
+                    index: 4,
                     icon: Icons.settings_rounded,
                     label: 'Settings',
                     color: progressColor,
@@ -315,32 +323,29 @@ class _SharedShellHeader extends ConsumerWidget {
           page = currentIndex.toDouble();
         }
 
-        // Header opacity: 1.0 when page <= 1.0, smoothly fading to 0.0 as page moves to 2.0.
-        double headerOpacity = 1.0;
-        if (page > 1.0) {
-          headerOpacity = (2.0 - page).clamp(0.0, 1.0);
+        // Header opacity: 1.0 at page 0 (Completion) and page 2 (Home), 0.0 at page 1 (Stats) and page 3+
+        double headerOpacity = 0.0;
+        if (page <= 1.0) {
+          headerOpacity = (1.0 - page).clamp(0.0, 1.0);
+        } else if (page > 1.0 && page <= 2.0) {
+          headerOpacity = (page - 1.0).clamp(0.0, 1.0);
+        } else if (page > 2.0 && page <= 3.0) {
+          headerOpacity = (3.0 - page).clamp(0.0, 1.0);
         }
 
-        // Background transition from transparent to solid black when scrolled down in Completion screen
+        // Background transition from transparent to solid black when scrolled down in Completion screen (page 0)
         Color headerBgColor = Colors.transparent;
-        if (isScrolled) {
-          if (page > 0.0 && page <= 1.0) {
-            headerBgColor = Colors.black.withValues(alpha: page);
-          } else if (page > 1.0) {
-            headerBgColor = Colors.black.withValues(alpha: (2.0 - page).clamp(0.0, 1.0));
-          }
+        if (isScrolled && page <= 1.0) {
+          headerBgColor = Colors.black.withValues(alpha: (1.0 - page).clamp(0.0, 1.0));
         }
 
-        // Countdown widget opacity: 0.0 at page 0.0, smoothly fading to 1.0 at page 1.0.
-        // It stays at 1.0 for page > 1.0.
+        // Countdown widget opacity: 1.0 at page 0 (Completion), 0.0 at page 1 (Stats) and page 2 (Home)
         double countdownOpacity = 0.0;
-        if (page >= 0.0 && page <= 1.0) {
-          countdownOpacity = page;
-        } else if (page > 1.0) {
-          countdownOpacity = 1.0;
+        if (page <= 1.0) {
+          countdownOpacity = (1.0 - page).clamp(0.0, 1.0);
         }
 
-        final ignorePointer = page >= 1.5;
+        final ignorePointer = headerOpacity < 0.5;
 
         return IgnorePointer(
           ignoring: ignorePointer,

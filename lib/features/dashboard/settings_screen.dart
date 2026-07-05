@@ -39,6 +39,9 @@ import '../../providers/glow_strength_provider.dart';
 import 'widgets/shell_common.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../database/backup_service.dart';
+import '../../database/app_database.dart';
+import '../../providers/rollover_provider.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../../widgets/settings/about_dialog.dart';
 import '../../utils/ui_scaling.dart';
 
@@ -1543,6 +1546,24 @@ class SettingsScreen extends ConsumerWidget {
       ],
     );
 
+    final devOptionsHeader = buildHeader('DEVELOPER OPTIONS');
+    final devOptionsContent = ListTile(
+      leading: Icon(Icons.developer_mode_rounded, color: accentColor),
+      title: const Text(
+        'Dev: Inject Study Session',
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+      subtitle: const Text(
+        'Add focus session to test statistics and history grids',
+        style: TextStyle(color: Colors.white30, fontSize: 11),
+      ),
+      onTap: () => _showDevInjectDialog(context, ref, accentColor),
+    );
+
     final advancedOptionsContent = Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -1866,6 +1887,10 @@ class SettingsScreen extends ConsumerWidget {
                   advancedOptionsContent,
                   SizedBox(height: context.s(4)),
                   const Divider(color: Colors.white10),
+                  devOptionsHeader,
+                  devOptionsContent,
+                  SizedBox(height: context.s(4)),
+                  const Divider(color: Colors.white10),
                   aboutAppContent,
                   SizedBox(height: context.s(8)),
                   const Divider(color: Colors.white10),
@@ -1930,7 +1955,9 @@ class SettingsScreen extends ConsumerWidget {
                     style: const TextStyle(color: Colors.white54, fontSize: 11),
                   ),
                   value: freq,
+                  // ignore: deprecated_member_use
                   groupValue: currentFreq,
+                  // ignore: deprecated_member_use
                   onChanged: (val) {
                     if (val != null) {
                       ref.read(syncFrequencyProvider.notifier).setFrequency(val);
@@ -2115,6 +2142,178 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showDevInjectDialog(BuildContext context, WidgetRef ref, Color accentColor) {
+    DateTime selectedDate = DateTime.now();
+    final durationController = TextEditingController(text: "60");
+    final goalController = TextEditingController(text: "120");
+    int? selectedCategoryId;
+
+    final categoriesAsync = ref.read(syllabusCategoriesProvider);
+    final categories = categoriesAsync.value ?? [];
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF18181B),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                "Dev: Inject Study Session",
+                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        "Date: ${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
+                        style: GoogleFonts.outfit(color: Colors.white),
+                      ),
+                      trailing: Icon(Icons.calendar_today_rounded, color: accentColor),
+                      onTap: () async {
+                        final d = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2030),
+                        );
+                        if (d != null) {
+                          setState(() {
+                            selectedDate = d;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: durationController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Duration (Minutes)",
+                        labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
+                      ),
+                      style: GoogleFonts.outfit(color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: goalController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Daily Goal (Minutes)",
+                        labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
+                      ),
+                      style: GoogleFonts.outfit(color: Colors.white),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<int?>(
+                        isExpanded: true,
+                        value: selectedCategoryId,
+                        dropdownColor: const Color(0xFF18181B),
+                        hint: Text(
+                          "Select Category (Optional)",
+                          style: GoogleFonts.outfit(color: Colors.white60),
+                        ),
+                        items: [
+                          DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text(
+                              "General Focus (No Category)",
+                              style: GoogleFonts.outfit(color: Colors.white70),
+                            ),
+                          ),
+                          ...categories.map((c) {
+                            return DropdownMenuItem<int?>(
+                              value: c.id,
+                              child: Text(
+                                c.name,
+                                style: GoogleFonts.outfit(color: Colors.white70),
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            selectedCategoryId = val;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text("Cancel", style: TextStyle(color: accentColor)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final durationMin = int.tryParse(durationController.text) ?? 60;
+                    final goalMin = int.tryParse(goalController.text) ?? 120;
+
+                    final db = ref.read(appDatabaseProvider);
+                    final rollover = ref.read(studyDayRolloverProvider);
+
+                    final startTime = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 12, 0);
+
+                    // Insert Focus Session
+                    await db.into(db.focusSessions).insert(FocusSessionsCompanion.insert(
+                      method: "Freestyle",
+                      startTime: startTime,
+                      durationSeconds: durationMin * 60,
+                      categoryId: Value(selectedCategoryId),
+                      accomplishments: const Value("Developer Mode injected study session"),
+                    ));
+
+                    // Read focus sessions on this study day to update DailyHistory
+                    final studyDayStart = getStudyDayStart(startTime, rollover: rollover);
+                    final studyDayEnd = studyDayStart.add(const Duration(hours: 24));
+                    final sessions = await (db.select(db.focusSessions)
+                          ..where((t) => t.startTime.isBiggerOrEqualValue(studyDayStart) & t.startTime.isSmallerThanValue(studyDayEnd)))
+                        .get();
+                    final totalSeconds = sessions.fold(0, (sum, s) => sum + s.durationSeconds);
+
+                    final studyDay = studyDayFor(startTime, rollover);
+                    final dateStr = "${studyDay.year}-${studyDay.month.toString().padLeft(2, '0')}-${studyDay.day.toString().padLeft(2, '0')}";
+
+                    await db.upsertDailyHistory(
+                      dateStr: dateStr,
+                      totalFocusSeconds: totalSeconds,
+                      targetGoalSeconds: goalMin * 60,
+                      isGoalCompleted: totalSeconds >= (goalMin * 60),
+                      syllabusProgressPct: 50.0,
+                    );
+
+                    if (ctx.mounted) {
+                      Navigator.of(ctx).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("✓ Study session injected successfully!"),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  },
+                  child: Text("Inject", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

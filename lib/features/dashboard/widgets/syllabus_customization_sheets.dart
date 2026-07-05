@@ -413,6 +413,7 @@ void showReorderSyllabusTopicsDialog(
                     ),
                   );
                 },
+                // ignore: deprecated_member_use
                 onReorder: (oldIndex, newIndex) {
                   setState(() {
                     if (newIndex > oldIndex) {
@@ -621,6 +622,7 @@ void showReorderSyllabusCategoriesDialog(
                     ),
                   );
                 },
+                // ignore: deprecated_member_use
                 onReorder: (oldIndex, newIndex) {
                   setState(() {
                     if (newIndex > oldIndex) {
@@ -858,6 +860,7 @@ void showReorderSyllabusTasksDialog(
                     ),
                   );
                 },
+                // ignore: deprecated_member_use
                 onReorder: (oldIndex, newIndex) {
                   setState(() {
                     if (newIndex > oldIndex) {

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../providers/syllabus_provider.dart';
 import '../../../../providers/focus_provider.dart';
 import '../../../../utils/string_utils.dart';
 import 'focus_dialogs.dart';
@@ -96,6 +97,81 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                     ),
                   ),
                 ),
+              ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final categoriesAsync = ref.watch(syllabusCategoriesProvider);
+                  return categoriesAsync.when(
+                    data: (categories) {
+                      if (categories.isEmpty) return const SizedBox();
+                      return Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: context.s(16)),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: context.s(16)),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(5),
+                              borderRadius: BorderRadius.circular(context.s(12)),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int?>(
+                                value: sessionState.selectedCategoryId,
+                                dropdownColor: const Color(0xFF131316),
+                                hint: Text(
+                                  "Select Study Category (Optional)",
+                                  style: GoogleFonts.outfit(color: Colors.white38, fontSize: context.s(13)),
+                                ),
+                                icon: Icon(Icons.arrow_drop_down, color: accentColor, size: context.s(20)),
+                                items: [
+                                  DropdownMenuItem<int?>(
+                                    value: null,
+                                    child: Text(
+                                      "General Focus (No Category)",
+                                      style: GoogleFonts.outfit(color: Colors.white70, fontSize: context.s(13)),
+                                    ),
+                                  ),
+                                  ...categories.map((c) {
+                                    return DropdownMenuItem<int?>(
+                                      value: c.id,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: context.s(12),
+                                            height: context.s(12),
+                                            decoration: BoxDecoration(
+                                              color: Color(c.color),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          SizedBox(width: context.s(8)),
+                                          Text(
+                                            c.name,
+                                            style: GoogleFonts.outfit(
+                                              color: Colors.white,
+                                              fontSize: context.s(13),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (val) {
+                                  ref.read(focusProvider.notifier).setSelectedCategory(val);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox(),
+                    error: (e, _) => const SizedBox(),
+                  );
+                },
               ),
               SizedBox(height: context.s(32)),
 

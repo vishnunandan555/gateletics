@@ -541,7 +541,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
 
     if (result == true) {
       final finalSession = await ref.read(focusProvider.notifier).stopSession();
-      if (mounted) {
+      if (context.mounted) {
         _showSessionSummary(context, finalSession, widget.accentColor);
       }
     } else {

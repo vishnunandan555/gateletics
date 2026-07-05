@@ -9,8 +9,8 @@ import '../../providers/progress_font_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import '../../utils/ui_scaling.dart';
-import '../../providers/completion_provider.dart';
 import '../../providers/focus_provider.dart';
+import 'widgets/home_carousel.dart';
 import '../../providers/glow_strength_provider.dart';
 import '../../providers/focus_animation_provider.dart';
 import '../../providers/rollover_provider.dart';
@@ -67,9 +67,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final todaySessions = ref.watch(todayFocusSessionsProvider).value ?? [];
     final hasStartedToday = todaySessions.isNotEmpty || todayFocusSeconds > 0;
 
-    // Completion percentage calculation
-    final completionAsync = ref.watch(completionPercentageProvider);
-    final completionPercent = completionAsync.value ?? 0.0;
+
 
     return Scaffold(
       backgroundColor: const Color(0xFF09090B),
@@ -185,11 +183,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           SizedBox(height: context.s(30)),
 
                           // Syllabus/Resource Completion Card
-                          Center(
-                            child: _buildCompletionCard(
-                              completionPercent,
-                              accentColor,
-                            ),
+                          HomeCarousel(
+                            accentColor: accentColor,
+                            onTabChange: _navigateToTab,
                           ),
 
                           SizedBox(height: context.s(20)),
@@ -198,7 +194,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           isFocusActive
                               ? ActiveFocusWaveWidget(
                                   accentColor: accentColor,
-                                  onTap: () => _navigateToTab(2),
+                                  onTap: () => _navigateToTab(3),
                                 )
                               : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
 
@@ -241,90 +237,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 );
   }
 
-  // Tap-to-completion Page Card
-  Widget _buildCompletionCard(
-    double percentage,
-    Color accentColor,
-  ) {
-    const typeStr = 'SYLLABUS';
-    final selectedFont = ref.watch(progressFontProvider);
 
-    TextStyle getAccentStyle(double size, Color col) {
-      final base = TextStyle(
-        fontSize: context.s(size),
-        fontWeight: FontWeight.bold,
-        color: col,
-        height: 1.0,
-      );
-      switch (selectedFont) {
-        case ProgressFont.jersey15:
-          return GoogleFonts.jersey15(textStyle: base.copyWith(fontSize: context.s(size + 8)));
-        case ProgressFont.jersey10:
-          return GoogleFonts.jersey10(textStyle: base.copyWith(fontSize: context.s(size + 8)));
-        case ProgressFont.tektur:
-          return GoogleFonts.tektur(textStyle: base);
-        case ProgressFont.odibeeSans:
-          return GoogleFonts.odibeeSans(textStyle: base.copyWith(fontSize: context.s(size + 4)));
-        case ProgressFont.pressStart2P:
-          return GoogleFonts.pressStart2p(textStyle: base.copyWith(fontSize: context.s(size - 8)));
-        case ProgressFont.boldonse:
-          return GoogleFonts.boldonse(textStyle: base.copyWith(fontSize: context.s(size - 2), height: 1.2));
-        case ProgressFont.orbitron:
-          return GoogleFonts.orbitron(textStyle: base);
-      }
-    }
-
-    return GestureDetector(
-      onTap: () => _navigateToTab(1),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(10)),
-        color: Colors.transparent,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: context.s(10), vertical: context.s(8)),
-              decoration: BoxDecoration(
-                color: accentColor,
-                borderRadius: BorderRadius.circular(context.s(4)),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '${percentage.toStringAsFixed(0)}%',
-                style: getAccentStyle(22, Colors.black),
-              ),
-            ),
-            SizedBox(width: context.s(12)),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  typeStr,
-                  style: GoogleFonts.orbitron(
-                    color: Colors.white,
-                    fontSize: context.s(14),
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: context.s(1.0),
-                  ),
-                ),
-                Text(
-                  'COMPLETION',
-                  style: GoogleFonts.orbitron(
-                    color: Colors.white,
-                    fontSize: context.s(14),
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: context.s(1.0),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // Resume / Start Prep Button with progress background
   Widget _buildResumePrepButton(double progress, bool hasStarted, Color accentColor) {
@@ -407,7 +320,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: FractionallySizedBox(
         widthFactor: 0.8,
         child: GestureDetector(
-          onTap: () => _navigateToTab(2),
+          onTap: () => _navigateToTab(3),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(context.s(30)),
             child: Container(
