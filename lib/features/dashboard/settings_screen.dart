@@ -35,12 +35,14 @@ import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/hide_download_banner_provider.dart';
+import '../../providers/show_projected_completion_provider.dart';
 import '../../providers/glow_strength_provider.dart';
 import 'widgets/shell_common.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../database/backup_service.dart';
 import '../../database/app_database.dart';
 import '../../providers/rollover_provider.dart';
+import '../../providers/daily_history_provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import '../../widgets/settings/about_dialog.dart';
 import '../../utils/ui_scaling.dart';
@@ -1612,6 +1614,22 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(color: Colors.white10, height: 1),
           Consumer(
             builder: (context, ref, _) {
+              final mins = ref.watch(checkInGoalMinutesProvider);
+              return ListTile(
+                leading: Icon(Icons.check_circle_outline_rounded, color: accentColor),
+                title: const Text('Daily Check-in Goal'),
+                subtitle: Text(
+                  '$mins minutes${mins == 15 ? ' (default)' : ''}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
+                onTap: () => _showCheckInGoalDialog(context, ref, mins, accentColor),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
               final hideBanner = ref.watch(hideDownloadBannerProvider);
               return ListTile(
                 leading: Icon(Icons.devices_other_rounded, color: accentColor),
@@ -1626,6 +1644,27 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged: (val) async {
                     await ref.read(hideDownloadBannerProvider.notifier).setHidden(val);
                     ref.read(syncProvider.notifier).triggerAutoSync();
+                  },
+                ),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
+              final showProjComp = ref.watch(showProjectedCompletionProvider);
+              return ListTile(
+                leading: Icon(Icons.trending_up_rounded, color: accentColor),
+                title: const Text('Show Projected Completion Card'),
+                subtitle: const Text(
+                  'Display syllabus completion predictions on the Stats Hub',
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                ),
+                trailing: Switch(
+                  activeThumbColor: accentColor,
+                  value: showProjComp,
+                  onChanged: (val) async {
+                    await ref.read(showProjectedCompletionProvider.notifier).setEnabled(val);
                   },
                 ),
               );
@@ -2142,6 +2181,42 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showCheckInGoalDialog(BuildContext context, WidgetRef ref, int currentMins, Color accentColor) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF18181B),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Text(
+            'Daily Check-in Goal',
+            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [5, 10, 15, 20, 30, 45].map((mins) {
+              final isSelected = mins == currentMins;
+              return ListTile(
+                title: Text(
+                  '$mins minutes${mins == 15 ? ' (default)' : ''}',
+                  style: GoogleFonts.outfit(
+                    color: isSelected ? accentColor : Colors.white70,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                trailing: isSelected ? Icon(Icons.check_rounded, color: accentColor) : null,
+                onTap: () {
+                  ref.read(checkInGoalMinutesProvider.notifier).setMinutes(mins);
+                  Navigator.of(ctx).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 

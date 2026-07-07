@@ -405,6 +405,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       durationSeconds: state.totalSecondsFocused,
       accomplishments: finalAccomplishments.isNotEmpty ? finalAccomplishments : null,
       progressDelta: progressDelta,
+      categoryId: state.selectedCategoryId,
     );
 
     // Refresh history provider by invalidating or updates

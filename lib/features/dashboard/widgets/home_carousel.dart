@@ -131,7 +131,7 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: context.s(140),
+          height: context.s(96),
           child: PageView(
             controller: _pageController,
             onPageChanged: (page) async {
@@ -288,7 +288,6 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
             ],
           ),
         ),
-        SizedBox(height: context.s(10)),
         // Indicator Dots
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -317,7 +316,7 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
       child: Center(
         child: Container(
           margin: EdgeInsets.symmetric(horizontal: context.s(8)),
-          padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
+          padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: 0),
           color: Colors.transparent,
           child: child,
         ),

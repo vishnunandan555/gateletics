@@ -449,7 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: CustomPaint(
                     painter: DailyGoalOutlinePainter(
                       progress: progress,
-                      color: progress >= 1.0 ? Colors.green : accentColor,
+                      color: accentColor,
                       borderRadius: context.s(8.0),
                       strokeWidth: context.s(1.8),
                     ),
@@ -465,7 +465,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Text(
                             dayName,
                             style: GoogleFonts.outfit(
-                              color: progress > 0 ? (progress >= 1.0 ? Colors.green : accentColor) : Colors.white38,
+                              color: progress > 0 ? accentColor : Colors.white38,
                               fontSize: context.s(10),
                               fontWeight: FontWeight.bold,
                             ),
@@ -689,15 +689,43 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
     final minutes = diff.inMinutes > 0 ? diff.inMinutes % 60 : 0;
     final seconds = diff.inSeconds > 0 ? diff.inSeconds % 60 : 0;
 
+    final totalDaysStr = '$totalDays';
+    final hoursStr = hours.toString().padLeft(2, '0');
+    final minutesStr = minutes.toString().padLeft(2, '0');
+    final secondsStr = seconds.toString().padLeft(2, '0');
+
     Widget buildTimeSegment(String value, String label) {
+      final style = getAccentStyle(28, Colors.white, selectedFont).copyWith(
+        height: 1.1,
+        fontFeatures: [const FontFeature.tabularFigures()],
+      );
+
+      double charWidth = context.s(26);
+      if (selectedFont == ProgressFont.jersey15 || selectedFont == ProgressFont.jersey10) {
+        charWidth = context.s(28);
+      } else if (selectedFont == ProgressFont.pressStart2P) {
+        charWidth = context.s(22);
+      } else if (selectedFont == ProgressFont.boldonse) {
+        charWidth = context.s(24);
+      }
+
+      final charWidgets = value.split('').map((char) {
+        return SizedBox(
+          width: charWidth,
+          child: Text(
+            char,
+            style: style,
+            textAlign: TextAlign.center,
+          ),
+        );
+      }).toList();
+
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            value,
-            style: getAccentStyle(28, Colors.white, selectedFont).copyWith(
-              height: 1.1,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: charWidgets,
           ),
           SizedBox(height: context.s(4)),
           Text(
@@ -740,13 +768,13 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              buildTimeSegment('$totalDays', 'DAYS'),
+              buildTimeSegment(totalDaysStr, 'DAYS'),
               buildColon(),
-              buildTimeSegment('$hours', 'HRS'),
+              buildTimeSegment(hoursStr, 'HRS'),
               buildColon(),
-              buildTimeSegment('$minutes', 'MINS'),
+              buildTimeSegment(minutesStr, 'MINS'),
               buildColon(),
-              buildTimeSegment('$seconds', 'SECS'),
+              buildTimeSegment(secondsStr, 'SECS'),
             ],
           ),
         ),

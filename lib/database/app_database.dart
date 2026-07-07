@@ -139,11 +139,7 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(focusSessions, focusSessions.categoryId);
             } catch (_) {}
           }
-          if (from < 8) {
-            try {
-              await m.addColumn(focusSessions, focusSessions.categoryId);
-            } catch (_) {}
-          }
+          // v8: no additional migration needed (placeholder for future use)
         },
       );
 
@@ -433,6 +429,14 @@ class AppDatabase extends _$AppDatabase {
       durationSeconds: durationSeconds,
       accomplishments: Value(accomplishments),
     ));
+  }
+
+  Future<void> updateFocusSession(FocusSession session) async {
+    await update(focusSessions).replace(session);
+  }
+
+  Future<void> deleteFocusSession(int id) async {
+    await (delete(focusSessions)..where((t) => t.id.equals(id))).go();
   }
 
   Stream<List<FocusSession>> watchTodayFocusSessions({StudyDayRollover rollover = StudyDayRollover.overnight}) {

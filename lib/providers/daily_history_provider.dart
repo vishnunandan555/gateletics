@@ -128,3 +128,137 @@ final currentStreakProvider = Provider<int>((ref) {
     error: (err, stack) => 0,
   );
 });
+
+// Projected syllabus completion date based on rolling daily progress velocity
+final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
+  final historyAsync = ref.watch(dailyHistoryProvider);
+
+  return historyAsync.when(
+    data: (history) {
+      final withProgress = history.where((h) => h.syllabusProgressPct > 0).toList();
+      if (withProgress.length < 3) return null;
+
+      final currentProgress = withProgress.last.syllabusProgressPct;
+      if (currentProgress >= 100.0) {
+        return {'completed': true, 'currentProgress': currentProgress};
+      }
+
+      // Use at most the last 14 data points for velocity
+      final recent = withProgress.length > 14
+          ? withProgress.sublist(withProgress.length - 14)
+          : withProgress;
+
+      // Only count positive daily deltas (days where progress actually moved)
+      final deltas = <double>[];
+      for (int i = 1; i < recent.length; i++) {
+        final delta = recent[i].syllabusProgressPct - recent[i - 1].syllabusProgressPct;
+        if (delta > 0) deltas.add(delta);
+      }
+
+      if (deltas.isEmpty) return null;
+
+      final avgDailyGain = deltas.reduce((a, b) => a + b) / deltas.length;
+      if (avgDailyGain <= 0) return null;
+
+      final daysRemaining = ((100.0 - currentProgress) / avgDailyGain).ceil();
+      final projectedDate = DateTime.now().add(Duration(days: daysRemaining));
+
+      final String confidence;
+      if (withProgress.length >= 14) {
+        confidence = 'high';
+      } else if (withProgress.length >= 7) {
+        confidence = 'medium';
+      } else {
+        confidence = 'low';
+      }
+
+      return {
+        'completed': false,
+        'currentProgress': currentProgress,
+        'daysRemaining': daysRemaining,
+        'projectedDate': projectedDate,
+        'avgDailyGain': avgDailyGain,
+        'confidence': confidence,
+      };
+    },
+    loading: () => null,
+    error: (e, st) => null,
+  );
+});
+
+// Check-in goal minutes notifier (5, 10, 15 (default), 20, 30, 45)
+class CheckInGoalMinutesNotifier extends Notifier<int> {
+  @override
+  int build() {
+    _load();
+    return 15; // Default check-in goal is 15 minutes
+  }
+
+  Future<void> _load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final val = prefs.getInt('check_in_goal_minutes');
+      if (val != null) {
+        state = val;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setMinutes(int val) async {
+    state = val;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('check_in_goal_minutes', val);
+    } catch (_) {}
+  }
+}
+
+final checkInGoalMinutesProvider = NotifierProvider<CheckInGoalMinutesNotifier, int>(() {
+  return CheckInGoalMinutesNotifier();
+});
+
+// Current check-in streak dynamically calculated based on check-in target
+final checkInStreakProvider = Provider<int>((ref) {
+  final historyAsync = ref.watch(dailyHistoryProvider);
+  final rollover = ref.watch(studyDayRolloverProvider);
+  final checkInMins = ref.watch(checkInGoalMinutesProvider);
+  final checkInSeconds = checkInMins * 60;
+
+  return historyAsync.when(
+    data: (historyList) {
+      if (historyList.isEmpty) return 0;
+
+      // Collect all dates where total focus seconds met the check-in goal
+      final completedDates = historyList
+          .where((e) => e.totalFocusSeconds >= checkInSeconds)
+          .map((e) => e.dateStr)
+          .toSet();
+
+      if (completedDates.isEmpty) return 0;
+
+      final today = studyDayFor(DateTime.now(), rollover);
+      int streak = 0;
+      DateTime checkDate = today;
+
+      while (true) {
+        final checkDateStr = "${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}";
+        
+        if (completedDates.contains(checkDateStr)) {
+          streak++;
+          checkDate = checkDate.subtract(const Duration(days: 1));
+        } else {
+          // If checkDate is today, we check if they finished yesterday instead of breaking immediately
+          if (checkDate == today) {
+            checkDate = checkDate.subtract(const Duration(days: 1));
+            continue;
+          }
+          break;
+        }
+      }
+
+      return streak;
+    },
+    loading: () => 0,
+    error: (err, stack) => 0,
+  );
+});

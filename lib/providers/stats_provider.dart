@@ -82,3 +82,43 @@ final categoryStudyTimeProvider = Provider<AsyncValue<List<CategoryStudyTime>>>(
   list.sort((a, b) => b.hours.compareTo(a.hours));
   return AsyncValue.data(list);
 });
+
+// Peak hours provider - matrix[weekday][hour] = total minutes studied
+// weekday index: 0=Sun, 1=Mon, ..., 6=Sat  (DateTime.weekday % 7)
+// hour index: 0..23
+// Each session is split across every clock-hour it spans (Option B: accurate distribution)
+final peakHoursProvider = Provider<List<List<double>>>((ref) {
+  final sessionsAsync = ref.watch(allFocusSessionsProvider);
+  final emptyMatrix = List.generate(7, (_) => List<double>.filled(24, 0.0));
+
+  return sessionsAsync.when(
+    data: (sessions) {
+      final matrix = List.generate(7, (_) => List<double>.filled(24, 0.0));
+      for (final session in sessions) {
+        if (session.durationSeconds <= 0) continue;
+
+        int remaining = session.durationSeconds;
+        DateTime current = session.startTime;
+
+        while (remaining > 0) {
+          final weekday = current.weekday % 7; // 0=Sun, 1=Mon,...,6=Sat
+          final hour = current.hour;
+
+          // Seconds left in this clock-hour slot
+          final nextHour = DateTime(
+              current.year, current.month, current.day, current.hour + 1);
+          final secsToNextHour = nextHour.difference(current).inSeconds;
+
+          final counted = remaining < secsToNextHour ? remaining : secsToNextHour;
+          matrix[weekday][hour] += counted / 60.0; // store as minutes
+
+          remaining -= counted;
+          if (remaining > 0) current = nextHour;
+        }
+      }
+      return matrix;
+    },
+    loading: () => emptyMatrix,
+    error: (e, st) => emptyMatrix,
+  );
+});
