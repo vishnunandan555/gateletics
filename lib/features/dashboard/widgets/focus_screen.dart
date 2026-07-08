@@ -23,11 +23,9 @@ class FocusScreen extends ConsumerWidget {
         ),
       ),
       child: Scaffold(
-        body: SafeArea(
-          child: sessionState.status == FocusStatus.idle
-              ? FocusIdleView(accentColor: accentColor)
-              : FocusActiveView(accentColor: accentColor),
-        ),
+        body: sessionState.status == FocusStatus.idle
+            ? SafeArea(child: FocusIdleView(accentColor: accentColor))
+            : FocusActiveView(accentColor: accentColor),
       ),
     );
   }

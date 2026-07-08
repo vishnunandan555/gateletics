@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
+import '../../providers/notice_board_provider.dart';
 import 'dashboard_screen.dart';
 import 'home_screen.dart';
 import 'progress_history_screen.dart';
@@ -75,11 +76,13 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         children: [
           PageView(
             controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
             onPageChanged: (index) {
               setState(() {
                 _currentIndex = index;
               });
+              if (index != 2) {
+                ref.read(noticeBoardModeProvider.notifier).state = false;
+              }
             },
             children: [
               const KeepAliveWrapper(child: ProgressHistoryScreen()),
@@ -348,6 +351,14 @@ class _SharedShellHeader extends ConsumerWidget {
           countdownOpacity = (2.0 - page).clamp(0.0, 1.0);
         }
 
+        // Notice Board button opacity: 1.0 at page 2 (Home), 0.0 at page 1 (Completion) and page 3 (Focus)
+        double noticeBoardOpacity = 0.0;
+        if (page > 1.0 && page <= 2.0) {
+          noticeBoardOpacity = (page - 1.0).clamp(0.0, 1.0);
+        } else if (page > 2.0 && page <= 3.0) {
+          noticeBoardOpacity = (3.0 - page).clamp(0.0, 1.0);
+        }
+
         final ignorePointer = headerOpacity < 0.5;
 
         return IgnorePointer(
@@ -372,9 +383,24 @@ class _SharedShellHeader extends ConsumerWidget {
                       );
                     },
                   ),
-                  Opacity(
-                    opacity: countdownOpacity,
-                    child: const CountdownWidget(),
+                  Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      IgnorePointer(
+                        ignoring: countdownOpacity < 0.5,
+                        child: Opacity(
+                          opacity: countdownOpacity,
+                          child: const CountdownWidget(),
+                        ),
+                      ),
+                      IgnorePointer(
+                        ignoring: noticeBoardOpacity < 0.5,
+                        child: Opacity(
+                          opacity: noticeBoardOpacity,
+                          child: const _NoticeBoardHeaderButton(),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -382,6 +408,69 @@ class _SharedShellHeader extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _NoticeBoardHeaderButton extends ConsumerWidget {
+  const _NoticeBoardHeaderButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isNoticeBoard = ref.watch(noticeBoardModeProvider);
+    final accentColor = ref.watch(overallProgressColorProvider);
+    final tasks = ref.watch(customTasksProvider).value ?? [];
+
+    Widget iconWidget;
+    if (isNoticeBoard) {
+      iconWidget = const Icon(
+        Icons.close_rounded,
+        color: Colors.white60,
+        size: 24,
+      );
+    } else if (tasks.isNotEmpty) {
+      iconWidget = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.assignment_outlined, color: accentColor, size: 32),
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+            decoration: BoxDecoration(
+              color: accentColor,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Text(
+              "${tasks.length}",
+              style: GoogleFonts.orbitron(
+                color: Colors.black,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      iconWidget = Icon(
+        Icons.assignment_outlined,
+        color: accentColor,
+        size: 28,
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: IconButton(
+        icon: iconWidget,
+        onPressed: () {
+          ref.read(noticeBoardModeProvider.notifier).state = !isNoticeBoard;
+        },
+        tooltip: isNoticeBoard ? 'Back to Dashboard' : 'Open Notice Board',
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        splashRadius: 20,
+      ),
     );
   }
 }

@@ -383,13 +383,41 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     }
     final finalDailyHist = mergedDailyHist.values.toList();
 
+    // Merge Custom Tasks
+    final localCustomTasks = List<Map<String, dynamic>>.from(local['customTasks'] ?? []);
+    final cloudCustomTasks = List<Map<String, dynamic>>.from(cloud['customTasks'] ?? []);
+    final mergedCustomTasks = <String, Map<String, dynamic>>{};
+
+    for (final ct in localCustomTasks) {
+      final content = ct['content'] as String;
+      final createdAtStr = ct['createdAt'] as String;
+      final key = "${content}_$createdAtStr";
+      mergedCustomTasks[key] = ct;
+    }
+    for (final ct in cloudCustomTasks) {
+      final content = ct['content'] as String;
+      final createdAtStr = ct['createdAt'] as String;
+      final key = "${content}_$createdAtStr";
+      if (!mergedCustomTasks.containsKey(key)) {
+        mergedCustomTasks[key] = ct;
+      } else {
+        // If either is completed, mark it as completed
+        final existing = mergedCustomTasks[key]!;
+        if (ct['isCompleted'] == true) {
+          existing['isCompleted'] = true;
+        }
+      }
+    }
+    final finalCustomTasks = mergedCustomTasks.values.toList();
+
     return {
-      'version': 6,
+      'version': 9,
       'syllabusCategories': finalSylCats,
       'syllabusTopics': finalSylTops,
       'syllabusTasks': finalSylTsks,
       'focusSessions': finalFocusSess,
       'dailyHistory': finalDailyHist,
+      'customTasks': finalCustomTasks,
       'lastInteractedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -481,13 +509,28 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         return false;
       }
 
-      // Conflict: Both local and cloud have progress entries. Requires user action.
-      await _updateSyncState(
-        status: SyncStatus.requiresAction,
-        lastSyncedAt: cloudLastSynced,
-        pendingCloudData: cloudData,
-      );
-      return true;
+      // Conflict: Both local and cloud have progress entries. Auto-merge!
+      final localData = await exportLocalData();
+      final merged = await _mergeData(localData, cloudData);
+
+      // Restore local DB with merged data
+      await _restoreLocalData(merged);
+
+      // Restore hideDownloadBanner
+      final hideBanner = cloudData['hideDownloadBanner'] as bool?;
+      if (hideBanner != null) {
+        await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
+      }
+
+      // Write merged data back to Cloud
+      merged['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'data': merged,
+        'lastSyncedAt': FieldValue.serverTimestamp(),
+      });
+
+      await _updateSyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
+      return false;
     } catch (e) {
       await _updateSyncState(status: SyncStatus.error, errorMessage: e.toString());
       return false;
@@ -604,14 +647,46 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     _syncTimer = null;
 
     try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get(const GetOptions(source: Source.server));
       final localData = await exportLocalData();
       localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
 
+      if (!doc.exists || doc.data()?['data'] == null) {
+        // Cloud is empty. Safe to just upload local.
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'data': localData,
+          'lastSyncedAt': FieldValue.serverTimestamp(),
+        });
+        await _updateSyncState(status: state.status, lastSyncedAt: DateTime.now());
+        return;
+      }
+
+      final cloudData = doc.data()!['data'] as Map<String, dynamic>;
+
+      if (_areDataEqual(localData, cloudData)) {
+        // Already matching, just update local timestamp if cloud is newer, otherwise do nothing
+        DateTime? cloudLastSynced;
+        final ts = doc.data()?['lastSyncedAt'];
+        if (ts is Timestamp) cloudLastSynced = ts.toDate();
+        await _updateSyncState(status: state.status, lastSyncedAt: cloudLastSynced ?? DateTime.now());
+        return;
+      }
+
+      // Conflict/Difference: Auto-merge!
+      final merged = await _mergeData(localData, cloudData);
+      await _restoreLocalData(merged);
+
+      // Restore hideDownloadBanner
+      final hideBanner = cloudData['hideDownloadBanner'] as bool?;
+      if (hideBanner != null) {
+        await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
+      }
+
+      merged['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'data': localData,
+        'data': merged,
         'lastSyncedAt': FieldValue.serverTimestamp(),
       });
-      // Silent success: keep previous status but update lastSyncedAt.
       await _updateSyncState(status: state.status, lastSyncedAt: DateTime.now());
     } catch (_) {
       // Fail silently on auto-sync (likely internet is down)
@@ -620,6 +695,31 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
   bool _areDataEqual(Map<String, dynamic> local, Map<String, dynamic> cloud) {
     try {
+      // Compare custom tasks
+      final localCustom = local['customTasks'] as List? ?? [];
+      final cloudCustom = cloud['customTasks'] as List? ?? [];
+      if (localCustom.length != cloudCustom.length) {
+        debugPrint("Sync diff: custom tasks count (${localCustom.length} vs ${cloudCustom.length})");
+        return false;
+      }
+
+      final localCustomMap = <String, Map<String, dynamic>>{
+        for (var ct in localCustom) "${ct['content']}_${ct['createdAt']}": Map<String, dynamic>.from(ct)
+      };
+
+      for (final ct in cloudCustom) {
+        final key = "${ct['content']}_${ct['createdAt']}";
+        final lt = localCustomMap[key];
+        if (lt == null) {
+          debugPrint("Sync diff: cloud custom task not found in local ($key)");
+          return false;
+        }
+        if (lt['isCompleted'] != ct['isCompleted'] || lt['position'] != ct['position']) {
+          debugPrint("Sync diff: custom task mismatch ($key) completion: ${lt['isCompleted']} vs ${ct['isCompleted']}, position: ${lt['position']} vs ${ct['position']}");
+          return false;
+        }
+      }
+
       // Compare hideDownloadBanner (default to false)
       final localHideBanner = local['hideDownloadBanner'] ?? false;
       final cloudHideBanner = cloud['hideDownloadBanner'] ?? false;

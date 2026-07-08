@@ -41,6 +41,7 @@ final dailyHistoryManagerProvider = Provider<void>((ref) {
             isGoalCompleted: totalFocusSeconds >= (dailyGoalMins * 60),
             syllabusProgressPct: completionPct,
           );
+          await db.deleteOldFocusSessions(rollover: rollover);
         } catch (e) {
           debugPrint("Failed to upsert daily history: $e");
         }

@@ -9,6 +9,7 @@ class BackupService {
     final syllabusTsks = await db.select(db.syllabusTasks).get();
     final focusSess = await db.select(db.focusSessions).get();
     final dailyHist = await db.select(db.dailyHistory).get();
+    final customTsks = await db.select(db.customTasks).get();
 
     final exportedSyllabusCats = syllabusCats.map((c) => {
       'id': c.id,
@@ -31,6 +32,7 @@ class BackupService {
       'name': k.name,
       'isCompleted': k.isCompleted,
       'position': k.position,
+      'completedAt': k.completedAt?.toIso8601String(),
     }).toList();
 
     final exportedFocusSessions = focusSess.map((fs) => {
@@ -50,13 +52,22 @@ class BackupService {
       'syllabusProgressPct': dh.syllabusProgressPct,
     }).toList();
 
+    final exportedCustomTasks = customTsks.map((ct) => {
+      'id': ct.id,
+      'content': ct.content,
+      'isCompleted': ct.isCompleted,
+      'createdAt': ct.createdAt.toIso8601String(),
+      'position': ct.position,
+    }).toList();
+
     return {
-      'version': 6,
+      'version': 9,
       'syllabusCategories': exportedSyllabusCats,
       'syllabusTopics': exportedSyllabusTops,
       'syllabusTasks': exportedSyllabusTsks,
       'focusSessions': exportedFocusSessions,
       'dailyHistory': exportedDailyHistory,
+      'customTasks': exportedCustomTasks,
       'lastInteractedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -68,6 +79,7 @@ class BackupService {
     final syllabusTasksData = payload['syllabusTasks'] as List<dynamic>?;
     final focusSessionsData = payload['focusSessions'] as List<dynamic>?;
     final dailyHistoryData = payload['dailyHistory'] as List<dynamic>?;
+    final customTasksData = payload['customTasks'] as List<dynamic>?;
 
     await db.transaction(() async {
       // Restore syllabus-based tables if present in backup
@@ -108,11 +120,13 @@ class BackupService {
           final name = k['name'] as String;
           final isCompleted = k['isCompleted'] as bool;
           final position = (k['position'] as num).toInt();
+          final completedAtStr = k['completedAt'] as String?;
+          final completedAt = completedAtStr != null ? DateTime.tryParse(completedAtStr) : null;
 
           final newTopicId = oldTopicIdToNewId[oldTopicId];
           if (newTopicId != null) {
             final taskId = await db.addSyllabusTask(newTopicId, name, position: position);
-            await db.updateSyllabusTaskCompletion(taskId, isCompleted);
+            await db.updateSyllabusTaskCompletion(taskId, isCompleted, completedAt: completedAt);
           }
         }
       }
@@ -154,6 +168,24 @@ class BackupService {
             isGoalCompleted: isGoalCompleted,
             syllabusProgressPct: syllabusProgressPct,
           );
+        }
+      }
+
+      // Restore Custom Tasks if present in backup
+      if (customTasksData != null) {
+        await db.delete(db.customTasks).go();
+        for (final ct in customTasksData) {
+          final content = ct['content'] as String;
+          final isCompleted = ct['isCompleted'] as bool;
+          final createdAt = DateTime.parse(ct['createdAt'] as String);
+          final position = (ct['position'] as num).toInt();
+
+          await db.into(db.customTasks).insert(CustomTasksCompanion.insert(
+            content: content,
+            isCompleted: Value(isCompleted),
+            createdAt: createdAt,
+            position: Value(position),
+          ));
         }
       }
     });

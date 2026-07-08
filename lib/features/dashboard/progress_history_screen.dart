@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../providers/daily_history_provider.dart';
 import '../../providers/show_projected_completion_provider.dart';
 import '../../providers/disable_graph_glow_provider.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/subject_provider.dart';
+import '../../providers/syllabus_provider.dart';
 import '../../utils/ui_scaling.dart';
 import '../../database/app_database.dart';
 
@@ -20,7 +22,7 @@ class ProgressHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   bool _isHeatmapMode = false;
   DateTime _selectedMonth = DateTime.now();
   String _timeframe = 'Weekly'; // 'Weekly' | 'Monthly' | 'Yearly'
@@ -30,6 +32,8 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
   late int _selectedYear;
 
   late AnimationController _chartAnimController;
+  late AnimationController _chartDataAnimController;
+  late AnimationController _calendarDataAnimController;
   late Animation<double> _streakHeaderAnim;
   late Animation<double> _calendarHeatmapAnim;
   late Animation<double> _projectedCompletionAnim;
@@ -45,30 +49,40 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     _loadPersistedSettings();
     _chartAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 650),
+    );
+    _chartDataAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _calendarDataAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
     );
     
     _streakHeaderAnim = CurvedAnimation(
       parent: _chartAnimController,
-      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
     );
     _calendarHeatmapAnim = CurvedAnimation(
       parent: _chartAnimController,
-      curve: const Interval(0.15, 0.55, curve: Curves.easeOut),
+      curve: const Interval(0.15, 0.6, curve: Curves.easeOutCubic),
     );
     _projectedCompletionAnim = CurvedAnimation(
       parent: _chartAnimController,
-      curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
+      curve: const Interval(0.3, 0.75, curve: Curves.easeOutCubic),
     );
     _chartCardAnim = CurvedAnimation(
       parent: _chartAnimController,
-      curve: const Interval(0.45, 0.85, curve: Curves.easeOut),
+      curve: const Interval(0.45, 0.9, curve: Curves.easeOutCubic),
     );
     _donutChartAnim = CurvedAnimation(
       parent: _chartAnimController,
-      curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+      curve: const Interval(0.6, 1.0, curve: Curves.easeOutCubic),
     );
     _chartAnimController.forward();
+    _chartDataAnimController.forward();
+    _calendarDataAnimController.forward();
   }
 
   Future<void> _loadPersistedSettings() async {
@@ -90,6 +104,8 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
   @override
   void dispose() {
     _chartAnimController.dispose();
+    _chartDataAnimController.dispose();
+    _calendarDataAnimController.dispose();
     super.dispose();
   }
 
@@ -101,7 +117,9 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     final checkInStreak = ref.watch(checkInStreakProvider);
     final todayFocusSeconds = ref.watch(todayFocusDurationProvider).value ?? 0;
     final dailyGoalMinutes = ref.watch(dailyFocusGoalProvider);
-    final categoriesStudyAsync = ref.watch(categoryStudyTimeProvider);
+    final categoriesAsync = ref.watch(syllabusCategoriesProvider);
+    final topicsAsync = ref.watch(syllabusTopicsProvider);
+    final tasksAsync = ref.watch(syllabusTasksProvider);
     final projection = ref.watch(projectedCompletionProvider);
     final showProjComp = ref.watch(showProjectedCompletionProvider);
 
@@ -147,12 +165,20 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               ),
               SizedBox(height: context.s(14)),
 
-              // Calendar or Heatmap Container
               _buildAnimatedEntrance(
                 animation: _calendarHeatmapAnim,
-                child: _isHeatmapMode
-                    ? _buildHeatmapContainer(context, history, accentColor)
-                    : _buildCalendarContainer(context, history, dailyGoalMinutes, accentColor),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: _isHeatmapMode
+                      ? KeyedSubtree(
+                          key: ValueKey('heatmap_$_heatmapYear'),
+                          child: _buildHeatmapContainer(context, history, accentColor),
+                        )
+                      : KeyedSubtree(
+                          key: ValueKey('calendar_${_selectedMonth.year}_${_selectedMonth.month}'),
+                          child: _buildCalendarContainer(context, history, dailyGoalMinutes, accentColor),
+                        ),
+                ),
               ),
 
               // Projected Completion Card, if enabled in settings
@@ -184,14 +210,23 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               ),
               SizedBox(height: context.s(16)),
 
-              // Donut Chart - Syllabus Category Study Breakdown
-              categoriesStudyAsync.when(
-                data: (categoriesStudy) => _buildAnimatedEntrance(
-                  animation: _donutChartAnim,
-                  child: _buildDonutChartCard(context, categoriesStudy, accentColor),
-                ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => const SizedBox(),
+              // Pie Chart - Syllabus Category Study Breakdown
+              Builder(
+                builder: (context) {
+                  if (tasksAsync.hasError || topicsAsync.hasError || categoriesAsync.hasError) return const SizedBox();
+                  if (!tasksAsync.hasValue || !topicsAsync.hasValue || !categoriesAsync.hasValue) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final filteredList = getFilteredCategoriesStudy(
+                    tasksAsync.value!,
+                    topicsAsync.value!,
+                    categoriesAsync.value!,
+                  );
+                  return _buildAnimatedEntrance(
+                    animation: _donutChartAnim,
+                    child: _buildPieChartCard(context, filteredList, accentColor),
+                  );
+                },
               ),
 
               SizedBox(height: context.s(20)),
@@ -249,9 +284,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    setState(() => _isHeatmapMode = false);
-                    _persistHeatmapMode(false);
-                    _chartAnimController.forward(from: 0.0);
+                    if (_isHeatmapMode) {
+                      setState(() => _isHeatmapMode = false);
+                      _persistHeatmapMode(false);
+                      _calendarDataAnimController.forward(from: 0.0);
+                    }
                   },
                   behavior: HitTestBehavior.translucent,
                   child: Center(
@@ -269,9 +306,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    setState(() => _isHeatmapMode = true);
-                    _persistHeatmapMode(true);
-                    _chartAnimController.forward(from: 0.0);
+                    if (!_isHeatmapMode) {
+                      setState(() => _isHeatmapMode = true);
+                      _persistHeatmapMode(true);
+                      _calendarDataAnimController.forward(from: 0.0);
+                    }
                   },
                   behavior: HitTestBehavior.translucent,
                   child: Center(
@@ -335,7 +374,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     setState(() {
                       _selectedMonth = target;
                     });
-                    _chartAnimController.forward(from: 0.0);
+                    _calendarDataAnimController.forward(from: 0.0);
                   }
                 },
               ),
@@ -363,7 +402,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     setState(() {
                       _selectedMonth = target;
                     });
-                    _chartAnimController.forward(from: 0.0);
+                    _calendarDataAnimController.forward(from: 0.0);
                   }
                 },
               ),
@@ -440,11 +479,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         width: context.s(36),
                         height: context.s(36),
                         child: AnimatedBuilder(
-                          animation: _calendarHeatmapAnim,
+                          animation: _calendarDataAnimController,
                           builder: (context, child) {
                             return CustomPaint(
                               painter: CalendarCellRingPainter(
-                                progress: progress * _calendarHeatmapAnim.value,
+                                progress: progress * _calendarDataAnimController.value,
                                 color: accentColor,
                                 strokeWidth: context.s(2.5),
                               ),
@@ -566,7 +605,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         setState(() {
                           _heatmapYear = target;
                         });
-                        _chartAnimController.forward(from: 0.0);
+                        _calendarDataAnimController.forward(from: 0.0);
                       }
                     },
                   ),
@@ -591,7 +630,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         setState(() {
                           _heatmapYear = target;
                         });
-                        _chartAnimController.forward(from: 0.0);
+                        _calendarDataAnimController.forward(from: 0.0);
                       }
                     },
                   ),
@@ -729,9 +768,9 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                                           borderRadius: BorderRadius.circular(context.s(6)),
                                         ),
                                         child: AnimatedBuilder(
-                                          animation: _calendarHeatmapAnim,
+                                          animation: _calendarDataAnimController,
                                           builder: (context, _) {
-                                            final val = _calendarHeatmapAnim.value;
+                                            final val = _calendarDataAnimController.value;
                                             return Opacity(
                                               opacity: val,
                                               child: Transform.scale(
@@ -817,7 +856,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                       _timeframe = time;
                       _selectedChartIndex = null;
                     });
-                    _chartAnimController.forward(from: 0.0);
+                    _chartDataAnimController.forward(from: 0.0);
                   },
                   behavior: HitTestBehavior.translucent,
                   child: Center(
@@ -986,32 +1025,21 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
 
     final hasData = dataPoints.any((v) => v > 0);
 
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        if (details.primaryVelocity == null) return;
-        if (details.primaryVelocity! < -150) {
-          // Swipe left -> Next period
-          _goToNextSet();
-        } else if (details.primaryVelocity! > 150) {
-          // Swipe right -> Previous period
-          _goToPrevSet(history);
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.all(context.s(12)),
-        decoration: BoxDecoration(
-          color: const Color(0xFF131316),
-          borderRadius: BorderRadius.circular(context.s(16)),
-          border: Border.all(color: Colors.white.withAlpha(8)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AnimatedBuilder(
-              animation: _chartCardAnim,
-              builder: (context, _) {
-                final val = _chartCardAnim.value;
-                final animatedHours = totalHours * val;
+    return Container(
+      padding: EdgeInsets.all(context.s(12)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131316),
+        borderRadius: BorderRadius.circular(context.s(16)),
+        border: Border.all(color: Colors.white.withAlpha(8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AnimatedBuilder(
+            animation: _chartDataAnimController,
+            builder: (context, _) {
+              final val = _chartDataAnimController.value;
+              final animatedHours = totalHours * val;
                 final animatedPctChange = pctChange * val;
 
                 return Row(
@@ -1038,7 +1066,6 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         ),
                       ],
                     ),
-                    if (_timeframe != 'Yearly')
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
@@ -1101,7 +1128,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     });
                   },
                   child: AnimatedBuilder(
-                    animation: _chartCardAnim,
+                    animation: _chartDataAnimController,
                     builder: (context, _) {
                       return SizedBox(
                         height: context.s(120),
@@ -1113,9 +1140,9 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                                   accentColor: accentColor,
                                   selectedIndex: _selectedChartIndex,
                                   tooltipLabels: tooltipLabels,
-                                  animValue: _chartCardAnim.value,
+                                  animValue: _chartDataAnimController.value,
                                   showGoalLine: _timeframe != 'Yearly',
-                                  sharpLines: _timeframe == 'Yearly',
+                                  sharpLines: false,
                                   disableGlow: disableGlow,
                                 ),
                               )
@@ -1165,8 +1192,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
             _buildGraphPaginationRow(accentColor, history),
           ],
         ),
-      ),
-    );
+      );
   }
 
   // --- Graph Pagination / SWIPE Helper Methods ---
@@ -1243,7 +1269,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           _selectedWeekStart = _selectedWeekStart.subtract(const Duration(days: 7));
           _selectedChartIndex = null;
         });
-        _chartAnimController.forward(from: 0.0);
+        _chartDataAnimController.forward(from: 0.0);
       }
     } else if (_timeframe == 'Monthly') {
       if (_canGoToPreviousMonth(history)) {
@@ -1253,7 +1279,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               : DateTime(_selectedMonth.year, _selectedMonth.month - 1);
           _selectedChartIndex = null;
         });
-        _chartAnimController.forward(from: 0.0);
+        _chartDataAnimController.forward(from: 0.0);
       }
     } else {
       if (_canGoToPreviousYear(history)) {
@@ -1261,7 +1287,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           _selectedYear--;
           _selectedChartIndex = null;
         });
-        _chartAnimController.forward(from: 0.0);
+        _chartDataAnimController.forward(from: 0.0);
       }
     }
   }
@@ -1273,7 +1299,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           _selectedWeekStart = _selectedWeekStart.add(const Duration(days: 7));
           _selectedChartIndex = null;
         });
-        _chartAnimController.forward(from: 0.0);
+        _chartDataAnimController.forward(from: 0.0);
       }
     } else if (_timeframe == 'Monthly') {
       if (_canGoToNextMonth()) {
@@ -1283,7 +1309,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               : DateTime(_selectedMonth.year, _selectedMonth.month + 1);
           _selectedChartIndex = null;
         });
-        _chartAnimController.forward(from: 0.0);
+        _chartDataAnimController.forward(from: 0.0);
       }
     } else {
       if (_canGoToNextYear()) {
@@ -1291,7 +1317,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           _selectedYear++;
           _selectedChartIndex = null;
         });
-        _chartAnimController.forward(from: 0.0);
+        _chartDataAnimController.forward(from: 0.0);
       }
     }
   }
@@ -1304,7 +1330,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       _selectedYear = now.year;
       _selectedChartIndex = null;
     });
-    _chartAnimController.forward(from: 0.0);
+    _chartDataAnimController.forward(from: 0.0);
   }
 
   Widget _buildGraphPaginationRow(Color accentColor, List<DailyHistoryData> history) {
@@ -1601,7 +1627,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       }
       _selectedChartIndex = null;
     });
-    _chartAnimController.forward(from: 0.0);
+    _chartDataAnimController.forward(from: 0.0);
   }
 
   DateTime _getSundayForWeek(int year, int month, int weekNum) {
@@ -1645,8 +1671,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                   context,
                   'Daily Goal Streak',
                   animatedGoalStreak,
-                  Icons.whatshot_rounded,
-                  Colors.orangeAccent,
+                  SvgPicture.asset(
+                    'assets/fire.svg',
+                    width: context.s(22),
+                    height: context.s(22),
+                  ),
                   accentColor,
                 ),
               ),
@@ -1656,8 +1685,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                   context,
                   'Daily Check-in Streak',
                   animatedCheckInStreak,
-                  Icons.check_circle_rounded,
-                  accentColor,
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: accentColor,
+                    size: context.s(22),
+                  ),
                   accentColor,
                 ),
               ),
@@ -1681,8 +1713,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     BuildContext context,
     String label,
     int count,
-    IconData icon,
-    Color iconColor,
+    Widget iconWidget,
     Color accentColor,
   ) {
     return Column(
@@ -1711,7 +1742,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor, size: context.s(22)),
+              iconWidget,
               SizedBox(width: context.s(6)),
               Text(
                 '$count ',
@@ -1795,8 +1826,102 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     );
   }
 
-  Widget _buildDonutChartCard(BuildContext context, List<CategoryStudyTime> categoriesStudy, Color accentColor) {
-    if (categoriesStudy.isEmpty) return const SizedBox();
+  List<CategoryStudyTime> getFilteredCategoriesStudy(
+    List<SyllabusTask> tasks,
+    List<SyllabusTopic> topics,
+    List<SyllabusCategory> categories,
+  ) {
+    final Map<int, int> completedTaskCounts = {};
+    int totalCompletedInPeriod = 0;
+
+    // Determine date range for filtering
+    DateTime startDate;
+    DateTime endDate;
+
+    if (_timeframe == 'Weekly') {
+      startDate = _selectedWeekStart;
+      endDate = _selectedWeekStart.add(const Duration(days: 7));
+    } else if (_timeframe == 'Monthly') {
+      startDate = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+      endDate = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+    } else {
+      startDate = DateTime(_selectedYear, 1, 1);
+      endDate = DateTime(_selectedYear + 1, 1, 1);
+    }
+
+    final topicMap = {for (final t in topics) t.id: t.categoryId};
+
+    for (final task in tasks) {
+      if (task.isCompleted && task.completedAt != null) {
+        if (task.completedAt!.compareTo(startDate) >= 0 && task.completedAt!.isBefore(endDate)) {
+          final catId = topicMap[task.topicId];
+          if (catId != null) {
+            completedTaskCounts[catId] = (completedTaskCounts[catId] ?? 0) + 1;
+            totalCompletedInPeriod++;
+          }
+        }
+      }
+    }
+
+    final List<CategoryStudyTime> list = [];
+    final Map<int, SyllabusCategory> catMap = {for (final c in categories) c.id: c};
+
+    for (final entry in completedTaskCounts.entries) {
+      final catId = entry.key;
+      final count = entry.value;
+      final pct = totalCompletedInPeriod > 0 ? (count / totalCompletedInPeriod) * 100 : 0.0;
+
+      final cat = catMap[catId];
+      list.add(CategoryStudyTime(
+        id: catId,
+        name: cat?.name ?? 'Unknown Category',
+        colorValue: cat?.color ?? 0xFF00FFCC,
+        hours: count.toDouble(),
+        percentage: pct,
+      ));
+    }
+
+    list.sort((a, b) => b.hours.compareTo(a.hours));
+    return list;
+  }
+
+  Widget _buildPieChartCard(BuildContext context, List<CategoryStudyTime> categoriesStudy, Color accentColor) {
+    if (categoriesStudy.isEmpty) {
+      return Container(
+        padding: EdgeInsets.all(context.s(12)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF131316),
+          borderRadius: BorderRadius.circular(context.s(16)),
+          border: Border.all(color: Colors.white.withAlpha(8)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'FOCUS AREA DISTRIBUTION',
+              style: GoogleFonts.orbitron(
+                color: Colors.white,
+                fontSize: context.s(11),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.0,
+              ),
+            ),
+            SizedBox(height: context.s(20)),
+            Center(
+              child: Text(
+                'Complete syllabus tasks during your focus sessions to build your distribution chart.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white38,
+                  fontSize: context.s(12),
+                ),
+              ),
+            ),
+            SizedBox(height: context.s(10)),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: EdgeInsets.all(context.s(12)),
@@ -1809,7 +1934,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'SUBJECT / CATEGORY BALANCE',
+            'FOCUS AREA DISTRIBUTION',
             style: GoogleFonts.orbitron(
               color: Colors.white,
               fontSize: context.s(11),
@@ -1824,12 +1949,12 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                 width: context.s(90),
                 height: context.s(90),
                 child: AnimatedBuilder(
-                  animation: _donutChartAnim,
+                  animation: _chartDataAnimController,
                   builder: (context, _) {
                     return CustomPaint(
-                      painter: DonutChartPainter(
+                      painter: PieChartPainter(
                         sections: categoriesStudy,
-                        animValue: _donutChartAnim.value,
+                        animValue: _chartDataAnimController.value,
                       ),
                     );
                   },
@@ -2148,9 +2273,9 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     final pct = goalMins == 0 ? 0 : ((mins / goalMins) * 100).round();
 
     if (mins >= goalMins) {
-      return "$dateLabel\nFocused for $hrsStr hrs and Daily Goal Reached ($pct%)";
+      return "$dateLabel\nFocused for $hrsStr hrs and\nDaily Goal Reached ($pct%)";
     } else {
-      return "$dateLabel\nFocused for $hrsStr hrs and Daily Goal Not Reached ($pct%)";
+      return "$dateLabel\nFocused for $hrsStr hrs and\nDaily Goal Not Reached ($pct%)";
     }
   }
 }
@@ -2448,11 +2573,11 @@ class WaveAreaChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-class DonutChartPainter extends CustomPainter {
+class PieChartPainter extends CustomPainter {
   final List<CategoryStudyTime> sections;
   final double animValue;
 
-  DonutChartPainter({required this.sections, required this.animValue});
+  PieChartPainter({required this.sections, required this.animValue});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2468,16 +2593,15 @@ class DonutChartPainter extends CustomPainter {
 
       final paint = Paint()
         ..color = Color(s.colorValue)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = radius * 0.3;
+        ..style = PaintingStyle.fill;
 
-      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+      canvas.drawArc(rect, startAngle, sweepAngle, true, paint);
       startAngle += sweepAngle;
     }
   }
 
   @override
-  bool shouldRepaint(covariant DonutChartPainter oldDelegate) {
+  bool shouldRepaint(covariant PieChartPainter oldDelegate) {
     return oldDelegate.animValue != animValue || oldDelegate.sections != sections;
   }
 }

@@ -504,6 +504,21 @@ class SettingsScreen extends ConsumerWidget {
       );
     }
 
+    Widget buildSettingsGroup(Widget child) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(6)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF131316),
+          borderRadius: BorderRadius.circular(context.s(16)),
+          border: Border.all(color: Colors.white.withAlpha(8)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(context.s(16)),
+          child: child,
+        ),
+      );
+    }
+
     final cloudSyncHeader = buildHeader('CLOUD SYNC');
 
     final cloudSyncContent = isFirebaseSupported()
@@ -1202,69 +1217,69 @@ class SettingsScreen extends ConsumerWidget {
 
     final uiSwitchHeader = buildHeader('LAYOUT');
 
-    final uiSwitchContent = ListTile(
-      leading: Icon(
-        GoRouterState.of(context).uri.path.startsWith('/desk')
-            ? Icons.phone_android_rounded
-            : Icons.desktop_windows_rounded,
-        color: Colors.cyanAccent,
-      ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            GoRouterState.of(context).uri.path.startsWith('/desk')
-                ? 'Switch to Mobile UI'
-                : 'Switch to Desktop UI',
-            style: titleStyle,
-          ),
-          if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.cyanAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
-              ),
-              child: Text(
-                'BETA',
-                style: GoogleFonts.outfit(
-                  color: Colors.cyanAccent,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+    final uiSwitchContent = buildSettingsGroup(
+      ListTile(
+        leading: Icon(
+          GoRouterState.of(context).uri.path.startsWith('/desk')
+              ? Icons.phone_android_rounded
+              : Icons.desktop_windows_rounded,
+          color: Colors.cyanAccent,
+        ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'App Layout Mode',
+              style: titleStyle,
+            ),
+            if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.cyanAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
+                ),
+                child: Text(
+                  'BETA',
+                  style: GoogleFonts.outfit(
+                    color: Colors.cyanAccent,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
-      ),
-      subtitle: Text(
-        GoRouterState.of(context).uri.path.startsWith('/desk')
-            ? 'Return to the mobile-optimized layout'
-            : 'Experience the desktop layout on your web browser',
-        style: subtitleStyle,
-      ),
-      onTap: () async {
-        final prefs = await SharedPreferences.getInstance();
-        if (context.mounted) {
-          if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
-            await prefs.setBool('user_wants_desktop_ui', false);
-            if (context.mounted) context.go('/');
-          } else {
-            await prefs.setBool('user_wants_desktop_ui', true);
-            if (context.mounted) context.go('/desk');
+        ),
+        subtitle: Text(
+          GoRouterState.of(context).uri.path.startsWith('/desk')
+              ? 'Return to the mobile-optimized layout'
+              : 'Experience the desktop layout on your web browser',
+          style: subtitleStyle,
+        ),
+        onTap: () async {
+          final prefs = await SharedPreferences.getInstance();
+          if (context.mounted) {
+            if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
+              await prefs.setBool('user_wants_desktop_ui', false);
+              if (context.mounted) context.go('/');
+            } else {
+              await prefs.setBool('user_wants_desktop_ui', true);
+              if (context.mounted) context.go('/desk');
+            }
           }
-        }
-      },
+        },
+      ),
     );
 
     final devOptionsContent = ListTile(
       leading: Icon(Icons.developer_mode_rounded, color: accentColor),
-      title: Text('Dev: Inject Study Session', style: titleStyle),
+      title: Text('Inject Mock Session', style: titleStyle),
       subtitle: Text(
-        'Add focus session to test statistics and history grids',
+        'Generate fake study sessions for testing statistics and charts',
         style: subtitleStyle,
       ),
       onTap: () => _showDevInjectDialog(context, ref, accentColor),
@@ -1275,9 +1290,10 @@ class SettingsScreen extends ConsumerWidget {
         final quotesEnabled = ref.watch(focusQuotesEnabledProvider);
         return SwitchListTile(
           activeThumbColor: accentColor,
-          title: Text('Show Motivational Quotes during Timer (except Freestyle)', style: titleStyle),
+          secondary: Icon(Icons.format_quote_rounded, color: accentColor),
+          title: Text('Motivational Quotes', style: titleStyle),
           subtitle: Text(
-            'Display dynamic handwritten motivational quotes during focus sessions (Beta)',
+            'Display study motivation quotes during focus sessions (except Freestyle)',
             style: subtitleStyle,
           ),
           value: quotesEnabled,
@@ -1292,47 +1308,50 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         final animType = ref.watch(focusAnimationProvider);
         return ListTile(
-          title: Text('Active Focus Home Screen Animation', style: titleStyle),
+          leading: Icon(Icons.animation_rounded, color: accentColor),
+          title: Text('Focus Loop Animation', style: titleStyle),
           subtitle: Text(
-            'Change the style of the looping animation shown on the Home Screen when focusing',
+            'Looping visual graphic shown during active focus countdowns',
             style: subtitleStyle,
           ),
-          trailing: DropdownButton<FocusAnimationType>(
-            value: animType,
-            dropdownColor: const Color(0xFF18181B),
-            underline: const SizedBox(),
-            items: FocusAnimationType.values.map((type) {
-              String name = '';
-              switch (type) {
-                case FocusAnimationType.doubleWave:
-                  name = 'Double Wave';
-                  break;
-                case FocusAnimationType.singleWave:
-                  name = 'Single Wave';
-                  break;
-                case FocusAnimationType.pulseDots:
-                  name = 'Pulsing Dots';
-                  break;
-                case FocusAnimationType.sonicEqualizer:
-                  name = 'Sonic Equalizer';
-                  break;
-                case FocusAnimationType.heartbeatECG:
-                  name = 'Heartbeat ECG';
-                  break;
-              }
-              return DropdownMenuItem(
-                value: type,
-                child: Text(
-                  name,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                ref.read(focusAnimationProvider.notifier).setFocusAnimationType(val);
-              }
-            },
+          trailing: DropdownButtonHideUnderline(
+            child: DropdownButton<FocusAnimationType>(
+              value: animType,
+              dropdownColor: const Color(0xFF18181B),
+              alignment: Alignment.centerRight,
+              items: FocusAnimationType.values.map((type) {
+                String name = '';
+                switch (type) {
+                  case FocusAnimationType.doubleWave:
+                    name = 'Double Wave';
+                    break;
+                  case FocusAnimationType.singleWave:
+                    name = 'Single Wave';
+                    break;
+                  case FocusAnimationType.pulseDots:
+                    name = 'Pulsing Dots';
+                    break;
+                  case FocusAnimationType.sonicEqualizer:
+                    name = 'Sonic Equalizer';
+                    break;
+                  case FocusAnimationType.heartbeatECG:
+                    name = 'Heartbeat ECG';
+                    break;
+                }
+                return DropdownMenuItem(
+                  value: type,
+                  child: Text(
+                    name,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(focusAnimationProvider.notifier).setFocusAnimationType(val);
+                }
+              },
+            ),
           ),
         );
       },
@@ -1342,41 +1361,44 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         final fillStyle = ref.watch(resumeFillStyleProvider);
         return ListTile(
-          title: Text('Resume Button Style change', style: titleStyle),
+          leading: Icon(Icons.smart_button_rounded, color: accentColor),
+          title: Text('Resume Button Style', style: titleStyle),
           subtitle: Text(
-            'Change the progress filling style of the Start/Resume button on the Home Screen',
+            'Configure preparation progress visual filling style on Home page',
             style: subtitleStyle,
           ),
-          trailing: DropdownButton<ResumeFillStyle>(
-            value: fillStyle,
-            dropdownColor: const Color(0xFF18181B),
-            underline: const SizedBox(),
-            items: ResumeFillStyle.values.map((type) {
-              String name = '';
-              switch (type) {
-                case ResumeFillStyle.rectangularFill:
-                  name = 'Rectangular Fill';
-                  break;
-                case ResumeFillStyle.neonGradient:
-                  name = 'Neon Gradient';
-                  break;
-                case ResumeFillStyle.bottomMicroIndicator:
-                  name = 'Bottom Micro Line';
-                  break;
-              }
-              return DropdownMenuItem(
-                value: type,
-                child: Text(
-                  name,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) {
-                ref.read(resumeFillStyleProvider.notifier).setResumeFillStyle(val);
-              }
-            },
+          trailing: DropdownButtonHideUnderline(
+            child: DropdownButton<ResumeFillStyle>(
+              value: fillStyle,
+              dropdownColor: const Color(0xFF18181B),
+              alignment: Alignment.centerRight,
+              items: ResumeFillStyle.values.map((type) {
+                String name = '';
+                switch (type) {
+                  case ResumeFillStyle.rectangularFill:
+                    name = 'Rectangular Fill';
+                    break;
+                  case ResumeFillStyle.neonGradient:
+                    name = 'Neon Gradient';
+                    break;
+                  case ResumeFillStyle.bottomMicroIndicator:
+                    name = 'Bottom Micro Line';
+                    break;
+                }
+                return DropdownMenuItem(
+                  value: type,
+                  child: Text(
+                    name,
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                );
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) {
+                  ref.read(resumeFillStyleProvider.notifier).setResumeFillStyle(val);
+                }
+              },
+            ),
           ),
         );
       },
@@ -1394,11 +1416,11 @@ class SettingsScreen extends ConsumerWidget {
             color: currentColor,
           ),
           title: Text(
-            'Accent Color Options',
+            'Theme Accent Color',
             style: titleStyle,
           ),
           subtitle: Text(
-            isAuto ? 'Auto-cycling' : 'Frozen custom color',
+            isAuto ? 'Dynamic color auto-cycling' : 'Frozen custom color',
             style: subtitleStyle,
           ),
           trailing: Container(
@@ -1421,521 +1443,547 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final appSettingsHeader = buildHeader('App Settings');
-
-    final appSettingsContent = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SwitchListTile(
-          activeThumbColor: accentColor,
-          title: Text('Auto-Sort Categories', style: titleStyle),
-          subtitle: Text(
-            'Move last interacted category to the top automatically',
-            style: subtitleStyle,
-          ),
-          value: autoSort,
-          onChanged: (val) {
-            ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-          title: Text('Apply Preset', style: titleStyle),
-          subtitle: Text(
-            'Restore the default GATE checklist preset',
-            style: subtitleStyle,
-          ),
-          onTap: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                backgroundColor: const Color(0xFF18181B),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                title: const Text('Apply Syllabus Preset'),
-                content: const Text(
-                  'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
-                  style: TextStyle(color: Colors.white70),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
-                      foregroundColor: Colors.black,
-                    ),
-                    child: const Text('Apply'),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirmed == true) {
-              await ref.read(syllabusControllerProvider.notifier).applyPreset();
-            }
-          },
-        ),
-        accentColorContent,
-        Consumer(
-          builder: (context, ref, _) {
-            final currentFont = ref.watch(progressFontProvider);
-            return ListTile(
-              leading: Icon(Icons.font_download_rounded, color: accentColor),
-              title: Text('Change Font', style: titleStyle),
-              subtitle: Text(
-                'Select a style for statistics headers and completion progress text',
-                style: subtitleStyle,
-              ),
-              trailing: DropdownButtonHideUnderline(
-                child: DropdownButton<ProgressFont>(
-                  value: currentFont,
-                  dropdownColor: const Color(0xFF18181B),
-                  alignment: Alignment.centerRight,
-                  icon: Icon(Icons.arrow_drop_down, color: accentColor),
-                  style: TextStyle(color: accentColor),
-                  items: ProgressFont.values.map((font) {
-                    String label;
-                    switch (font) {
-                      case ProgressFont.orbitron:
-                        label = 'Orbitron';
-                        break;
-                      case ProgressFont.jersey15:
-                        label = 'Jersey 15';
-                        break;
-                      case ProgressFont.jersey10:
-                        label = 'Jersey 10';
-                        break;
-                      case ProgressFont.tektur:
-                        label = 'Tektur';
-                        break;
-                      case ProgressFont.odibeeSans:
-                        label = 'Odibee';
-                        break;
-                      case ProgressFont.pressStart2P:
-                        label = 'Press Start';
-                        break;
-                      case ProgressFont.boldonse:
-                        label = 'Boldonse';
-                        break;
-                    }
-                    return DropdownMenuItem(
-                      value: font,
-                      child: Text(
-                        label,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      ref.read(progressFontProvider.notifier).setProgressFont(val);
-                    }
-                  },
-                ),
-              ),
-            );
-          },
-        ),
-        Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            iconColor: accentColor,
-            collapsedIconColor: Colors.white30,
-            leading: Icon(Icons.format_size_rounded, color: accentColor),
-            title: Text('Change Font Size', style: titleStyle),
-            subtitle: Text(
-              'Adjust UI scale, category, card, and checklist font sizes',
-              style: subtitleStyle,
-            ),
-            children: [
-              Consumer(
-                builder: (context, ref, _) {
-                  final currentScale = ref.watch(overallUiScaleProvider);
-                  final currentCategorySize = ref.watch(categoryFontSizeProvider);
-                  final currentTopicSize = ref.watch(topicFontSizeProvider);
-                  final currentTaskSize = ref.watch(taskFontSizeProvider);
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Overall UI Scale', style: titleStyle),
-                          subtitle: Text('Scale all texts and margins', style: subtitleStyle),
-                          trailing: DropdownButtonHideUnderline(
-                            child: DropdownButton<OverallUiScale>(
-                              value: currentScale,
-                              dropdownColor: const Color(0xFF18181B),
-                              alignment: Alignment.centerRight,
-                              items: OverallUiScale.values.map((scale) {
-                                String name = '';
-                                switch (scale) {
-                                  case OverallUiScale.xs: name = 'XS (0.8x)'; break;
-                                  case OverallUiScale.s: name = 'S (0.9x)'; break;
-                                  case OverallUiScale.normal: name = 'Normal (1.0x)'; break;
-                                  case OverallUiScale.l: name = 'L (1.1x)'; break;
-                                  case OverallUiScale.xl: name = 'XL (1.2x)'; break;
-                                }
-                                return DropdownMenuItem(
-                                  value: scale,
-                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  ref.read(overallUiScaleProvider.notifier).setScale(val);
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                        const Divider(color: Colors.white10, height: 1),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Category Font Size', style: titleStyle),
-                          subtitle: Text('Resize checklist category titles', style: subtitleStyle),
-                          trailing: DropdownButtonHideUnderline(
-                            child: DropdownButton<CategoryFontSize>(
-                              value: currentCategorySize,
-                              dropdownColor: const Color(0xFF18181B),
-                              alignment: Alignment.centerRight,
-                              items: CategoryFontSize.values.map((size) {
-                                String name = '';
-                                switch (size) {
-                                  case CategoryFontSize.level1: name = 'XS'; break;
-                                  case CategoryFontSize.level2: name = 'S'; break;
-                                  case CategoryFontSize.level3: name = 'Normal'; break;
-                                  case CategoryFontSize.level4: name = 'L'; break;
-                                  case CategoryFontSize.level5: name = 'XL'; break;
-                                }
-                                return DropdownMenuItem(
-                                  value: size,
-                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  ref.read(categoryFontSizeProvider.notifier).setFontSize(val);
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                        const Divider(color: Colors.white10, height: 1),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Card/Topic Font Size', style: titleStyle),
-                          subtitle: Text('Resize subject card titles', style: subtitleStyle),
-                          trailing: DropdownButtonHideUnderline(
-                            child: DropdownButton<TopicFontSize>(
-                              value: currentTopicSize,
-                              dropdownColor: const Color(0xFF18181B),
-                              alignment: Alignment.centerRight,
-                              items: TopicFontSize.values.map((size) {
-                                String name = '';
-                                switch (size) {
-                                  case TopicFontSize.level1: name = 'XS'; break;
-                                  case TopicFontSize.level2: name = 'S'; break;
-                                  case TopicFontSize.level3: name = 'Normal'; break;
-                                  case TopicFontSize.level4: name = 'L'; break;
-                                  case TopicFontSize.level5: name = 'XL'; break;
-                                }
-                                return DropdownMenuItem(
-                                  value: size,
-                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  ref.read(topicFontSizeProvider.notifier).setFontSize(val);
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                        const Divider(color: Colors.white10, height: 1),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text('Checklist Font Size', style: titleStyle),
-                          subtitle: Text('Resize task checkbox text', style: subtitleStyle),
-                          trailing: DropdownButtonHideUnderline(
-                            child: DropdownButton<TaskFontSize>(
-                              value: currentTaskSize,
-                              dropdownColor: const Color(0xFF18181B),
-                              alignment: Alignment.centerRight,
-                              items: TaskFontSize.values.map((size) {
-                                String name = '';
-                                switch (size) {
-                                  case TaskFontSize.level1: name = 'XS'; break;
-                                  case TaskFontSize.level2: name = 'S'; break;
-                                  case TaskFontSize.level3: name = 'Normal'; break;
-                                  case TaskFontSize.level4: name = 'L'; break;
-                                  case TaskFontSize.level5: name = 'XL'; break;
-                                }
-                                return DropdownMenuItem(
-                                  value: size,
-                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                                );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  ref.read(taskFontSizeProvider.notifier).setFontSize(val);
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-    final advancedOptionsContent = Theme(
+    final fontSizeExpansionContent = Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         iconColor: accentColor,
         collapsedIconColor: Colors.white30,
-        leading: Icon(Icons.settings_suggest_rounded, color: accentColor),
-        title: Text(
-          'Advanced Options',
-          style: titleStyle,
+        leading: Icon(Icons.format_size_rounded, color: accentColor),
+        title: Text('Font Size & UI Scale', style: titleStyle),
+        subtitle: Text(
+          'Adjust category headers, subject cards, checklist text, and global UI scaling',
+          style: subtitleStyle,
         ),
         children: [
           Consumer(
             builder: (context, ref, _) {
-              final freq = ref.watch(syncFrequencyProvider);
-              String label;
-              switch (freq) {
-                case SyncFrequency.instant:
-                  label = 'Instant';
-                  break;
-                case SyncFrequency.fiveMinutes:
-                  label = 'Every 5 Minutes';
-                  break;
-                case SyncFrequency.appClose:
-                  label = 'On App Close';
-                  break;
-                case SyncFrequency.manual:
-                  label = 'Manual';
-                  break;
-              }
-              return ListTile(
-                leading: Icon(Icons.sync_lock_rounded, color: accentColor),
-                title: Text('Background Sync Frequency', style: titleStyle),
-                subtitle: Text(
-                  label,
-                  style: subtitleStyle,
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
-                onTap: () => _showSyncFrequencyDialog(context, ref, freq, accentColor),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
-              final mins = ref.watch(checkInGoalMinutesProvider);
-              return ListTile(
-                leading: Icon(Icons.check_circle_outline_rounded, color: accentColor),
-                title: Text('Daily Check-in Goal', style: titleStyle),
-                subtitle: Text(
-                  '$mins minutes${mins == 15 ? ' (default)' : ''}',
-                  style: subtitleStyle,
-                ),
-                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
-                onTap: () => _showCheckInGoalDialog(context, ref, mins, accentColor),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
-              final hideBanner = ref.watch(hideDownloadBannerProvider);
-              return ListTile(
-                leading: Icon(Icons.devices_other_rounded, color: accentColor),
-                title: Text('Hide Cross-Platform Promo', style: titleStyle),
-                subtitle: Text(
-                  'Hide the download banner shown under Cloud Sync on the web version',
-                  style: subtitleStyle,
-                ),
-                trailing: Switch(
-                  activeThumbColor: accentColor,
-                  value: hideBanner,
-                  onChanged: (val) async {
-                    await ref.read(hideDownloadBannerProvider.notifier).setHidden(val);
-                    ref.read(syncProvider.notifier).triggerAutoSync();
-                  },
-                ),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
-              final strength = ref.watch(glowStrengthProvider);
-              return ListTile(
-                leading: Icon(Icons.blur_circular_rounded, color: accentColor),
-                title: Text('Home Screen Glow Strength', style: titleStyle),
-                subtitle: Text(
-                  '${(strength * 100).toStringAsFixed(0)}% intensity',
-                  style: subtitleStyle,
-                ),
-                trailing: SizedBox(
-                  width: 140,
-                  child: Slider(
-                    min: 0.0,
-                    max: 4.0,
-                    divisions: 16,
-                    activeColor: accentColor,
-                    inactiveColor: Colors.white10,
-                    value: strength.clamp(0.0, 4.0),
-                    onChanged: (val) async {
-                       await ref.read(glowStrengthProvider.notifier).setStrength(val);
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
-              final profile = ref.watch(profileProvider);
-              return ListTile(
-                leading: Icon(Icons.photo_size_select_large_rounded, color: accentColor),
-                title: Text('Profile Photo Size', style: titleStyle),
-                subtitle: Text(
-                  '${profile.profilePhotoSize.toStringAsFixed(0)} px radius',
-                  style: subtitleStyle,
-                ),
-                trailing: SizedBox(
-                  width: 140,
-                  child: Slider(
-                    min: 15.0,
-                    max: 60.0,
-                    divisions: 9,
-                    activeColor: accentColor,
-                    inactiveColor: Colors.white10,
-                    value: profile.profilePhotoSize.clamp(15.0, 60.0),
-                    onChanged: (val) async {
-                      await ref.read(profileProvider.notifier).setProfilePhotoSize(val);
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
-              final disableWidget = ref.watch(disableHomeScreenWidgetProvider);
-              return ListTile(
-                leading: Icon(Icons.disabled_by_default_rounded, color: accentColor),
-                title: Text('Disable Home Screen Widget', style: titleStyle),
-                subtitle: Text(
-                  'Remove the countdown timer from the home screen layout',
-                  style: subtitleStyle,
-                ),
-                trailing: Switch(
-                  activeThumbColor: accentColor,
-                  value: disableWidget,
-                  onChanged: (val) async {
-                    await ref.read(disableHomeScreenWidgetProvider.notifier).setEnabled(val);
-                  },
+              final currentScale = ref.watch(overallUiScaleProvider);
+              final currentCategorySize = ref.watch(categoryFontSizeProvider);
+              final currentTopicSize = ref.watch(topicFontSizeProvider);
+              final currentTaskSize = ref.watch(taskFontSizeProvider);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Global UI Scale', style: titleStyle),
+                      subtitle: Text('Resize all margins, card panels, and text blocks', style: subtitleStyle),
+                      trailing: DropdownButtonHideUnderline(
+                        child: DropdownButton<OverallUiScale>(
+                          value: currentScale,
+                          dropdownColor: const Color(0xFF18181B),
+                          alignment: Alignment.centerRight,
+                          items: OverallUiScale.values.map((scale) {
+                            String name = '';
+                            switch (scale) {
+                              case OverallUiScale.xs: name = 'XS (0.8x)'; break;
+                              case OverallUiScale.s: name = 'S (0.9x)'; break;
+                              case OverallUiScale.normal: name = 'Normal (1.0x)'; break;
+                              case OverallUiScale.l: name = 'L (1.1x)'; break;
+                              case OverallUiScale.xl: name = 'XL (1.2x)'; break;
+                            }
+                            return DropdownMenuItem(
+                              value: scale,
+                              child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(overallUiScaleProvider.notifier).setScale(val);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Colors.white10, height: 1),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Category Headers', style: titleStyle),
+                      subtitle: Text('Adjust font size of syllabus category headers', style: subtitleStyle),
+                      trailing: DropdownButtonHideUnderline(
+                        child: DropdownButton<CategoryFontSize>(
+                          value: currentCategorySize,
+                          dropdownColor: const Color(0xFF18181B),
+                          alignment: Alignment.centerRight,
+                          items: CategoryFontSize.values.map((size) {
+                            String name = '';
+                            switch (size) {
+                              case CategoryFontSize.level1: name = 'XS'; break;
+                              case CategoryFontSize.level2: name = 'S'; break;
+                              case CategoryFontSize.level3: name = 'Normal'; break;
+                              case CategoryFontSize.level4: name = 'L'; break;
+                              case CategoryFontSize.level5: name = 'XL'; break;
+                            }
+                            return DropdownMenuItem(
+                              value: size,
+                              child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(categoryFontSizeProvider.notifier).setFontSize(val);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Colors.white10, height: 1),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Subject Cards', style: titleStyle),
+                      subtitle: Text('Adjust font size of subject card titles', style: subtitleStyle),
+                      trailing: DropdownButtonHideUnderline(
+                        child: DropdownButton<TopicFontSize>(
+                          value: currentTopicSize,
+                          dropdownColor: const Color(0xFF18181B),
+                          alignment: Alignment.centerRight,
+                          items: TopicFontSize.values.map((size) {
+                            String name = '';
+                            switch (size) {
+                              case TopicFontSize.level1: name = 'XS'; break;
+                              case TopicFontSize.level2: name = 'S'; break;
+                              case TopicFontSize.level3: name = 'Normal'; break;
+                              case TopicFontSize.level4: name = 'L'; break;
+                              case TopicFontSize.level5: name = 'XL'; break;
+                            }
+                            return DropdownMenuItem(
+                              value: size,
+                              child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(topicFontSizeProvider.notifier).setFontSize(val);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const Divider(color: Colors.white10, height: 1),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Checklist Tasks', style: titleStyle),
+                      subtitle: Text('Adjust font size of checklist task checkboxes', style: subtitleStyle),
+                      trailing: DropdownButtonHideUnderline(
+                        child: DropdownButton<TaskFontSize>(
+                          value: currentTaskSize,
+                          dropdownColor: const Color(0xFF18181B),
+                          alignment: Alignment.centerRight,
+                          items: TaskFontSize.values.map((size) {
+                            String name = '';
+                            switch (size) {
+                              case TaskFontSize.level1: name = 'XS'; break;
+                              case TaskFontSize.level2: name = 'S'; break;
+                              case TaskFontSize.level3: name = 'Normal'; break;
+                              case TaskFontSize.level4: name = 'L'; break;
+                              case TaskFontSize.level5: name = 'XL'; break;
+                            }
+                            return DropdownMenuItem(
+                              value: size,
+                              child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              ref.read(taskFontSizeProvider.notifier).setFontSize(val);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
           ),
-          const SizedBox(height: 8),
         ],
       ),
     );
 
-    final betaOptionsContent = Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        iconColor: accentColor,
-        collapsedIconColor: Colors.white30,
-        leading: Icon(Icons.science_rounded, color: accentColor),
-        title: Text(
-          'Beta Options',
-          style: titleStyle,
-        ),
+    final appSettingsHeader = buildHeader('APP SETTINGS');
+
+    final appSettingsContent = buildSettingsGroup(
+      Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          SwitchListTile(
+            activeThumbColor: accentColor,
+            secondary: Icon(Icons.sort_rounded, color: accentColor),
+            title: Text('Auto-Sort Categories', style: titleStyle),
+            subtitle: Text(
+              'Move recently studied categories to the top automatically',
+              style: subtitleStyle,
+            ),
+            value: autoSort,
+            onChanged: (val) {
+              ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          ListTile(
+            leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+            title: Text('Syllabus Checklist Preset', style: titleStyle),
+            subtitle: Text(
+              'Reset and apply the default standard GATE checklist preset',
+              style: subtitleStyle,
+            ),
+            onTap: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: const Color(0xFF18181B),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  title: const Text('Apply Syllabus Preset'),
+                  content: const Text(
+                    'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.amberAccent,
+                        foregroundColor: Colors.black,
+                      ),
+                      child: const Text('Apply'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (confirmed == true) {
+                await ref.read(syllabusControllerProvider.notifier).applyPreset();
+              }
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          accentColorContent,
+          const Divider(color: Colors.white10, height: 1),
           Consumer(
             builder: (context, ref, _) {
-              final showProjComp = ref.watch(showProjectedCompletionProvider);
+              final currentFont = ref.watch(progressFontProvider);
               return ListTile(
-                leading: Icon(Icons.trending_up_rounded, color: accentColor),
-                title: Text('Show Projected Completion Card', style: titleStyle),
+                leading: Icon(Icons.font_download_rounded, color: accentColor),
+                title: Text('Checklist Typography', style: titleStyle),
                 subtitle: Text(
-                  'Display syllabus completion predictions on the Stats Hub',
+                  'Choose font style for progress headers and text statistics',
                   style: subtitleStyle,
                 ),
-                trailing: Switch(
+                trailing: DropdownButtonHideUnderline(
+                  child: DropdownButton<ProgressFont>(
+                    value: currentFont,
+                    dropdownColor: const Color(0xFF18181B),
+                    alignment: Alignment.centerRight,
+                    icon: Icon(Icons.arrow_drop_down, color: accentColor),
+                    style: TextStyle(color: accentColor),
+                    items: ProgressFont.values.map((font) {
+                      String label;
+                      switch (font) {
+                        case ProgressFont.orbitron:
+                          label = 'Orbitron';
+                          break;
+                        case ProgressFont.jersey15:
+                          label = 'Jersey 15';
+                          break;
+                        case ProgressFont.jersey10:
+                          label = 'Jersey 10';
+                          break;
+                        case ProgressFont.tektur:
+                          label = 'Tektur';
+                          break;
+                        case ProgressFont.odibeeSans:
+                          label = 'Odibee';
+                          break;
+                        case ProgressFont.pressStart2P:
+                          label = 'Press Start';
+                          break;
+                        case ProgressFont.boldonse:
+                          label = 'Boldonse';
+                          break;
+                      }
+                      return DropdownMenuItem(
+                        value: font,
+                        child: Text(
+                          label,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        ref.read(progressFontProvider.notifier).setProgressFont(val);
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          fontSizeExpansionContent,
+        ],
+      ),
+    );
+
+    final advancedOptionsContent = buildSettingsGroup(
+      Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: accentColor,
+          collapsedIconColor: Colors.white30,
+          leading: Icon(Icons.settings_suggest_rounded, color: accentColor),
+          title: Text(
+            'Advanced Options',
+            style: titleStyle,
+          ),
+          subtitle: Text(
+            'Check-in target goals, slider glow effects, and avatar sizing',
+            style: subtitleStyle,
+          ),
+          children: [
+            Consumer(
+              builder: (context, ref, _) {
+                final freq = ref.watch(syncFrequencyProvider);
+                String label;
+                switch (freq) {
+                  case SyncFrequency.instant:
+                    label = 'Instant';
+                    break;
+                  case SyncFrequency.fiveMinutes:
+                    label = 'Every 5 Minutes';
+                    break;
+                  case SyncFrequency.appClose:
+                    label = 'On App Close';
+                    break;
+                  case SyncFrequency.manual:
+                    label = 'Manual';
+                    break;
+                }
+                return ListTile(
+                  leading: Icon(Icons.sync_lock_rounded, color: accentColor),
+                  title: Text('Cloud Sync Frequency', style: titleStyle),
+                  subtitle: Text(
+                    'Interval for background database uploads: $label',
+                    style: subtitleStyle,
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
+                  onTap: () => _showSyncFrequencyDialog(context, ref, freq, accentColor),
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            Consumer(
+              builder: (context, ref, _) {
+                final mins = ref.watch(checkInGoalMinutesProvider);
+                return ListTile(
+                  leading: Icon(Icons.check_circle_outline_rounded, color: accentColor),
+                  title: Text('Daily Focus Goal', style: titleStyle),
+                  subtitle: Text(
+                    'Daily check-in study threshold: $mins minutes',
+                    style: subtitleStyle,
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
+                  onTap: () => _showCheckInGoalDialog(context, ref, mins, accentColor),
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            Consumer(
+              builder: (context, ref, _) {
+                final hideBanner = ref.watch(hideDownloadBannerProvider);
+                return SwitchListTile(
                   activeThumbColor: accentColor,
+                  secondary: Icon(Icons.devices_other_rounded, color: accentColor),
+                  title: Text('Download Promotion Banner', style: titleStyle),
+                  subtitle: Text(
+                    'Display native app download links for other platforms',
+                    style: subtitleStyle,
+                  ),
+                  value: !hideBanner,
+                  onChanged: (val) async {
+                    await ref.read(hideDownloadBannerProvider.notifier).setHidden(!val);
+                    ref.read(syncProvider.notifier).triggerAutoSync();
+                  },
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            Consumer(
+              builder: (context, ref, _) {
+                final strength = ref.watch(glowStrengthProvider);
+                return ListTile(
+                  leading: Icon(Icons.blur_circular_rounded, color: accentColor),
+                  title: Text('Timer Glow Intensity', style: titleStyle),
+                  subtitle: Text(
+                    'Glow strength: ${(strength * 100).toStringAsFixed(0)}%',
+                    style: subtitleStyle,
+                  ),
+                  trailing: SizedBox(
+                    width: 140,
+                    child: Slider(
+                      min: 0.0,
+                      max: 4.0,
+                      divisions: 16,
+                      activeColor: accentColor,
+                      inactiveColor: Colors.white10,
+                      value: strength.clamp(0.0, 4.0),
+                      onChanged: (val) async {
+                         await ref.read(glowStrengthProvider.notifier).setStrength(val);
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            Consumer(
+              builder: (context, ref, _) {
+                final profile = ref.watch(profileProvider);
+                return ListTile(
+                  leading: Icon(Icons.photo_size_select_large_rounded, color: accentColor),
+                  title: Text('Avatar Circle Size', style: titleStyle),
+                  subtitle: Text(
+                    'Radius dimensions: ${profile.profilePhotoSize.toStringAsFixed(0)} px',
+                    style: subtitleStyle,
+                  ),
+                  trailing: SizedBox(
+                    width: 140,
+                    child: Slider(
+                      min: 15.0,
+                      max: 60.0,
+                      divisions: 9,
+                      activeColor: accentColor,
+                      inactiveColor: Colors.white10,
+                      value: profile.profilePhotoSize.clamp(15.0, 60.0),
+                      onChanged: (val) async {
+                        await ref.read(profileProvider.notifier).setProfilePhotoSize(val);
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            Consumer(
+              builder: (context, ref, _) {
+                final disableWidget = ref.watch(disableHomeScreenWidgetProvider);
+                return SwitchListTile(
+                  activeThumbColor: accentColor,
+                  secondary: Icon(Icons.disabled_by_default_rounded, color: accentColor),
+                  title: Text('Disable Countdown Widget', style: titleStyle),
+                  subtitle: Text(
+                    'Remove countdown widget panel from home screen layout',
+                    style: subtitleStyle,
+                  ),
+                  value: disableWidget,
+                  onChanged: (val) async {
+                    await ref.read(disableHomeScreenWidgetProvider.notifier).setEnabled(val);
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    final betaOptionsContent = buildSettingsGroup(
+      Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          iconColor: accentColor,
+          collapsedIconColor: Colors.white30,
+          leading: Icon(Icons.science_rounded, color: accentColor),
+          title: Text(
+            'Beta Options',
+            style: titleStyle,
+          ),
+          subtitle: Text(
+            'Handwritten quotes, timer button styles, and charts velocity forecasts',
+            style: subtitleStyle,
+          ),
+          children: [
+            Consumer(
+              builder: (context, ref, _) {
+                final showProjComp = ref.watch(showProjectedCompletionProvider);
+                return SwitchListTile(
+                  activeThumbColor: accentColor,
+                  secondary: Icon(Icons.trending_up_rounded, color: accentColor),
+                  title: Text('Projected Completion Card', style: titleStyle),
+                  subtitle: Text(
+                    'Display syllabus completion target forecasting on Stats Hub',
+                    style: subtitleStyle,
+                  ),
                   value: showProjComp,
                   onChanged: (val) async {
                     await ref.read(showProjectedCompletionProvider.notifier).setEnabled(val);
                   },
-                ),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
-              final disableGlow = ref.watch(disableGraphGlowProvider);
-              return ListTile(
-                leading: Icon(Icons.blur_off_rounded, color: accentColor),
-                title: Text('Disable Graph Glow in Stats', style: titleStyle),
-                subtitle: Text(
-                  'Turn off neon glow/blur effect on charts for a sharper performance-friendly display',
-                  style: subtitleStyle,
-                ),
-                trailing: Switch(
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            Consumer(
+              builder: (context, ref, _) {
+                final disableGlow = ref.watch(disableGraphGlowProvider);
+                return SwitchListTile(
                   activeThumbColor: accentColor,
-                  value: disableGlow,
+                  secondary: Icon(Icons.blur_off_rounded, color: accentColor),
+                  title: Text('Chart Glow Effect', style: titleStyle),
+                  subtitle: Text(
+                    'Display neon glow gradients behind statistics graphs',
+                    style: subtitleStyle,
+                  ),
+                  value: !disableGlow,
                   onChanged: (val) async {
-                    await ref.read(disableGraphGlowProvider.notifier).setEnabled(val);
+                    await ref.read(disableGraphGlowProvider.notifier).setEnabled(!val);
                   },
-                ),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          resumeButtonStyleContent,
-          const Divider(color: Colors.white10, height: 1),
-          focusAnimationStyleContent,
-          const Divider(color: Colors.white10, height: 1),
-          focusQuotesContent,
-          const SizedBox(height: 8),
-        ],
+                );
+              },
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            resumeButtonStyleContent,
+            const Divider(color: Colors.white10, height: 1),
+            focusAnimationStyleContent,
+            const Divider(color: Colors.white10, height: 1),
+            focusQuotesContent,
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
 
     final aboutAppContent = ListTile(
       leading: Icon(Icons.info_outline_rounded, color: accentColor),
-      title: Text('About App', style: titleStyle),
+      title: Text('About GATEletics', style: titleStyle),
       subtitle: Text(
-        'Show Info about App, Developer and Repository',
+        'View app details, credits, developer info, and source code',
         style: subtitleStyle,
       ),
       onTap: () {
         showAboutTrackerDialog(context, ref);
       },
+    );
+
+    final systemOptionsHeader = buildHeader('SYSTEM INFO');
+
+    final systemOptionsContent = buildSettingsGroup(
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          aboutAppContent,
+          const Divider(color: Colors.white10, height: 1),
+          devOptionsContent,
+        ],
+      ),
     );
 
     final versionText = Center(
@@ -1991,28 +2039,22 @@ class SettingsScreen extends ConsumerWidget {
                               children: [
                                 cloudSyncHeader,
                                 cloudSyncContent,
-                                const SizedBox(height: 8),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 12),
                                 profileSettingsHeader,
                                 profileSettingsContent,
                                 if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
                                     defaultTargetPlatform != TargetPlatform.android &&
                                     defaultTargetPlatform != TargetPlatform.iOS) ...[
-                                  const SizedBox(height: 8),
-                                  const Divider(color: Colors.white12),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 12),
                                   uiSwitchHeader,
                                   uiSwitchContent,
                                 ],
-                                const SizedBox(height: 8),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 12),
+                                buildHeader('LOCAL BACKUPS & DATA'),
                                 localBackupsContent,
-                                const SizedBox(height: 8),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 4),
-                                aboutAppContent,
+                                const SizedBox(height: 12),
+                                systemOptionsHeader,
+                                systemOptionsContent,
                               ],
                             ),
                           ),
@@ -2023,18 +2065,12 @@ class SettingsScreen extends ConsumerWidget {
                               children: [
                                 appSettingsHeader,
                                 appSettingsContent,
-                                const SizedBox(height: 8),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 12),
+                                buildHeader('ADVANCED'),
                                 advancedOptionsContent,
-                                const SizedBox(height: 8),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 12),
+                                buildHeader('EXPERIMENTS & BETA'),
                                 betaOptionsContent,
-                                const SizedBox(height: 8),
-                                const Divider(color: Colors.white12),
-                                const SizedBox(height: 4),
-                                devOptionsContent,
                               ],
                             ),
                           ),
@@ -2054,30 +2090,25 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     cloudSyncHeader,
                     cloudSyncContent,
-                    const Divider(color: Colors.white12),
                     profileSettingsHeader,
                     profileSettingsContent,
                     if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
                         defaultTargetPlatform != TargetPlatform.android &&
                         defaultTargetPlatform != TargetPlatform.iOS) ...[
-                      const Divider(color: Colors.white12),
                       uiSwitchHeader,
                       uiSwitchContent,
                     ],
-                    const Divider(color: Colors.white12),
                     appSettingsHeader,
                     appSettingsContent,
-                    const Divider(color: Colors.white12),
+                    buildHeader('ADVANCED'),
                     advancedOptionsContent,
-                    const Divider(color: Colors.white12),
+                    buildHeader('EXPERIMENTS & BETA'),
                     betaOptionsContent,
-                    const Divider(color: Colors.white12),
+                    buildHeader('LOCAL BACKUPS & DATA'),
                     localBackupsContent,
-                    const Divider(color: Colors.white12),
-                    devOptionsContent,
-                    const Divider(color: Colors.white12),
-                    aboutAppContent,
-                    SizedBox(height: context.s(8)),
+                    systemOptionsHeader,
+                    systemOptionsContent,
+                    SizedBox(height: context.s(12)),
                     versionText,
                     SizedBox(height: context.s(16)),
                   ],
@@ -2483,10 +2514,6 @@ class SettingsScreen extends ConsumerWidget {
     DateTime selectedDate = DateTime.now();
     final durationController = TextEditingController(text: "60");
     final goalController = TextEditingController(text: "120");
-    int? selectedCategoryId;
-
-    final categoriesAsync = ref.read(syllabusCategoriesProvider);
-    final categories = categoriesAsync.value ?? [];
 
     showDialog(
       context: context,
@@ -2503,28 +2530,31 @@ class SettingsScreen extends ConsumerWidget {
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        "Date: ${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}",
-                        style: GoogleFonts.outfit(color: Colors.white),
-                      ),
-                      trailing: Icon(Icons.calendar_today_rounded, color: accentColor),
-                      onTap: () async {
-                        final d = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (d != null) {
-                          setState(() {
-                            selectedDate = d;
-                          });
-                        }
-                      },
+                    Row(
+                      children: [
+                        Text(
+                          "Date: ${selectedDate.year}-${selectedDate.month}-${selectedDate.day}",
+                          style: GoogleFonts.outfit(color: Colors.white70),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(Icons.calendar_today, color: accentColor),
+                          onPressed: () async {
+                            final d = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (d != null) {
+                              setState(() {
+                                selectedDate = d;
+                              });
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -2550,41 +2580,6 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       style: GoogleFonts.outfit(color: Colors.white),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonHideUnderline(
-                      child: DropdownButton<int?>(
-                        isExpanded: true,
-                        value: selectedCategoryId,
-                        dropdownColor: const Color(0xFF18181B),
-                        hint: Text(
-                          "Select Category (Optional)",
-                          style: GoogleFonts.outfit(color: Colors.white60),
-                        ),
-                        items: [
-                          DropdownMenuItem<int?>(
-                            value: null,
-                            child: Text(
-                              "General Focus (No Category)",
-                              style: GoogleFonts.outfit(color: Colors.white70),
-                            ),
-                          ),
-                          ...categories.map((c) {
-                            return DropdownMenuItem<int?>(
-                              value: c.id,
-                              child: Text(
-                                c.name,
-                                style: GoogleFonts.outfit(color: Colors.white70),
-                              ),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            selectedCategoryId = val;
-                          });
-                        },
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -2608,7 +2603,6 @@ class SettingsScreen extends ConsumerWidget {
                       method: "Freestyle",
                       startTime: startTime,
                       durationSeconds: durationMin * 60,
-                      categoryId: Value(selectedCategoryId),
                       accomplishments: const Value("Developer Mode injected study session"),
                     ));
 

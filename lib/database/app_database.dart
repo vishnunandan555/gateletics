@@ -28,6 +28,7 @@ class SyllabusTasks extends Table {
   TextColumn get name => text().withLength(min: 1, max: 200)();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   IntColumn get position => integer()();
+  DateTimeColumn get completedAt => dateTime().nullable()();
 }
 
 class FocusSessions extends Table {
@@ -37,7 +38,6 @@ class FocusSessions extends Table {
   IntColumn get durationSeconds => integer()();
   TextColumn get accomplishments => text().nullable()();
   RealColumn get progressDelta => real().withDefault(const Constant(0.0))();
-  IntColumn get categoryId => integer().nullable().references(SyllabusCategories, #id, onDelete: KeyAction.setNull)();
 }
 
 class DailyHistory extends Table {
@@ -49,6 +49,14 @@ class DailyHistory extends Table {
 
   @override
   Set<Column> get primaryKey => {dateStr};
+}
+
+class CustomTasks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get content => text().withLength(min: 1, max: 500)();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
 }
 
 class SyllabusTopicWithTasks {
@@ -71,7 +79,7 @@ class SyllabusCategoryWithTopics {
   });
 }
 
-@DriftDatabase(tables: [SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions, DailyHistory])
+@DriftDatabase(tables: [SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions, DailyHistory, CustomTasks])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
   AppDatabase.forTesting(super.executor);
@@ -136,10 +144,19 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             try {
-              await m.addColumn(focusSessions, focusSessions.categoryId);
+              await m.database.customStatement('ALTER TABLE focus_sessions ADD COLUMN category_id INTEGER REFERENCES syllabus_categories(id) ON DELETE SET NULL;');
             } catch (_) {}
           }
-          // v8: no additional migration needed (placeholder for future use)
+          if (from < 9) {
+            try {
+              await m.createTable(customTasks);
+            } catch (_) {}
+          }
+          if (from < 10) {
+            try {
+              await m.addColumn(syllabusTasks, syllabusTasks.completedAt);
+            } catch (_) {}
+          }
         },
       );
 
@@ -315,17 +332,26 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> updateSyllabusTaskDetails(int id, String name, bool isCompleted) async {
+    final current = await (select(syllabusTasks)..where((t) => t.id.equals(id))).getSingleOrNull();
+    final wasCompleted = current?.isCompleted ?? false;
+    final newCompletedAt = isCompleted
+        ? (wasCompleted ? current?.completedAt : DateTime.now())
+        : null;
     await (update(syllabusTasks)..where((t) => t.id.equals(id))).write(
       SyllabusTasksCompanion(
         name: Value(name),
         isCompleted: Value(isCompleted),
+        completedAt: Value(newCompletedAt),
       ),
     );
   }
 
-  Future<void> updateSyllabusTaskCompletion(int id, bool isCompleted) async {
+  Future<void> updateSyllabusTaskCompletion(int id, bool isCompleted, {DateTime? completedAt}) async {
     await (update(syllabusTasks)..where((t) => t.id.equals(id))).write(
-      SyllabusTasksCompanion(isCompleted: Value(isCompleted)),
+      SyllabusTasksCompanion(
+        isCompleted: Value(isCompleted),
+        completedAt: Value(isCompleted ? (completedAt ?? DateTime.now()) : null),
+      ),
     );
   }
 
@@ -370,9 +396,17 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
       for (final topic in categoryTopics) {
-        await (update(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).write(
-          const SyllabusTasksCompanion(isCompleted: Value(true)),
-        );
+        final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).get();
+        for (final task in tasks) {
+          if (!task.isCompleted) {
+            await (update(syllabusTasks)..where((t) => t.id.equals(task.id))).write(
+              SyllabusTasksCompanion(
+                isCompleted: const Value(true),
+                completedAt: Value(DateTime.now()),
+              ),
+            );
+          }
+        }
       }
       await updateSyllabusCategoryInteraction(categoryId);
     });
@@ -383,7 +417,10 @@ class AppDatabase extends _$AppDatabase {
       final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
       for (final topic in categoryTopics) {
         await (update(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).write(
-          const SyllabusTasksCompanion(isCompleted: Value(false)),
+          const SyllabusTasksCompanion(
+            isCompleted: Value(false),
+            completedAt: Value(null),
+          ),
         );
       }
       await updateSyllabusCategoryInteraction(categoryId);
@@ -392,9 +429,17 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> markSyllabusTopicCompleted(int topicId) async {
     await transaction(() async {
-      await (update(syllabusTasks)..where((t) => t.topicId.equals(topicId))).write(
-        const SyllabusTasksCompanion(isCompleted: Value(true)),
-      );
+      final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topicId))).get();
+      for (final task in tasks) {
+        if (!task.isCompleted) {
+          await (update(syllabusTasks)..where((t) => t.id.equals(task.id))).write(
+            SyllabusTasksCompanion(
+              isCompleted: const Value(true),
+              completedAt: Value(DateTime.now()),
+            ),
+          );
+        }
+      }
       await updateSyllabusCategoryInteractionByTopicId(topicId);
     });
   }
@@ -402,7 +447,10 @@ class AppDatabase extends _$AppDatabase {
   Future<void> resetSyllabusTopicStats(int topicId) async {
     await transaction(() async {
       await (update(syllabusTasks)..where((t) => t.topicId.equals(topicId))).write(
-        const SyllabusTasksCompanion(isCompleted: Value(false)),
+        const SyllabusTasksCompanion(
+          isCompleted: Value(false),
+          completedAt: Value(null),
+        ),
       );
       await updateSyllabusCategoryInteractionByTopicId(topicId);
     });
@@ -437,6 +485,12 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteFocusSession(int id) async {
     await (delete(focusSessions)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> deleteOldFocusSessions({StudyDayRollover rollover = StudyDayRollover.overnight}) async {
+    final now = DateTime.now();
+    final todayStart = getStudyDayStart(now, rollover: rollover);
+    await (delete(focusSessions)..where((t) => t.startTime.isSmallerThanValue(todayStart))).go();
   }
 
   Stream<List<FocusSession>> watchTodayFocusSessions({StudyDayRollover rollover = StudyDayRollover.overnight}) {
@@ -502,6 +556,71 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<DailyHistoryData>> getDailyHistory() async {
     return (select(dailyHistory)..orderBy([(t) => OrderingTerm(expression: t.dateStr, mode: OrderingMode.asc)])).get();
+  }
+
+  // ----------------------------------------------------
+  // Custom Notice Board Tasks Operations
+  // ----------------------------------------------------
+
+  Stream<List<CustomTask>> watchCustomTasks() {
+    return (select(customTasks)
+          ..orderBy([(t) => OrderingTerm(expression: t.position, mode: OrderingMode.asc)]))
+        .watch();
+  }
+
+  Future<List<CustomTask>> getCustomTasks() {
+    return (select(customTasks)
+          ..orderBy([(t) => OrderingTerm(expression: t.position, mode: OrderingMode.asc)]))
+        .get();
+  }
+
+  Future<int> addCustomTask(String content, {int? position}) async {
+    int pos = position ?? 0;
+    if (position == null) {
+      final existing = await getCustomTasks();
+      pos = existing.length;
+    }
+    return into(customTasks).insert(CustomTasksCompanion.insert(
+      content: content,
+      isCompleted: const Value(false),
+      createdAt: DateTime.now(),
+      position: Value(pos),
+    ));
+  }
+
+  Future<void> updateCustomTaskCompletion(int id, bool isCompleted) async {
+    await (update(customTasks)..where((t) => t.id.equals(id))).write(
+      CustomTasksCompanion(isCompleted: Value(isCompleted)),
+    );
+  }
+
+  Future<void> updateCustomTaskContent(int id, String content) async {
+    await (update(customTasks)..where((t) => t.id.equals(id))).write(
+      CustomTasksCompanion(content: Value(content)),
+    );
+  }
+
+  Future<void> deleteCustomTask(int id) async {
+    await (delete(customTasks)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> updateCustomTaskPositions(List<int> orderedIds) async {
+    await transaction(() async {
+      for (int i = 0; i < orderedIds.length; i++) {
+        await (update(customTasks)..where((t) => t.id.equals(orderedIds[i]))).write(
+          CustomTasksCompanion(position: Value(i)),
+        );
+      }
+    });
+  }
+
+  Future<void> restoreCustomTasks(List<CustomTask> tasks) async {
+    await transaction(() async {
+      await delete(customTasks).go();
+      for (final t in tasks) {
+        await into(customTasks).insert(t);
+      }
+    });
   }
 }
 

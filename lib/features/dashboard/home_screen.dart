@@ -16,6 +16,7 @@ import '../../providers/focus_animation_provider.dart';
 import '../../providers/rollover_provider.dart';
 import '../../providers/disable_home_screen_widget_provider.dart';
 import '../../database/app_database.dart';
+import '../../providers/notice_board_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final PageController? shellPageController;
@@ -32,6 +33,14 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final TextEditingController _noticeTaskController = TextEditingController();
+
+  @override
+  void dispose() {
+    _noticeTaskController.dispose();
+    super.dispose();
+  }
+
   void _navigateToTab(int index) {
     if (widget.onNavigate != null) {
       widget.onNavigate!(index);
@@ -53,6 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final focusState = ref.watch(focusProvider);
     final isFocusActive = focusState.status != FocusStatus.idle;
+    final isNoticeBoard = ref.watch(noticeBoardModeProvider);
 
     // Watch values for daily progress calculation
     final todayFocusSeconds = ref.watch(todayFocusDurationProvider).value ?? 0;
@@ -92,169 +102,251 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  return CustomScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          context.s(20.0),
-                          context.s(16.0),
-                          context.s(20.0),
-                          0.0,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            SizedBox(height: isDesktop ? 24 : context.s(72)),
-                            SizedBox(height: context.s(40)), // Push content down so it starts above middle
-
-                            // Profile Avatar & Dynamic Greetings
-                            if (profileState.profilePhotoMode != 'none') ...[
-                              Center(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    ref.read(overallProgressColorProvider.notifier).next();
-                                  },
-                                  behavior: HitTestBehavior.translucent,
-                                  child: Container(
-                                    padding: EdgeInsets.all(context.s(3)),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: accentColor, width: context.s(1.5)),
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: context.s(profileState.profilePhotoSize),
-                                      backgroundImage: profileImage,
-                                      backgroundColor: accentColor.withAlpha(30),
-                                      child: profileImage == null
-                                          ? Icon(Icons.person_rounded, color: accentColor, size: context.s(profileState.profilePhotoSize))
-                                          : null,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: context.s(10)),
-                            ],
-
-                            Center(
-                              child: Column(
+                  final content = Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      context.s(20.0),
+                      context.s(16.0),
+                      context.s(20.0),
+                      context.s(16.0),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisAlignment: isNoticeBoard
+                          ? MainAxisAlignment.start
+                          : MainAxisAlignment.spaceBetween,
+                      children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Text(
-                                    displayName != null ? "Welcome Back," : "Welcome Back!",
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontSize: context.s(20),
-                                      fontWeight: FontWeight.w500,
+                                  // Desktop Custom Header Row (Logo on left, Toggle Button on right)
+                                  if (isDesktop) ...[
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Image.asset('assets/logo_trans_cropped.png', width: 28, height: 28),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'GATEletics',
+                                              style: GoogleFonts.outfit(
+                                                color: Colors.white,
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Consumer(
+                                          builder: (context, ref, _) {
+                                            final tasks = ref.watch(customTasksProvider).value ?? [];
+                                            Widget iconWidget;
+                                            if (isNoticeBoard) {
+                                              iconWidget = const Icon(
+                                                Icons.close_rounded,
+                                                color: Colors.white60,
+                                                size: 24,
+                                              );
+                                            } else if (tasks.isNotEmpty) {
+                                              iconWidget = Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.assignment_outlined, color: accentColor, size: 32),
+                                                  const SizedBox(width: 4),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: accentColor,
+                                                      borderRadius: BorderRadius.circular(5),
+                                                    ),
+                                                    child: Text(
+                                                      "${tasks.length}",
+                                                      style: GoogleFonts.orbitron(
+                                                        color: Colors.black,
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            } else {
+                                              iconWidget = Icon(
+                                                Icons.assignment_outlined,
+                                                color: accentColor,
+                                                size: 28,
+                                              );
+                                            }
+                                            return IconButton(
+                                              icon: iconWidget,
+                                              onPressed: () {
+                                                ref.read(noticeBoardModeProvider.notifier).state = !isNoticeBoard;
+                                              },
+                                              tooltip: isNoticeBoard ? 'Back to Dashboard' : 'Open Notice Board',
+                                              splashRadius: 20,
+                                            );
+                                          },
+                                        ),
+                                      ],
                                     ),
+                                    SizedBox(height: context.s(16)),
+                                  ],
+
+                                  SizedBox(
+                                    height: isDesktop ? context.s(10) : context.s(72),
                                   ),
-                                  if (displayName != null) ...[
-                                    SizedBox(height: context.s(4)),
-                                    Text(
-                                      "$displayName!",
-                                      style: GoogleFonts.outfit(
-                                        color: accentColor,
-                                        fontSize: context.s(26),
-                                        fontWeight: FontWeight.bold,
-                                        shadows: [
-                                          Shadow(color: accentColor.withAlpha(102), blurRadius: context.s(12)),
+                                  if (!isNoticeBoard)
+                                    SizedBox(height: context.s(40)), // Push content down so it starts above middle
+
+                                  if (isNoticeBoard)
+                                    _buildNoticeBoard(context, ref, accentColor)
+                                  else ...[
+                                    // Profile Avatar & Dynamic Greetings
+                                    if (profileState.profilePhotoMode != 'none') ...[
+                                      Center(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            ref.read(overallProgressColorProvider.notifier).next();
+                                          },
+                                          behavior: HitTestBehavior.translucent,
+                                          child: Container(
+                                            padding: EdgeInsets.all(context.s(3)),
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: accentColor, width: context.s(1.5)),
+                                            ),
+                                            child: CircleAvatar(
+                                              radius: context.s(profileState.profilePhotoSize),
+                                              backgroundImage: profileImage,
+                                              backgroundColor: accentColor.withAlpha(30),
+                                              child: profileImage == null
+                                                  ? Icon(Icons.person_rounded, color: accentColor, size: context.s(profileState.profilePhotoSize))
+                                                  : null,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: context.s(10)),
+                                    ],
+
+                                    Center(
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            displayName != null ? "Welcome Back," : "Welcome Back!",
+                                            style: GoogleFonts.outfit(
+                                              color: Colors.white,
+                                              fontSize: context.s(20),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          if (displayName != null) ...[
+                                            SizedBox(height: context.s(4)),
+                                            Text(
+                                              "$displayName!",
+                                              style: GoogleFonts.outfit(
+                                                color: accentColor,
+                                                fontSize: context.s(26),
+                                                fontWeight: FontWeight.bold,
+                                                shadows: [
+                                                  Shadow(color: accentColor.withAlpha(102), blurRadius: context.s(12)),
+                                                ],
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
                                         ],
                                       ),
-                                      textAlign: TextAlign.center,
+                                    ),
+
+                                    SizedBox(height: context.s(20)),
+
+                                    // Big Countdown Timer (DAYS : HRS : MINS : SECS)
+                                    const _TickingCountdownTimer(),
+                                    SizedBox(height: context.s(16)),
+
+                                    // Static Launch Quote
+                                    Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                                        child: Text(
+                                          "“$launchQuote”",
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.white60,
+                                            fontSize: context.s(13),
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ],
                               ),
-                            ),
-
-                            SizedBox(height: context.s(20)),
-
-                            // Big Countdown Timer (DAYS : HRS : MINS : SECS)
-                            const _TickingCountdownTimer(),
-                            SizedBox(height: context.s(16)),
-
-                            // Static Launch Quote
-                            Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
-                                child: Text(
-                                  "“$launchQuote”",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white60,
-                                    fontSize: context.s(13),
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(height: context.s(30)),
-
-                            // Syllabus/Resource Completion Card
-                            if (!disableWidget) ...[
-                              HomeCarousel(
-                                accentColor: accentColor,
-                                onTabChange: _navigateToTab,
-                              ),
-                              SizedBox(height: context.s(20)),
-                            ],
-
-                          ]),
-                        ),
-                      ),
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            context.s(20.0),
-                            context.s(16.0),
-                            context.s(20.0),
-                            context.s(16.0),
-                          ),
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Resume Prep / Active Focus Button
-                                isFocusActive
-                                    ? ActiveFocusWaveWidget(
+                              if (!isNoticeBoard)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    SizedBox(height: context.s(20)), // Space between upper and lower group when collapsed
+                                    // Syllabus/Resource Completion Card
+                                    if (!disableWidget) ...[
+                                      HomeCarousel(
                                         accentColor: accentColor,
-                                        onTap: () => _navigateToTab(3),
-                                      )
-                                    : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
+                                        onTabChange: _navigateToTab,
+                                      ),
+                                      SizedBox(height: context.s(16)),
+                                    ],
 
-                                // Daily Goal Reached Tick Indicator
-                                if (isDailyGoalReached) ...[
-                                  SizedBox(height: context.s(8)),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.check_circle_rounded, color: accentColor, size: context.s(14)),
-                                      SizedBox(width: context.s(4)),
-                                      Text(
-                                        "Daily Goal Reached",
-                                        style: GoogleFonts.outfit(
-                                          color: accentColor,
-                                          fontSize: context.s(11),
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    // Resume Prep / Active Focus Button
+                                    isFocusActive
+                                        ? ActiveFocusWaveWidget(
+                                            accentColor: accentColor,
+                                            onTap: () => _navigateToTab(3),
+                                          )
+                                        : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
+
+                                    // Daily Goal Reached Tick Indicator
+                                    if (isDailyGoalReached) ...[
+                                      SizedBox(height: context.s(8)),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.check_circle_rounded, color: accentColor, size: context.s(14)),
+                                          SizedBox(width: context.s(4)),
+                                          Text(
+                                            "Daily Goal Reached",
+                                            style: GoogleFonts.outfit(
+                                              color: accentColor,
+                                              fontSize: context.s(11),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  ),
-                                ],
 
-                                SizedBox(height: context.s(30)),
+                                    SizedBox(height: context.s(16)),
 
-                                _buildConsistencyGrid(accentColor, dailyGoalMinutes),
-                                SizedBox(height: context.s(8)),
-                              ],
-                            ),
+                                    _buildConsistencyGrid(accentColor, dailyGoalMinutes),
+                                  ],
+                                ),
+                            ],
                           ),
-                        ),
+                        );
+
+                  return SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                    ],
+                      child: isNoticeBoard
+                          ? content
+                          : IntrinsicHeight(child: content),
+                    ),
                   );
                 },
               ),
@@ -265,7 +357,356 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 );
   }
 
+  Widget _buildNoticeBoard(BuildContext context, WidgetRef ref, Color accentColor) {
+    final tasksStream = ref.watch(customTasksProvider);
 
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Title
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Notice Board",
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontSize: context.s(18),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            Icon(
+              Icons.push_pin_rounded,
+              color: accentColor.withAlpha(200),
+              size: context.s(18),
+            ),
+          ],
+        ),
+        SizedBox(height: context.s(14)),
+
+        // Input Field to add tasks
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF18181B),
+            border: Border.all(color: accentColor.withAlpha(50), width: 1.0),
+            borderRadius: BorderRadius.circular(context.s(14)),
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withAlpha(15),
+                blurRadius: context.s(8),
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _noticeTaskController,
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: context.s(14),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: "Add a quick task...",
+                    hintStyle: GoogleFonts.outfit(
+                      color: Colors.white30,
+                      fontSize: context.s(14),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: context.s(16),
+                      vertical: context.s(12),
+                    ),
+                    border: InputBorder.none,
+                  ),
+                  onSubmitted: (value) {
+                    if (value.trim().isNotEmpty) {
+                      ref.read(customTasksNotifierProvider.notifier).addTask(value.trim());
+                      _noticeTaskController.clear();
+                    }
+                  },
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.add_rounded, color: accentColor),
+                onPressed: () {
+                  if (_noticeTaskController.text.trim().isNotEmpty) {
+                    ref.read(customTasksNotifierProvider.notifier).addTask(_noticeTaskController.text.trim());
+                    _noticeTaskController.clear();
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: context.s(20)),
+
+        // List of tasks
+        tasksStream.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (err, stack) => Center(
+            child: Text(
+              "Failed to load tasks: $err",
+              style: GoogleFonts.outfit(color: Colors.redAccent),
+            ),
+          ),
+          data: (tasks) {
+            if (tasks.isEmpty) {
+              return Container(
+                padding: EdgeInsets.all(context.s(24)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF131316),
+                  borderRadius: BorderRadius.circular(context.s(16)),
+                  border: Border.all(color: Colors.white.withAlpha(8)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: context.s(10),
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.push_pin_outlined,
+                      color: accentColor.withAlpha(120),
+                      size: context.s(40),
+                    ),
+                    SizedBox(height: context.s(12)),
+                    Text(
+                      "Your Notice Board is Empty",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: context.s(14),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: context.s(6)),
+                    Text(
+                      "Use this space for quick reminders, test series deadlines, or equations to revise.",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white38,
+                        fontSize: context.s(11),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Automatic sort: Active tasks on top (by createdAt), Completed tasks at bottom
+            final activeTasks = tasks.where((t) => !t.isCompleted).toList()
+              ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            final completedTasks = tasks.where((t) => t.isCompleted).toList()
+              ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            final sortedTasks = [...activeTasks, ...completedTasks];
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: sortedTasks.length,
+              separatorBuilder: (context, index) => SizedBox(height: context.s(8)),
+              itemBuilder: (context, index) {
+                final task = sortedTasks[index];
+                return _buildTaskItem(context, ref, task, accentColor);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTaskItem(BuildContext context, WidgetRef ref, CustomTask task, Color accentColor) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: task.isCompleted
+              ? const Color(0xFF111114).withAlpha(150)
+              : const Color(0xFF131316),
+          borderRadius: BorderRadius.circular(context.s(12)),
+          border: Border.all(
+            color: task.isCompleted
+                ? Colors.white.withAlpha(6)
+                : accentColor.withAlpha(30),
+            width: 1.0,
+          ),
+          boxShadow: [
+            if (!task.isCompleted)
+              BoxShadow(
+                color: Colors.black.withAlpha(20),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(context.s(12)),
+          child: Row(
+            children: [
+              // Custom circular checkbox
+              GestureDetector(
+                onTap: () {
+                  ref.read(customTasksNotifierProvider.notifier).toggleTask(task.id, !task.isCompleted);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(context.s(12), context.s(10), context.s(6), context.s(10)),
+                  child: Container(
+                    width: context.s(20),
+                    height: context.s(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: task.isCompleted ? accentColor : Colors.white30,
+                        width: 1.5,
+                      ),
+                      color: task.isCompleted ? accentColor.withAlpha(40) : Colors.transparent,
+                    ),
+                    child: task.isCompleted
+                        ? Icon(
+                            Icons.check,
+                            color: accentColor,
+                            size: context.s(12),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+              SizedBox(width: context.s(6)),
+              // Task content
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _showTaskOptionsDialog(context, ref, task),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: context.s(6),
+                      vertical: context.s(10),
+                    ),
+                    child: Text(
+                      task.content,
+                      style: GoogleFonts.outfit(
+                        color: task.isCompleted ? Colors.white38 : Colors.white,
+                        fontSize: context.s(13),
+                        decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Delete Button (One tap delete!)
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 16),
+                color: Colors.white24,
+                hoverColor: Colors.redAccent.withAlpha(20),
+                highlightColor: Colors.redAccent.withAlpha(30),
+                onPressed: () {
+                  ref.read(customTasksNotifierProvider.notifier).deleteTask(task.id);
+                },
+                padding: EdgeInsets.symmetric(horizontal: context.s(12)),
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTaskOptionsDialog(BuildContext context, WidgetRef ref, CustomTask task) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF131316),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withAlpha(12)),
+          ),
+          title: Text(
+            "Task Options",
+            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_rounded, color: Colors.cyanAccent),
+                title: Text("Edit Task", style: GoogleFonts.outfit(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditTaskDialog(context, ref, task);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_rounded, color: Colors.redAccent),
+                title: Text("Delete Task", style: GoogleFonts.outfit(color: Colors.white)),
+                onTap: () {
+                  ref.read(customTasksNotifierProvider.notifier).deleteTask(task.id);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showEditTaskDialog(BuildContext context, WidgetRef ref, CustomTask task) {
+    final controller = TextEditingController(text: task.content);
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF131316),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withAlpha(12)),
+          ),
+          title: Text(
+            "Edit Task",
+            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: TextField(
+            controller: controller,
+            style: GoogleFonts.outfit(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: "Enter task details...",
+              hintStyle: GoogleFonts.outfit(color: Colors.white30),
+              enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: ref.watch(overallProgressColorProvider))),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.white30)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                  ref.read(customTasksNotifierProvider.notifier).editTask(task.id, controller.text.trim());
+                }
+                Navigator.pop(context);
+              },
+              child: Text("Save", style: GoogleFonts.outfit(color: Colors.cyanAccent)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   // Resume / Start Prep Button with progress background
   Widget _buildResumePrepButton(double progress, bool hasStarted, Color accentColor) {

@@ -128,7 +128,7 @@ class FocusSessionState {
   final List<String> sessionAccomplishments;
   final DateTime? sessionStartTime;
   final bool isBreakActive;
-  final int? selectedCategoryId;
+
 
   FocusSessionState({
     required this.status,
@@ -142,7 +142,6 @@ class FocusSessionState {
     required this.sessionAccomplishments,
     required this.isBreakActive,
     this.sessionStartTime,
-    this.selectedCategoryId,
   });
 
   FocusSessionState copyWith({
@@ -157,8 +156,6 @@ class FocusSessionState {
     List<String>? sessionAccomplishments,
     DateTime? sessionStartTime,
     bool? isBreakActive,
-    int? selectedCategoryId,
-    bool clearCategoryId = false,
   }) {
     return FocusSessionState(
       status: status ?? this.status,
@@ -172,7 +169,6 @@ class FocusSessionState {
       sessionAccomplishments: sessionAccomplishments ?? this.sessionAccomplishments,
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
       isBreakActive: isBreakActive ?? this.isBreakActive,
-      selectedCategoryId: clearCategoryId ? null : (selectedCategoryId ?? this.selectedCategoryId),
     );
   }
 
@@ -189,7 +185,6 @@ class FocusSessionState {
       sessionAccomplishments: const [],
       sessionStartTime: null,
       isBreakActive: false,
-      selectedCategoryId: null,
     );
   }
 
@@ -257,13 +252,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     _saveSelection();
   }
 
-  void setSelectedCategory(int? categoryId) {
-    if (categoryId == null) {
-      state = state.copyWith(clearCategoryId: true);
-    } else {
-      state = state.copyWith(selectedCategoryId: categoryId);
-    }
-  }
+
 
   void resetState() {
     _timer?.cancel();
@@ -395,7 +384,6 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       durationSeconds: state.totalSecondsFocused,
       accomplishments: Value(finalAccomplishments.isNotEmpty ? finalAccomplishments : null),
       progressDelta: Value(progressDelta),
-      categoryId: Value(state.selectedCategoryId),
     );
 
     int insertedId = -1;
@@ -410,7 +398,6 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       durationSeconds: state.totalSecondsFocused,
       accomplishments: finalAccomplishments.isNotEmpty ? finalAccomplishments : null,
       progressDelta: progressDelta,
-      categoryId: state.selectedCategoryId,
     );
 
     // Refresh history provider by invalidating or updates

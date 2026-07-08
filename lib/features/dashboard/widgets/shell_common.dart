@@ -200,54 +200,79 @@ Future<void> checkAppVersionUpdate(BuildContext context, WidgetRef ref) async {
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(color: Colors.white.withAlpha(20), width: 1),
             ),
-            content: Row(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
-                  Icons.auto_awesome_rounded,
-                  color: Colors.cyanAccent,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "GATEletics updated to v${packageInfo.version}",
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(30, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    "OK",
-                    style: GoogleFonts.outfit(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
                       color: Colors.cyanAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      size: 20,
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        "GATEletics updated to v${packageInfo.version}",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () async {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/releases');
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        "CHANGELOG",
+                        style: GoogleFonts.outfit(
+                          color: Colors.cyanAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        "OK",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            action: SnackBarAction(
-              label: "CHANGELOG",
-              textColor: Colors.cyanAccent,
-              onPressed: () async {
-                final Uri url = Uri.parse('https://github.com/vishnunandan555/gateletics/releases');
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-              },
             ),
           ),
         );

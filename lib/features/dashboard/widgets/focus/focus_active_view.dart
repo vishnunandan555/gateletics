@@ -7,6 +7,7 @@ import '../../../../providers/focus_provider.dart';
 import '../../../../providers/quotes_provider.dart';
 import 'timer_painters.dart';
 import '../../../../utils/ui_scaling.dart';
+import '../../../../providers/glow_strength_provider.dart';
 
 class FocusActiveView extends ConsumerStatefulWidget {
   final Color accentColor;
@@ -51,280 +52,286 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
 
     final ringColor = isBreak ? Colors.white : accentColor;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: FocusAmbientGlow(color: ringColor),
+        ),
+        // 1. Top Section (Mode Tag) - Pinned to Top
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: context.s(16)),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(6)),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(context.s(20)),
+                    border: Border.all(color: ringColor, width: context.s(1.5)),
+                  ),
+                  child: Text(
+                    isBreak ? "Break Period" : sessionState.details.name,
+                    style: GoogleFonts.outfit(
+                      color: ringColor,
+                      fontSize: context.s(12),
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: context.s(0.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // 2. Middle Section (Timer Display) - Centered Vertically
+        Center(
+          child: isCountUp
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
                   children: [
-                    // Top Technique Tag
-                    SizedBox(height: context.s(16)),
-                    Center(
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(6)),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(context.s(20)),
-                          border: Border.all(color: ringColor, width: context.s(1.5)),
-                        ),
-                        child: Text(
-                          isBreak ? "Break Period" : sessionState.details.name,
-                          style: GoogleFonts.outfit(
-                            color: ringColor,
-                            fontSize: context.s(12),
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: context.s(0.5),
-                          ),
+                    _buildTimerUnit(hours.toString().padLeft(2, '0'), 'hr'),
+                    SizedBox(width: context.s(8)),
+                    _buildTimerUnit(minutes.toString().padLeft(2, '0'), 'min'),
+                    SizedBox(width: context.s(8)),
+                    _buildTimerUnit(seconds.toString().padLeft(2, '0'), 's', highlightColor: accentColor),
+                  ],
+                )
+              : Padding(
+                  padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: context.s(140),
+                    child: CustomPaint(
+                      painter: SquircleTimerPainter(
+                        progress: progress,
+                        color: ringColor,
+                        trackColor: Colors.white.withAlpha(18),
+                        strokeWidth: context.s(10),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "${totalMinutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
+                              style: GoogleFonts.orbitron(
+                                fontSize: context.s(52),
+                                fontWeight: FontWeight.w900,
+                                color: ringColor,
+                                shadows: [
+                                  Shadow(color: ringColor.withAlpha(120), blurRadius: context.s(18)),
+                                ],
+                                letterSpacing: context.s(2),
+                              ),
+                            ),
+                            SizedBox(height: context.s(2)),
+                            Text(
+                              isBreak ? "Break Time" : (isPaused ? "Paused" : "Focusing"),
+                              style: GoogleFonts.outfit(
+                                color: Colors.white54,
+                                fontSize: context.s(11),
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: context.s(0.5),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  ),
+                ),
+        ),
 
-                    // Motivational quotes (standard modes only, not freestyle, and only if enabled in Settings)
-                    if (!isCountUp && !isBreak && ref.watch(focusQuotesEnabledProvider)) ...[
-                      SizedBox(height: context.s(28)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: context.s(32.0)),
-                        child: Center(
-                          child: Text(
-                            "“$quoteText”",
-                            style: GoogleFonts.caveat(
-                              fontSize: context.s(18),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white.withAlpha(204),
-                              height: 1.3,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+        // 3. Bottom Section - Pinned to Bottom
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Quotes or status label
+                if (!isCountUp && !isBreak && ref.watch(focusQuotesEnabledProvider))
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: context.s(32.0)),
+                    child: Center(
+                      child: Text(
+                        "“$quoteText”",
+                        style: GoogleFonts.caveat(
+                          fontSize: context.s(18),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white.withAlpha(204),
+                          height: 1.3,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                else
+                  Center(
+                    child: Text(
+                      isCountUp
+                          ? (isPaused ? "Paused" : "Focusing...")
+                          : (isBreak ? "Break Time" : (isPaused ? "Paused" : "Focusing")),
+                      style: GoogleFonts.outfit(
+                        fontSize: context.s(18),
+                        fontWeight: FontWeight.bold,
+                        color: accentColor,
+                      ),
+                    ),
+                  ),
+
+                SizedBox(height: context.s(28)), // Spacing above Pause button / indicators
+
+                if (!isCountUp) ...[
+                  _buildSessionIndicators(sessionState, accentColor),
+                  SizedBox(height: context.s(8)),
+                  Center(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: context.s(14), vertical: context.s(6)),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF18181F),
+                        borderRadius: BorderRadius.circular(context.s(16)),
+                        border: Border.all(color: Colors.white.withAlpha(5)),
+                      ),
+                      child: Text(
+                        _formatTotalDuration(sessionState.totalSecondsFocused),
+                        style: GoogleFonts.outfit(
+                          color: Colors.white70,
+                          fontSize: context.s(12),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  SizedBox(height: context.s(20)),
+                ],
 
-                    SizedBox(height: context.s(40)),
-
-                    // ── Timer Display ──────────────────────────────────────────────
-                    if (isCountUp)
-                      Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            _buildTimerUnit(hours.toString().padLeft(2, '0'), 'hr'),
-                            SizedBox(width: context.s(8)),
-                            _buildTimerUnit(minutes.toString().padLeft(2, '0'), 'min'),
-                            SizedBox(width: context.s(8)),
-                            _buildTimerUnit(seconds.toString().padLeft(2, '0'), 's', highlightColor: accentColor),
-                          ],
-                        ),
-                      )
-                    else
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
-                        child: Center(
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: context.s(140),
-                            child: CustomPaint(
-                              painter: SquircleTimerPainter(
-                                progress: progress,
-                                color: ringColor,
-                                trackColor: Colors.white.withAlpha(18),
-                                strokeWidth: context.s(10),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isBreak) ...[
+                        // Accomplishments box during break
+                        if (sessionState.sessionAccomplishments.isNotEmpty) ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "This session:",
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                                fontSize: context.s(13),
+                                color: Colors.white54,
                               ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "${totalMinutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}",
-                                      style: GoogleFonts.orbitron(
-                                        fontSize: context.s(52),
-                                        fontWeight: FontWeight.w900,
-                                        color: ringColor,
-                                        shadows: [
-                                          Shadow(color: ringColor.withAlpha(120), blurRadius: context.s(18)),
-                                        ],
-                                        letterSpacing: context.s(2),
-                                      ),
-                                    ),
-                                    SizedBox(height: context.s(2)),
-                                    Text(
-                                      isBreak ? "Break Time" : (isPaused ? "Paused" : "Focusing"),
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white54,
-                                        fontSize: context.s(11),
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: context.s(0.5),
-                                      ),
-                                    ),
-                                  ],
+                            ),
+                          ),
+                          SizedBox(height: context.s(6)),
+                          Container(
+                            padding: EdgeInsets.all(context.s(12)),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF131316),
+                              borderRadius: BorderRadius.circular(context.s(12)),
+                              border: Border.all(color: accentColor.withAlpha(60)),
+                            ),
+                            constraints: BoxConstraints(maxHeight: context.s(90)),
+                            child: SingleChildScrollView(
+                              child: Text(
+                                sessionState.sessionAccomplishments.join('\n'),
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white.withAlpha(220),
+                                  fontSize: context.s(12),
+                                  height: 1.4,
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-
-                    // Status label (freestyle only)
-                    if (isCountUp) ...[
-                      SizedBox(height: context.s(16)),
-                      Center(
-                        child: Text(
-                          isPaused ? "Paused" : "Focusing...",
-                          style: GoogleFonts.outfit(
-                            fontSize: context.s(18),
-                            fontWeight: FontWeight.bold,
-                            color: accentColor,
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    SizedBox(height: context.s(16)),
-
-                    // Session indicator circles (timed modes)
-                    if (!isCountUp)
-                      _buildSessionIndicators(sessionState, accentColor),
-
-                    SizedBox(height: context.s(8)),
-
-                    // Total focus chip
-                    if (!isCountUp)
-                      Center(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: context.s(14), vertical: context.s(6)),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF18181F),
-                            borderRadius: BorderRadius.circular(context.s(16)),
-                            border: Border.all(color: Colors.white.withAlpha(5)),
-                          ),
-                          child: Text(
-                            _formatTotalDuration(sessionState.totalSecondsFocused),
-                            style: GoogleFonts.outfit(
-                              color: Colors.white70,
-                              fontSize: context.s(12),
-                              fontWeight: FontWeight.bold,
+                          SizedBox(height: context.s(12)),
+                        ],
+                        SizedBox(
+                          width: double.infinity,
+                          height: context.s(48),
+                          child: FilledButton.icon(
+                            onPressed: () => _handleStopSessionConfirm(context, sessionState),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF221111),
+                              foregroundColor: Colors.redAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(context.s(12)),
+                                side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                              ),
+                            ),
+                            icon: const Icon(Icons.stop_rounded),
+                            label: Text(
+                              "Stop Session",
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
-                      ),
-
-                    SizedBox(height: context.s(40)),
-
-                    // Controls section
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
-                      child: Column(
-                        children: [
-                          if (isBreak) ...[
-                            // Accomplishments box during break
-                            if (sessionState.sessionAccomplishments.isNotEmpty) ...[
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  "This session:",
+                      ] else ...[
+                        if (isCountUp) ...[
+                          // Pause/Resume button (Freestyle only, fitter and more squarish corner: 12)
+                          Center(
+                            child: SizedBox(
+                              width: context.s(110),
+                              height: context.s(38),
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  if (isPaused) {
+                                    ref.read(focusProvider.notifier).resumeSession();
+                                  } else {
+                                    ref.read(focusProvider.notifier).pauseSession();
+                                  }
+                                },
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E1E24),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(context.s(12)), // More squarish corner
+                                    side: BorderSide(color: ringColor.withValues(alpha: 0.3)),
+                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: context.s(8)),
+                                ),
+                                icon: Icon(
+                                  isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                  color: ringColor,
+                                  size: context.s(16),
+                                ),
+                                label: Text(
+                                  isPaused ? "Resume" : "Pause",
                                   style: GoogleFonts.outfit(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: context.s(13),
-                                    color: Colors.white54,
+                                    fontSize: context.s(11),
                                   ),
-                                ),
-                              ),
-                              SizedBox(height: context.s(6)),
-                              Container(
-                                padding: EdgeInsets.all(context.s(12)),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF131316),
-                                  borderRadius: BorderRadius.circular(context.s(12)),
-                                  border: Border.all(color: accentColor.withAlpha(60)),
-                                ),
-                                constraints: BoxConstraints(maxHeight: context.s(90)),
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    sessionState.sessionAccomplishments.join('\n'),
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white.withAlpha(220),
-                                      fontSize: context.s(12),
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: context.s(12)),
-                            ],
-                            SizedBox(
-                              width: double.infinity,
-                              height: context.s(48),
-                              child: FilledButton.icon(
-                                onPressed: () => _handleStopSessionConfirm(context, sessionState),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF221111),
-                                  foregroundColor: Colors.redAccent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(context.s(14)),
-                                    side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.stop_rounded),
-                                label: Text(
-                                  "Stop Session",
-                                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
-                          ] else ...[
-                            if (isCountUp) ...[
-                              // Pause/Resume button (Freestyle only, horizontally smaller)
-                              Center(
-                                child: SizedBox(
-                                  width: context.s(150),
-                                  height: context.s(48),
-                                  child: FilledButton.icon(
-                                    onPressed: () {
-                                      if (isPaused) {
-                                        ref.read(focusProvider.notifier).resumeSession();
-                                      } else {
-                                        ref.read(focusProvider.notifier).pauseSession();
-                                      }
-                                    },
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1E1E24),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(context.s(14)),
-                                        side: BorderSide(color: ringColor.withAlpha(100)),
-                                      ),
-                                    ),
-                                    icon: Icon(isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, color: ringColor),
-                                    label: Text(
-                                      isPaused ? "Resume" : "Pause",
-                                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: context.s(16)),
-                            ],
-                            _buildSlideToStop(sessionState),
-                          ],
+                          ),
+                          SizedBox(height: context.s(16)),
                         ],
-                      ),
-                    ),
-
-                    SizedBox(height: context.s(8)),
-                  ],
+                        _buildSlideToStop(sessionState),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+                SizedBox(height: context.s(12)),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -666,5 +673,137 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
       return "Total: ${hoursStr}h ${minsStr}m";
     }
     return "Total: ${minutes}min";
+  }
+}
+
+class FocusAmbientGlow extends ConsumerStatefulWidget {
+  final Color color;
+
+  const FocusAmbientGlow({super.key, required this.color});
+
+  @override
+  ConsumerState<FocusAmbientGlow> createState() => _FocusAmbientGlowState();
+}
+
+class _FocusAmbientGlowState extends ConsumerState<FocusAmbientGlow> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  final Random _random = Random();
+  int _currentIndex = 0;
+  double _currentSize = 400.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // 5 places: 0 = Top Center, 1 = Top Left, 2 = Top Right, 3 = Bottom Left, 4 = Bottom Right
+    _currentIndex = _random.nextInt(5);
+    _currentSize = 360.0 + _random.nextDouble() * 140.0; // Randomize diameter between 360 and 500 logical pixels
+    
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4500), // 4.5 seconds out + 4.5 seconds back = 9 seconds total cycle
+    );
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed) {
+        if (mounted) {
+          setState(() {
+            _currentIndex = _random.nextInt(5);
+            _currentSize = 360.0 + _random.nextDouble() * 140.0;
+          });
+          _controller.forward();
+        }
+      } else if (status == AnimationStatus.completed) {
+        if (mounted) {
+          _controller.reverse();
+        }
+      }
+    });
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final glowStrength = ref.watch(glowStrengthProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final glowSize = context.s(_currentSize);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final val = CurveTween(curve: Curves.easeInOutCubic).evaluate(_controller);
+        
+        // Starts completely off-screen at -glowSize, slides out by up to 45% of its diameter onto screen
+        final offset = -glowSize + (val * glowSize * 0.45);
+
+        // Making the gradient extremely faint, soft, and screensaver-like
+        final glowWidget = Container(
+          width: glowSize,
+          height: glowSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                widget.color.withValues(alpha: 0.16 * glowStrength),
+                widget.color.withValues(alpha: 0.08 * glowStrength),
+                widget.color.withValues(alpha: 0.02 * glowStrength),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.4, 0.7, 1.0],
+            ),
+          ),
+        );
+
+        Widget positionedGlow;
+        switch (_currentIndex) {
+          case 0: // Top Center
+            positionedGlow = Positioned(
+              top: offset,
+              left: (screenWidth - glowSize) / 2,
+              child: glowWidget,
+            );
+            break;
+          case 1: // Top Left Corner
+            positionedGlow = Positioned(
+              top: offset,
+              left: offset,
+              child: glowWidget,
+            );
+            break;
+          case 2: // Top Right Corner
+            positionedGlow = Positioned(
+              top: offset,
+              right: offset,
+              child: glowWidget,
+            );
+            break;
+          case 3: // Bottom Left Corner
+            positionedGlow = Positioned(
+              bottom: offset,
+              left: offset,
+              child: glowWidget,
+            );
+            break;
+          case 4: // Bottom Right Corner
+          default:
+            positionedGlow = Positioned(
+              bottom: offset,
+              right: offset,
+              child: glowWidget,
+            );
+            break;
+        }
+
+        return Stack(
+          children: [
+            positionedGlow,
+          ],
+        );
+      },
+    );
   }
 }

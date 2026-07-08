@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../providers/syllabus_provider.dart';
 import '../../../../providers/focus_provider.dart';
 import '../../../../utils/string_utils.dart';
 import 'focus_dialogs.dart';
@@ -98,154 +97,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   ),
                 ),
               ),
-              Consumer(
-                builder: (context, ref, _) {
-                  final categoriesAsync = ref.watch(syllabusCategoriesProvider);
-                  return categoriesAsync.when(
-                    data: (categories) {
-                      if (categories.isEmpty) return const SizedBox();
 
-                      final selectedCat = sessionState.selectedCategoryId != null
-                          ? categories.firstWhere(
-                              (c) => c.id == sessionState.selectedCategoryId,
-                              orElse: () => categories.first,
-                            )
-                          : null;
-
-                      final buttonColor = selectedCat != null ? Color(selectedCat.color) : accentColor;
-                      return Center(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: context.s(16)),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: buttonColor.withAlpha(35),
-                              borderRadius: BorderRadius.circular(context.s(12)),
-                              border: Border.all(
-                                color: buttonColor.withAlpha(100),
-                                width: context.s(1.5),
-                              ),
-                            ),
-                            child: IntrinsicWidth(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () {
-                                        _showCategorySelectionBottomSheet(
-                                          context,
-                                          ref,
-                                          categories,
-                                          sessionState.selectedCategoryId,
-                                          accentColor,
-                                        );
-                                      },
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(context.s(12)),
-                                        bottomLeft: Radius.circular(context.s(12)),
-                                        topRight: selectedCat == null
-                                            ? Radius.circular(context.s(12))
-                                            : Radius.zero,
-                                        bottomRight: selectedCat == null
-                                            ? Radius.circular(context.s(12))
-                                            : Radius.zero,
-                                      ),
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: context.s(20),
-                                          vertical: context.s(10),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            if (selectedCat != null) ...[
-                                              Container(
-                                                width: context.s(10),
-                                                height: context.s(10),
-                                                decoration: BoxDecoration(
-                                                  color: Color(selectedCat.color),
-                                                  shape: BoxShape.circle,
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Color(selectedCat.color).withValues(alpha: 0.6),
-                                                      blurRadius: 4,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(width: context.s(12)),
-                                            ] else ...[
-                                              Icon(
-                                                Icons.label_outline_rounded,
-                                                color: Colors.white70,
-                                                size: context.s(20),
-                                              ),
-                                              SizedBox(width: context.s(12)),
-                                            ],
-                                            Text(
-                                              selectedCat != null ? getCategoryShortName(selectedCat.name) : "Choose Category",
-                                              style: GoogleFonts.outfit(
-                                                color: selectedCat != null ? Colors.white : Colors.white70,
-                                                fontSize: context.s(14),
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            if (selectedCat == null) ...[
-                                              SizedBox(width: context.s(12)),
-                                              Icon(
-                                                Icons.keyboard_arrow_down_rounded,
-                                                color: Colors.white70,
-                                                size: context.s(20),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  if (selectedCat != null) ...[
-                                    Container(
-                                      width: 1.5,
-                                      height: context.s(24),
-                                      color: buttonColor.withAlpha(100),
-                                    ),
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap: () {
-                                          ref.read(focusProvider.notifier).setSelectedCategory(null);
-                                        },
-                                        borderRadius: BorderRadius.only(
-                                          topRight: Radius.circular(context.s(12)),
-                                          bottomRight: Radius.circular(context.s(12)),
-                                        ),
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: context.s(14),
-                                            vertical: context.s(10),
-                                          ),
-                                          child: Icon(
-                                            Icons.close_rounded,
-                                            color: Colors.white70,
-                                            size: context.s(20),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox(),
-                    error: (e, _) => const SizedBox(),
-                  );
-                },
-              ),
               SizedBox(height: context.s(32)),
 
               // Daily Goal Progress
@@ -419,117 +271,14 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
     );
   }
 
-  void _showCategorySelectionBottomSheet(
-    BuildContext context,
-    WidgetRef ref,
-    List<dynamic> categories,
-    int? selectedId,
-    Color accentColor,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF131316),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(context.s(24))),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Select Study Category',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.label_off_rounded, color: Colors.white30),
-                      title: const Text('General Focus (No Category)'),
-                      trailing: selectedId == null
-                          ? Icon(Icons.check_circle_rounded, color: accentColor)
-                          : null,
-                      onTap: () {
-                        ref.read(focusProvider.notifier).setSelectedCategory(null);
-                        Navigator.pop(context);
-                      },
-                    ),
-                    const Divider(color: Colors.white10, height: 1),
-                    ...categories.map((c) {
-                      final isSelected = c.id == selectedId;
-                      return ListTile(
-                        leading: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: Color(c.color),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(c.color).withValues(alpha: 0.4),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                        ),
-                        title: Text(
-                          c.name,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? Icon(Icons.check_circle_rounded, color: accentColor)
-                            : null,
-                        onTap: () {
-                          ref.read(focusProvider.notifier).setSelectedCategory(c.id);
-                          Navigator.pop(context);
-                        },
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
-  // Interactive start box (Play button or Digital representation)
+
   Widget _buildTimerStartBox(BuildContext context, WidgetRef ref, FocusSessionState sessionState, Color accentColor) {
     if (sessionState.details.isCountUp) {
       // Freestyle big play button
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: context.s(56.0)),
+      return SizedBox(
+        height: context.s(252),
+        child: Center(
           child: GestureDetector(
             onTap: () => ref.read(focusProvider.notifier).startSession(),
             child: Container(
@@ -565,106 +314,112 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
         ? "--:--"
         : "${sessionState.details.breakMinutes.toString().padLeft(2, '0')}:00";
 
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: context.s(20), vertical: context.s(24)),
-      decoration: BoxDecoration(
-        color: const Color(0xFF131316),
-        borderRadius: BorderRadius.circular(context.s(20)),
-        border: Border.all(color: Colors.white.withAlpha(8), width: context.s(1.5)),
-      ),
-      child: Column(
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
+    return SizedBox(
+      height: context.s(252),
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: context.s(20), vertical: context.s(24)),
+          decoration: BoxDecoration(
+            color: const Color(0xFF131316),
+            borderRadius: BorderRadius.circular(context.s(20)),
+            border: Border.all(color: Colors.white.withAlpha(8), width: context.s(1.5)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "FOCUS",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white60,
-                        fontSize: context.s(10),
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: context.s(1.5),
+                    Column(
+                      children: [
+                        Text(
+                          "FOCUS",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white60,
+                            fontSize: context.s(10),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: context.s(1.5),
+                          ),
+                        ),
+                        SizedBox(height: context.s(6)),
+                        GestureDetector(
+                          onTap: () {
+                            if (sessionState.details.isCustom) {
+                              showCustomDurationPicker(context, sessionState.customTimerMinutes, accentColor, ref);
+                            }
+                          },
+                          child: Text(
+                            focusStr,
+                            style: GoogleFonts.orbitron(
+                              color: Colors.white,
+                              fontSize: context.s(32),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                      child: Container(
+                        width: context.s(1),
+                        height: context.s(40),
+                        color: Colors.white12,
                       ),
                     ),
-                    SizedBox(height: context.s(6)),
-                    GestureDetector(
-                      onTap: () {
-                        if (sessionState.details.isCustom) {
-                          showCustomDurationPicker(context, sessionState.customTimerMinutes, accentColor, ref);
-                        }
-                      },
-                      child: Text(
-                        focusStr,
-                        style: GoogleFonts.orbitron(
-                          color: Colors.white,
-                          fontSize: context.s(32),
-                          fontWeight: FontWeight.bold,
+                    Column(
+                      children: [
+                        Text(
+                          "BREAK",
+                          style: GoogleFonts.outfit(
+                            color: Colors.white60,
+                            fontSize: context.s(10),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: context.s(1.5),
+                          ),
                         ),
-                      ),
+                        SizedBox(height: context.s(6)),
+                        Text(
+                          breakStr,
+                          style: GoogleFonts.orbitron(
+                            color: Colors.white,
+                            fontSize: context.s(32),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
-                  child: Container(
-                    width: context.s(1),
-                    height: context.s(40),
-                    color: Colors.white12,
+              ),
+              SizedBox(height: context.s(24)),
+              SizedBox(
+                width: double.infinity,
+                height: context.s(48),
+                child: FilledButton.icon(
+                  onPressed: () => ref.read(focusProvider.notifier).startSession(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(context.s(14)),
+                    ),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
+                  label: Text(
+                    "Lets Do This!",
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: context.s(0.5),
+                    ),
                   ),
                 ),
-                Column(
-                  children: [
-                    Text(
-                      "BREAK",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white60,
-                        fontSize: context.s(10),
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: context.s(1.5),
-                      ),
-                    ),
-                    SizedBox(height: context.s(6)),
-                    Text(
-                      breakStr,
-                      style: GoogleFonts.orbitron(
-                        color: Colors.white,
-                        fontSize: context.s(32),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: context.s(24)),
-          SizedBox(
-            width: double.infinity,
-            height: context.s(48),
-            child: FilledButton.icon(
-              onPressed: () => ref.read(focusProvider.notifier).startSession(),
-              style: FilledButton.styleFrom(
-                backgroundColor: accentColor,
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(context.s(14)),
-                ),
               ),
-              icon: const Icon(Icons.play_arrow_rounded, color: Colors.black),
-              label: Text(
-                "Lets Do This!",
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: context.s(0.5),
-                ),
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

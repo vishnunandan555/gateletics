@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../providers/completion_provider.dart';
 import '../../../providers/daily_history_provider.dart';
 import '../../../providers/focus_provider.dart';
@@ -220,10 +221,10 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
                           strokeWidth: context.s(6),
                         ),
                         child: Center(
-                          child: Icon(
-                            Icons.whatshot_rounded,
-                            color: Colors.orangeAccent,
-                            size: context.s(32),
+                          child: SvgPicture.asset(
+                            'assets/fire.svg',
+                            width: context.s(32),
+                            height: context.s(32),
                           ),
                         ),
                       ),
@@ -295,12 +296,12 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
             final isActive = _currentPage == index;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.symmetric(horizontal: context.s(4)),
-              width: isActive ? context.s(16) : context.s(6),
-              height: context.s(6),
+              margin: EdgeInsets.symmetric(horizontal: context.s(2)),
+              width: isActive ? context.s(8) : context.s(3),
+              height: context.s(3),
               decoration: BoxDecoration(
                 color: isActive ? accentColor : Colors.white24,
-                borderRadius: BorderRadius.circular(context.s(3)),
+                borderRadius: BorderRadius.circular(context.s(1.5)),
               ),
             );
           }),
