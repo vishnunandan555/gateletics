@@ -429,9 +429,8 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           SizedBox(height: context.s(4)),
           Builder(
             builder: (context) {
-              final totalCells = startWeekday + daysInMonth;
-              final rowsNeeded = (totalCells / 7).ceil();
-              final gridItemCount = rowsNeeded * 7;
+              const rowsNeeded = 6;
+              const gridItemCount = rowsNeeded * 7;
 
               return GridView.builder(
                 shrinkWrap: true,

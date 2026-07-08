@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.7-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.8-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -113,6 +113,14 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.8 Highlights
+
+- **Results-Based Category Progress (DB Version 10)**: Added `completedAt` timestamp to task completions. Syllabus-based progress tracking calculates Focus Area Distribution percentages dynamically from completed tasks in a chosen timeframe (Weekly/Monthly/Yearly) instead of manually tagging active timers.
+- **Focus Setup UI & Layout Improvements**: Cleaned up manual category dropdowns. Standardized the setup view height to a fixed `252` pixels (responsive-scaled) to prevent UI jumping when switching modes. Adjusted Focus/Resume buttons to use clean 12px rounded corners.
+- **Notice Board Badges**: Added a solid green task counter badge next to the Notice Board toggle icon on both desktop and mobile layouts when the list contains tasks. Icons dynamically scale to 32px when the badge is present.
+- **Storage Compaction**: Implemented automatic cleanups that wipe detailed raw focus session entries older than the current day on rollover, keeping the local DB and Drive sync payload ultra-lightweight.
+- **Calendar Layout Stability**: Forced the calendar grid to always render exactly 6 rows (42 cells) to stop height shifts and UI blinking when switching months.
 
 ## 🌟 Version 1.2.7 Highlights
 
