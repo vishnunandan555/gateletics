@@ -146,7 +146,7 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
             children: [
               // Card 1: Syllabus Completion
               _buildCardWrapper(
-                onTap: () => widget.onTabChange(0), // Nav to Completion tab (index 0)
+                onTap: () => widget.onTabChange(1), // Nav to Completion tab (index 1)
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -185,7 +185,7 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
 
               // Card 2: Streak Tracker
               _buildCardWrapper(
-                onTap: () => widget.onTabChange(1), // Nav to Stats tab (index 1)
+                onTap: () => widget.onTabChange(0), // Nav to Stats tab (index 0)
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -234,7 +234,7 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
 
               // Card 3: Monthly / Weekly Goal progress
               _buildCardWrapper(
-                onTap: () => widget.onTabChange(1), // Nav to Stats tab
+                onTap: () => widget.onTabChange(0), // Nav to Stats tab
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -275,7 +275,7 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
 
               // Card 4: Triple Ring Overview
               _buildCardWrapper(
-                onTap: () => widget.onTabChange(1), // Nav to Stats tab
+                onTap: () => widget.onTabChange(0), // Nav to Stats tab
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [

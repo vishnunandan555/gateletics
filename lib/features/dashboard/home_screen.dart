@@ -14,6 +14,7 @@ import 'widgets/home_carousel.dart';
 import '../../providers/glow_strength_provider.dart';
 import '../../providers/focus_animation_provider.dart';
 import '../../providers/rollover_provider.dart';
+import '../../providers/disable_home_screen_widget_provider.dart';
 import '../../database/app_database.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -35,11 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (widget.onNavigate != null) {
       widget.onNavigate!(index);
     } else if (widget.shellPageController != null) {
-      widget.shellPageController!.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.fastOutSlowIn,
-      );
+      widget.shellPageController!.jumpToPage(index);
     }
   }
 
@@ -52,6 +49,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final profileState = ref.watch(profileProvider);
     final launchQuote = ref.watch(launchQuoteProvider);
     final glowStrength = ref.watch(glowStrengthProvider);
+    final disableWidget = ref.watch(disableHomeScreenWidgetProvider);
 
     final focusState = ref.watch(focusProvider);
     final isFocusActive = focusState.status != FocusStatus.idle;
@@ -94,139 +92,169 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: context.s(20.0), vertical: context.s(16.0)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          SizedBox(height: isDesktop ? 24 : context.s(72)),
-                          SizedBox(height: context.s(40)), // Push content down so it starts above middle
+                  return CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          context.s(20.0),
+                          context.s(16.0),
+                          context.s(20.0),
+                          0.0,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            SizedBox(height: isDesktop ? 24 : context.s(72)),
+                            SizedBox(height: context.s(40)), // Push content down so it starts above middle
 
-                          // Profile Avatar & Dynamic Greetings
-                          if (profileState.profilePhotoMode != 'none') ...[
-                            Center(
-                              child: Container(
-                                padding: EdgeInsets.all(context.s(3)),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: accentColor, width: context.s(1.5)),
+                            // Profile Avatar & Dynamic Greetings
+                            if (profileState.profilePhotoMode != 'none') ...[
+                              Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    ref.read(overallProgressColorProvider.notifier).next();
+                                  },
+                                  behavior: HitTestBehavior.translucent,
+                                  child: Container(
+                                    padding: EdgeInsets.all(context.s(3)),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: accentColor, width: context.s(1.5)),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: context.s(profileState.profilePhotoSize),
+                                      backgroundImage: profileImage,
+                                      backgroundColor: accentColor.withAlpha(30),
+                                      child: profileImage == null
+                                          ? Icon(Icons.person_rounded, color: accentColor, size: context.s(profileState.profilePhotoSize))
+                                          : null,
+                                    ),
+                                  ),
                                 ),
-                                child: CircleAvatar(
-                                  radius: context.s(profileState.profilePhotoSize),
-                                  backgroundImage: profileImage,
-                                  backgroundColor: accentColor.withAlpha(30),
-                                  child: profileImage == null
-                                      ? Icon(Icons.person_rounded, color: accentColor, size: context.s(profileState.profilePhotoSize))
-                                      : null,
+                              ),
+                              SizedBox(height: context.s(10)),
+                            ],
+
+                            Center(
+                              child: Column(
+                                children: [
+                                  Text(
+                                    displayName != null ? "Welcome Back," : "Welcome Back!",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontSize: context.s(20),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (displayName != null) ...[
+                                    SizedBox(height: context.s(4)),
+                                    Text(
+                                      "$displayName!",
+                                      style: GoogleFonts.outfit(
+                                        color: accentColor,
+                                        fontSize: context.s(26),
+                                        fontWeight: FontWeight.bold,
+                                        shadows: [
+                                          Shadow(color: accentColor.withAlpha(102), blurRadius: context.s(12)),
+                                        ],
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: context.s(20)),
+
+                            // Big Countdown Timer (DAYS : HRS : MINS : SECS)
+                            const _TickingCountdownTimer(),
+                            SizedBox(height: context.s(16)),
+
+                            // Static Launch Quote
+                            Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
+                                child: Text(
+                                  "“$launchQuote”",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white60,
+                                    fontSize: context.s(13),
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
-                            SizedBox(height: context.s(10)),
-                          ],
 
-                          Center(
+                            SizedBox(height: context.s(30)),
+
+                            // Syllabus/Resource Completion Card
+                            if (!disableWidget) ...[
+                              HomeCarousel(
+                                accentColor: accentColor,
+                                onTabChange: _navigateToTab,
+                              ),
+                              SizedBox(height: context.s(20)),
+                            ],
+
+                          ]),
+                        ),
+                      ),
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            context.s(20.0),
+                            context.s(16.0),
+                            context.s(20.0),
+                            context.s(16.0),
+                          ),
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  displayName != null ? "Welcome Back," : "Welcome Back!",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontSize: context.s(20),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                if (displayName != null) ...[
-                                  SizedBox(height: context.s(4)),
-                                  Text(
-                                    "$displayName!",
-                                    style: GoogleFonts.outfit(
-                                      color: accentColor,
-                                      fontSize: context.s(26),
-                                      fontWeight: FontWeight.bold,
-                                      shadows: [
-                                        Shadow(color: accentColor.withAlpha(102), blurRadius: context.s(12)),
-                                      ],
-                                    ),
-                                    textAlign: TextAlign.center,
+                                // Resume Prep / Active Focus Button
+                                isFocusActive
+                                    ? ActiveFocusWaveWidget(
+                                        accentColor: accentColor,
+                                        onTap: () => _navigateToTab(3),
+                                      )
+                                    : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
+
+                                // Daily Goal Reached Tick Indicator
+                                if (isDailyGoalReached) ...[
+                                  SizedBox(height: context.s(8)),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.check_circle_rounded, color: accentColor, size: context.s(14)),
+                                      SizedBox(width: context.s(4)),
+                                      Text(
+                                        "Daily Goal Reached",
+                                        style: GoogleFonts.outfit(
+                                          color: accentColor,
+                                          fontSize: context.s(11),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
+
+                                SizedBox(height: context.s(30)),
+
+                                _buildConsistencyGrid(accentColor, dailyGoalMinutes),
+                                SizedBox(height: context.s(8)),
                               ],
                             ),
                           ),
-
-                          SizedBox(height: context.s(20)),
-
-                          // Big Countdown Timer (DAYS : HRS : MINS : SECS)
-                          const _TickingCountdownTimer(),
-
-                          SizedBox(height: context.s(16)),
-
-                          // Static Launch Quote
-                          Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: context.s(24.0)),
-                              child: Text(
-                                "“$launchQuote”",
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white60,
-                                  fontSize: context.s(13),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: context.s(30)),
-
-                          // Syllabus/Resource Completion Card
-                          HomeCarousel(
-                            accentColor: accentColor,
-                            onTabChange: _navigateToTab,
-                          ),
-
-                          SizedBox(height: context.s(20)),
-
-                           // Resume Prep / Active Focus Button
-                          isFocusActive
-                              ? ActiveFocusWaveWidget(
-                                  accentColor: accentColor,
-                                  onTap: () => _navigateToTab(3),
-                                )
-                              : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
-
-                          // Daily Goal Reached Tick Indicator
-                          if (isDailyGoalReached) ...[
-                            SizedBox(height: context.s(8)),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.check_circle_rounded, color: accentColor, size: context.s(14)),
-                                SizedBox(width: context.s(4)),
-                                Text(
-                                  "Daily Goal Reached",
-                                  style: GoogleFonts.outfit(
-                                    color: accentColor,
-                                    fontSize: context.s(11),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-
-                          SizedBox(height: context.s(30)),
-
-                          // Bottom Consistency Grid
-                          _buildConsistencyGrid(accentColor, dailyGoalMinutes),
-
-                          SizedBox(height: context.s(8)),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   );
                 },
               ),

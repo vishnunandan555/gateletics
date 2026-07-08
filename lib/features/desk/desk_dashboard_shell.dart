@@ -126,41 +126,45 @@ class _DeskSidebar extends StatelessWidget {
             padding: isCompact
                 ? const EdgeInsets.symmetric(vertical: 24)
                 : const EdgeInsets.fromLTRB(16, 28, 12, 24),
-            child: Row(
-              mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: [
-                Image.asset('assets/logo_trans_cropped.png', width: 28, height: 28),
-                if (!isCompact) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    'GATEletics',
-                    style: GoogleFonts.outfit(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.cyanAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
-                    ),
-                    child: Text(
-                      'BETA',
+            child: GestureDetector(
+              onTap: () => onTabSelected(1), // Navigate to Completion screen (index 1)
+              behavior: HitTestBehavior.translucent,
+              child: Row(
+                mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
+                children: [
+                  Image.asset('assets/logo_trans_cropped.png', width: 28, height: 28),
+                  if (!isCompact) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      'GATEletics',
                       style: GoogleFonts.outfit(
-                        color: Colors.cyanAccent,
-                        fontSize: 8,
+                        color: Colors.white,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.5,
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.cyanAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
+                      ),
+                      child: Text(
+                        'BETA',
+                        style: GoogleFonts.outfit(
+                          color: Colors.cyanAccent,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           _SidebarNavItem(

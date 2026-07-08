@@ -6,7 +6,12 @@ import '../../../providers/quotes_provider.dart';
 import '../../../providers/package_info_provider.dart';
 
 class AppBarTitle extends ConsumerWidget {
-  const AppBarTitle({super.key});
+  final VoidCallback? onTap;
+
+  const AppBarTitle({
+    super.key,
+    this.onTap,
+  });
 
   void _showRandomQuote(BuildContext context, WidgetRef ref, Color accentColor) {
     final quote = ref.read(quotesProvider.notifier).randomQuote();
@@ -43,7 +48,7 @@ class AppBarTitle extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
-            onTap: () => _showRandomQuote(context, ref, progressColor),
+            onTap: onTap ?? () => _showRandomQuote(context, ref, progressColor),
             behavior: HitTestBehavior.translucent,
             child: FittedBox(
               fit: BoxFit.scaleDown,

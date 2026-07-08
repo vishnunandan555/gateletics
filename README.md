@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.6-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.7-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -114,7 +114,7 @@ All production releases are automatically compiled, versioned, and packaged via 
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
 
-## 🌟 Version 1.2.6 Highlights
+## 🌟 Version 1.2.7 Highlights
 
 - **Unified Home Dashboard:** Introduced a new premium home screen as the app's entry point. Features a ticking real-time GATE countdown, a dynamic launch quote, an overall completion card, an animated "Resume / Start Preparation" button with three fill style modes, and a 7-day horizontal consistency grid showing daily focus goal progress.
 - **Active Focus Wave Indicator:** When a focus session is actively running, the Resume button on the home screen morphs into an animated wave/ripple indicator that navigates directly to the Focus tab on tap.

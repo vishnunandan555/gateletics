@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/daily_history_provider.dart';
 import '../../providers/show_projected_completion_provider.dart';
+import '../../providers/disable_graph_glow_provider.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/focus_provider.dart';
 import '../../providers/subject_provider.dart';
@@ -29,7 +30,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
   late int _selectedYear;
 
   late AnimationController _chartAnimController;
-  late Animation<double> _chartAnim;
+  late Animation<double> _streakHeaderAnim;
+  late Animation<double> _calendarHeatmapAnim;
+  late Animation<double> _projectedCompletionAnim;
+  late Animation<double> _chartCardAnim;
+  late Animation<double> _donutChartAnim;
 
   @override
   void initState() {
@@ -40,9 +45,29 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     _loadPersistedSettings();
     _chartAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 750),
+      duration: const Duration(milliseconds: 1000),
     );
-    _chartAnim = CurvedAnimation(parent: _chartAnimController, curve: Curves.easeOut);
+    
+    _streakHeaderAnim = CurvedAnimation(
+      parent: _chartAnimController,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+    );
+    _calendarHeatmapAnim = CurvedAnimation(
+      parent: _chartAnimController,
+      curve: const Interval(0.15, 0.55, curve: Curves.easeOut),
+    );
+    _projectedCompletionAnim = CurvedAnimation(
+      parent: _chartAnimController,
+      curve: const Interval(0.3, 0.7, curve: Curves.easeOut),
+    );
+    _chartCardAnim = CurvedAnimation(
+      parent: _chartAnimController,
+      curve: const Interval(0.45, 0.85, curve: Curves.easeOut),
+    );
+    _donutChartAnim = CurvedAnimation(
+      parent: _chartAnimController,
+      curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+    );
     _chartAnimController.forward();
   }
 
@@ -89,11 +114,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'STATS HUB',
+          'Statistics',
           style: GoogleFonts.orbitron(
             color: Colors.white,
             fontWeight: FontWeight.w900,
-            fontSize: context.s(15),
+            fontSize: context.s(18),
             letterSpacing: context.s(1.5),
           ),
         ),
@@ -107,7 +132,10 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // New Streak & Completion Header
-              _buildTopStreakHeader(context, currentStreak, checkInStreak, todayProgressPct, accentColor),
+              _buildAnimatedEntrance(
+                animation: _streakHeaderAnim,
+                child: _buildTopStreakHeader(context, currentStreak, checkInStreak, todayProgressPct, accentColor),
+              ),
               SizedBox(height: context.s(16)),
 
               // Calendar / Heatmap Toggle Selector
@@ -120,34 +148,48 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               SizedBox(height: context.s(14)),
 
               // Calendar or Heatmap Container
-              _isHeatmapMode
-                  ? _buildHeatmapContainer(context, history, accentColor)
-                  : _buildCalendarContainer(context, history, dailyGoalMinutes, accentColor),
+              _buildAnimatedEntrance(
+                animation: _calendarHeatmapAnim,
+                child: _isHeatmapMode
+                    ? _buildHeatmapContainer(context, history, accentColor)
+                    : _buildCalendarContainer(context, history, dailyGoalMinutes, accentColor),
+              ),
 
               // Projected Completion Card, if enabled in settings
               if (showProjComp) ...[
                 SizedBox(height: context.s(16)),
-                _buildProjectedCompletionCard(context, projection, accentColor),
+                _buildAnimatedEntrance(
+                  animation: _projectedCompletionAnim,
+                  child: _buildProjectedCompletionCard(context, projection, accentColor),
+                ),
               ],
 
               SizedBox(height: context.s(16)),
 
-              // Graph Segment Bar (Weekly / Monthly / Yearly)
-              Center(
-                child: FractionallySizedBox(
-                  widthFactor: 0.9,
-                  child: _buildTimeframeSelector(accentColor),
+              // Graph Segment Bar & Graph Summary Card
+              _buildAnimatedEntrance(
+                animation: _chartCardAnim,
+                child: Column(
+                  children: [
+                    Center(
+                      child: FractionallySizedBox(
+                        widthFactor: 0.9,
+                        child: _buildTimeframeSelector(accentColor),
+                      ),
+                    ),
+                    SizedBox(height: context.s(12)),
+                    _buildGraphCard(context, history, dailyGoalMinutes, accentColor),
+                  ],
                 ),
               ),
-              SizedBox(height: context.s(12)),
-
-              // Graph Summary Card & Visualization
-              _buildGraphCard(context, history, dailyGoalMinutes, accentColor),
               SizedBox(height: context.s(16)),
 
               // Donut Chart - Syllabus Category Study Breakdown
               categoriesStudyAsync.when(
-                data: (categoriesStudy) => _buildDonutChartCard(context, categoriesStudy, accentColor),
+                data: (categoriesStudy) => _buildAnimatedEntrance(
+                  animation: _donutChartAnim,
+                  child: _buildDonutChartCard(context, categoriesStudy, accentColor),
+                ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => const SizedBox(),
               ),
@@ -162,6 +204,22 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
 
   // --- Widgets Construction ---
 
+  Widget _buildAnimatedEntrance({required Widget child, required Animation<double> animation}) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: animation.value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - animation.value) * 15),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+
   Widget _buildSlidingToggle(Color accentColor) {
     return Container(
       height: context.s(36),
@@ -170,53 +228,65 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         borderRadius: BorderRadius.circular(context.s(18)),
       ),
       padding: EdgeInsets.all(context.s(4)),
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _isHeatmapMode = false);
-                _persistHeatmapMode(false);
-              },
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: _isHeatmapMode ? Alignment.centerRight : Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
               child: Container(
                 decoration: BoxDecoration(
-                  color: !_isHeatmapMode ? accentColor : Colors.transparent,
+                  color: accentColor,
                   borderRadius: BorderRadius.circular(context.s(14)),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Calendar',
-                  style: GoogleFonts.outfit(
-                    color: !_isHeatmapMode ? Colors.black : Colors.white60,
-                    fontWeight: FontWeight.bold,
-                    fontSize: context.s(12),
-                  ),
                 ),
               ),
             ),
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _isHeatmapMode = true);
-                _persistHeatmapMode(true);
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: _isHeatmapMode ? accentColor : Colors.transparent,
-                  borderRadius: BorderRadius.circular(context.s(14)),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Heatmap',
-                  style: GoogleFonts.outfit(
-                    color: _isHeatmapMode ? Colors.black : Colors.white60,
-                    fontWeight: FontWeight.bold,
-                    fontSize: context.s(12),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _isHeatmapMode = false);
+                    _persistHeatmapMode(false);
+                    _chartAnimController.forward(from: 0.0);
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: Center(
+                    child: Text(
+                      'Calendar',
+                      style: GoogleFonts.outfit(
+                        color: !_isHeatmapMode ? Colors.black : Colors.white60,
+                        fontWeight: FontWeight.bold,
+                        fontSize: context.s(12),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _isHeatmapMode = true);
+                    _persistHeatmapMode(true);
+                    _chartAnimController.forward(from: 0.0);
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: Center(
+                    child: Text(
+                      'Heatmap',
+                      style: GoogleFonts.outfit(
+                        color: _isHeatmapMode ? Colors.black : Colors.white60,
+                        fontWeight: FontWeight.bold,
+                        fontSize: context.s(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -265,6 +335,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     setState(() {
                       _selectedMonth = target;
                     });
+                    _chartAnimController.forward(from: 0.0);
                   }
                 },
               ),
@@ -292,6 +363,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     setState(() {
                       _selectedMonth = target;
                     });
+                    _chartAnimController.forward(from: 0.0);
                   }
                 },
               ),
@@ -367,12 +439,18 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                       child: SizedBox(
                         width: context.s(36),
                         height: context.s(36),
-                        child: CustomPaint(
-                          painter: CalendarCellRingPainter(
-                            progress: progress,
-                            color: accentColor,
-                            strokeWidth: context.s(2.5),
-                          ),
+                        child: AnimatedBuilder(
+                          animation: _calendarHeatmapAnim,
+                          builder: (context, child) {
+                            return CustomPaint(
+                              painter: CalendarCellRingPainter(
+                                progress: progress * _calendarHeatmapAnim.value,
+                                color: accentColor,
+                                strokeWidth: context.s(2.5),
+                              ),
+                              child: child,
+                            );
+                          },
                           child: Center(
                             child: Container(
                               width: context.s(24),
@@ -447,12 +525,23 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '$activeYear',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: context.s(13),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: context.s(12), vertical: context.s(6)),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(12),
+                  borderRadius: BorderRadius.circular(context.s(8)),
+                  border: Border.all(
+                    color: Colors.white.withAlpha(8),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  '$activeYear',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: context.s(14),
+                  ),
                 ),
               ),
               Row(
@@ -477,6 +566,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         setState(() {
                           _heatmapYear = target;
                         });
+                        _chartAnimController.forward(from: 0.0);
                       }
                     },
                   ),
@@ -501,6 +591,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         setState(() {
                           _heatmapYear = target;
                         });
+                        _chartAnimController.forward(from: 0.0);
                       }
                     },
                   ),
@@ -637,20 +728,32 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                                           color: accentColor,
                                           borderRadius: BorderRadius.circular(context.s(6)),
                                         ),
-                                        child: Container(
-                                          width: context.s(15),
-                                          height: context.s(15),
-                                          margin: EdgeInsets.symmetric(vertical: context.s(1.5)),
-                                          decoration: BoxDecoration(
-                                            color: blockColor,
-                                            borderRadius: BorderRadius.circular(context.s(3.5)),
-                                            border: isToday
-                                                ? Border.all(
-                                                    color: accentColor,
-                                                    width: 1.4,
-                                                  )
-                                                : null,
-                                          ),
+                                        child: AnimatedBuilder(
+                                          animation: _calendarHeatmapAnim,
+                                          builder: (context, _) {
+                                            final val = _calendarHeatmapAnim.value;
+                                            return Opacity(
+                                              opacity: val,
+                                              child: Transform.scale(
+                                                scale: 0.6 + 0.4 * val,
+                                                child: Container(
+                                                  width: context.s(15),
+                                                  height: context.s(15),
+                                                  margin: EdgeInsets.symmetric(vertical: context.s(1.5)),
+                                                  decoration: BoxDecoration(
+                                                    color: blockColor,
+                                                    borderRadius: BorderRadius.circular(context.s(3.5)),
+                                                    border: isToday
+                                                        ? Border.all(
+                                                            color: accentColor,
+                                                            width: 1.4,
+                                                          )
+                                                        : null,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       );
                                     }).toList(),
@@ -673,6 +776,13 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
   }
 
   Widget _buildTimeframeSelector(Color accentColor) {
+    Alignment alignment = Alignment.center;
+    if (_timeframe == 'Weekly') {
+      alignment = Alignment.centerLeft;
+    } else if (_timeframe == 'Yearly') {
+      alignment = Alignment.centerRight;
+    }
+
     return Container(
       height: context.s(32),
       decoration: BoxDecoration(
@@ -681,41 +791,56 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         border: Border.all(color: Colors.white.withAlpha(6)),
       ),
       padding: EdgeInsets.all(context.s(2)),
-      child: Row(
-        children: ['Weekly', 'Monthly', 'Yearly'].map((time) {
-          final isSel = _timeframe == time;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _timeframe = time;
-                  _selectedChartIndex = null;
-                });
-                _chartAnimController.forward(from: 0.0);
-              },
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
+            alignment: alignment,
+            child: FractionallySizedBox(
+              widthFactor: 0.33,
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSel ? accentColor : Colors.transparent,
+                  color: accentColor,
                   borderRadius: BorderRadius.circular(context.s(6)),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  time,
-                  style: GoogleFonts.outfit(
-                    color: isSel ? Colors.black : Colors.white60,
-                    fontWeight: FontWeight.bold,
-                    fontSize: context.s(11),
-                  ),
                 ),
               ),
             ),
-          );
-        }).toList(),
+          ),
+          Row(
+            children: ['Weekly', 'Monthly', 'Yearly'].map((time) {
+              final isSel = _timeframe == time;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _timeframe = time;
+                      _selectedChartIndex = null;
+                    });
+                    _chartAnimController.forward(from: 0.0);
+                  },
+                  behavior: HitTestBehavior.translucent,
+                  child: Center(
+                    child: Text(
+                      time,
+                      style: GoogleFonts.outfit(
+                        color: isSel ? Colors.black : Colors.white60,
+                        fontWeight: FontWeight.bold,
+                        fontSize: context.s(11),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildGraphCard(BuildContext context, List<DailyHistoryData> history, int dailyGoalMinutes, Color accentColor) {
+    final disableGlow = ref.watch(disableGraphGlowProvider);
     double totalHours = 0.0;
     List<double> dataPoints = [];
     List<String> labels = [];
@@ -882,71 +1007,81 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            AnimatedBuilder(
+              animation: _chartCardAnim,
+              builder: (context, _) {
+                final val = _chartCardAnim.value;
+                final animatedHours = totalHours * val;
+                final animatedPctChange = pctChange * val;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '${totalHours.toStringAsFixed(1).replaceAll('.0', '')} hrs',
-                      style: GoogleFonts.orbitron(
-                        color: Colors.white,
-                        fontSize: context.s(20),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: context.s(2)),
-                    Text(
-                      'total this ${_timeframe.toLowerCase()}',
-                      style: GoogleFonts.outfit(
-                        color: Colors.white38,
-                        fontSize: context.s(11),
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: context.s(8), vertical: context.s(4)),
-                      decoration: BoxDecoration(
-                        color: isUp ? Colors.greenAccent.withAlpha(20) : Colors.redAccent.withAlpha(20),
-                        borderRadius: BorderRadius.circular(context.s(6)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                            color: isUp ? Colors.greenAccent : Colors.redAccent,
-                            size: context.s(12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${animatedHours.toStringAsFixed(1).replaceAll('.0', '')} hrs',
+                          style: GoogleFonts.orbitron(
+                            color: Colors.white,
+                            fontSize: context.s(20),
+                            fontWeight: FontWeight.bold,
                           ),
-                          SizedBox(width: context.s(4)),
+                        ),
+                        SizedBox(height: context.s(2)),
+                        Text(
+                          'total this ${_timeframe.toLowerCase()}',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white38,
+                            fontSize: context.s(11),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_timeframe != 'Yearly')
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: context.s(8), vertical: context.s(4)),
+                            decoration: BoxDecoration(
+                              color: isUp ? Colors.greenAccent.withAlpha(20) : Colors.redAccent.withAlpha(20),
+                              borderRadius: BorderRadius.circular(context.s(6)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                                  color: isUp ? Colors.greenAccent : Colors.redAccent,
+                                  size: context.s(12),
+                                ),
+                                SizedBox(width: context.s(4)),
+                                Text(
+                                  "${animatedPctChange.abs().toStringAsFixed(0)}%",
+                                  style: GoogleFonts.outfit(
+                                    color: isUp ? Colors.greenAccent : Colors.redAccent,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: context.s(11),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: context.s(4)),
                           Text(
-                            "${pctChange.abs().toStringAsFixed(0)}%",
+                            "vs last ${_timeframe.toLowerCase()}",
                             style: GoogleFonts.outfit(
-                              color: isUp ? Colors.greenAccent : Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: context.s(11),
+                              color: Colors.white38,
+                              fontSize: context.s(10),
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: context.s(4)),
-                    Text(
-                      "vs last ${_timeframe.toLowerCase()}",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white38,
-                        fontSize: context.s(10),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
             SizedBox(height: context.s(16)),
             // Custom scaled line/bar chart
@@ -966,7 +1101,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     });
                   },
                   child: AnimatedBuilder(
-                    animation: _chartAnim,
+                    animation: _chartCardAnim,
                     builder: (context, _) {
                       return SizedBox(
                         height: context.s(120),
@@ -978,8 +1113,10 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                                   accentColor: accentColor,
                                   selectedIndex: _selectedChartIndex,
                                   tooltipLabels: tooltipLabels,
-                                  animValue: _chartAnim.value,
+                                  animValue: _chartCardAnim.value,
                                   showGoalLine: _timeframe != 'Yearly',
+                                  sharpLines: _timeframe == 'Yearly',
+                                  disableGlow: disableGlow,
                                 ),
                               )
                             : Center(
@@ -1204,12 +1341,25 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(
-          icon: Icon(Icons.chevron_left_rounded, size: context.s(20)),
-          color: canGoPrev ? accentColor : Colors.white24,
-          onPressed: canGoPrev ? () => _goToPrevSet(history) : null,
-          padding: EdgeInsets.zero,
-          constraints: BoxConstraints.tightFor(width: context.s(32), height: context.s(32)),
+        GestureDetector(
+          onTap: canGoPrev ? () => _goToPrevSet(history) : null,
+          child: Container(
+            width: context.s(32),
+            height: context.s(32),
+            decoration: BoxDecoration(
+              color: canGoPrev ? Colors.white.withAlpha(12) : Colors.white.withAlpha(4),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: canGoPrev ? Colors.white.withAlpha(8) : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.chevron_left_rounded,
+              size: context.s(20),
+              color: canGoPrev ? accentColor : Colors.white24,
+            ),
+          ),
         ),
         SizedBox(width: context.s(12)),
         GestureDetector(
@@ -1248,12 +1398,25 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           ),
         ),
         SizedBox(width: context.s(12)),
-        IconButton(
-          icon: Icon(Icons.chevron_right_rounded, size: context.s(20)),
-          color: canGoNext ? accentColor : Colors.white24,
-          onPressed: canGoNext ? _goToNextSet : null,
-          padding: EdgeInsets.zero,
-          constraints: BoxConstraints.tightFor(width: context.s(32), height: context.s(32)),
+        GestureDetector(
+          onTap: canGoNext ? _goToNextSet : null,
+          child: Container(
+            width: context.s(32),
+            height: context.s(32),
+            decoration: BoxDecoration(
+              color: canGoNext ? Colors.white.withAlpha(12) : Colors.white.withAlpha(4),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: canGoNext ? Colors.white.withAlpha(8) : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.chevron_right_rounded,
+              size: context.s(20),
+              color: canGoNext ? accentColor : Colors.white24,
+            ),
+          ),
         ),
       ],
     );
@@ -1464,43 +1627,53 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     double progressPct,
     Color accentColor,
   ) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: context.s(4)),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: _buildStreakHeaderCard(
-              context,
-              'Daily Goal Streak',
-              dailyGoalStreak,
-              Icons.local_fire_department_rounded,
-              Colors.orangeAccent,
-              accentColor,
-            ),
+    return AnimatedBuilder(
+      animation: _streakHeaderAnim,
+      builder: (context, _) {
+        final animVal = _streakHeaderAnim.value;
+        final animatedGoalStreak = (dailyGoalStreak * animVal).round();
+        final animatedCheckInStreak = (checkInStreak * animVal).round();
+        final animatedProgressPct = progressPct * animVal;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: context.s(4)),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildStreakHeaderCard(
+                  context,
+                  'Daily Goal Streak',
+                  animatedGoalStreak,
+                  Icons.whatshot_rounded,
+                  Colors.orangeAccent,
+                  accentColor,
+                ),
+              ),
+              SizedBox(width: context.s(8)),
+              Expanded(
+                child: _buildStreakHeaderCard(
+                  context,
+                  'Daily Check-in Streak',
+                  animatedCheckInStreak,
+                  Icons.check_circle_rounded,
+                  accentColor,
+                  accentColor,
+                ),
+              ),
+              SizedBox(width: context.s(8)),
+              Expanded(
+                child: _buildProgressHeaderCard(
+                  context,
+                  'Daily Goal Completion',
+                  animatedProgressPct,
+                  accentColor,
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: context.s(8)),
-          Expanded(
-            child: _buildStreakHeaderCard(
-              context,
-              'Daily Check-in Streak',
-              checkInStreak,
-              Icons.check_box_outlined,
-              accentColor,
-              accentColor,
-            ),
-          ),
-          SizedBox(width: context.s(8)),
-          Expanded(
-            child: _buildProgressHeaderCard(
-              context,
-              'Daily Goal Completion',
-              progressPct,
-              accentColor,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1522,13 +1695,13 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.outfit(
             color: Colors.white70,
-            fontSize: context.s(10.5),
+            fontSize: context.s(11),
             fontWeight: FontWeight.bold,
           ),
         ),
         SizedBox(height: context.s(6)),
         Container(
-          height: context.s(48),
+          height: context.s(54),
           decoration: BoxDecoration(
             color: const Color(0xFF131316),
             borderRadius: BorderRadius.circular(context.s(12)),
@@ -1538,14 +1711,14 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor, size: context.s(20)),
+              Icon(icon, color: iconColor, size: context.s(22)),
               SizedBox(width: context.s(6)),
               Text(
                 '$count ',
                 style: GoogleFonts.orbitron(
                   color: accentColor,
                   fontWeight: FontWeight.w900,
-                  fontSize: context.s(15),
+                  fontSize: context.s(16),
                 ),
               ),
               Text(
@@ -1580,13 +1753,13 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           overflow: TextOverflow.ellipsis,
           style: GoogleFonts.outfit(
             color: Colors.white70,
-            fontSize: context.s(10.5),
+            fontSize: context.s(11),
             fontWeight: FontWeight.bold,
           ),
         ),
         SizedBox(height: context.s(6)),
         Container(
-          height: context.s(48),
+          height: context.s(54),
           decoration: BoxDecoration(
             color: const Color(0xFF131316),
             borderRadius: BorderRadius.circular(context.s(12)),
@@ -1610,7 +1783,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                     style: GoogleFonts.orbitron(
                       color: progressPct > 0.5 ? Colors.black : Colors.white,
                       fontWeight: FontWeight.w900,
-                      fontSize: context.s(13),
+                      fontSize: context.s(14),
                     ),
                   ),
                 ),
@@ -1650,10 +1823,16 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               SizedBox(
                 width: context.s(90),
                 height: context.s(90),
-                child: CustomPaint(
-                  painter: DonutChartPainter(
-                    sections: categoriesStudy,
-                  ),
+                child: AnimatedBuilder(
+                  animation: _donutChartAnim,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: DonutChartPainter(
+                        sections: categoriesStudy,
+                        animValue: _donutChartAnim.value,
+                      ),
+                    );
+                  },
                 ),
               ),
               SizedBox(width: context.s(16)),
@@ -1816,67 +1995,80 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     final dateStr =
         '${projectedDate.day} ${monthNames[projectedDate.month - 1]} ${projectedDate.year}';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return AnimatedBuilder(
+      animation: _projectedCompletionAnim,
+      builder: (context, _) {
+        final val = _projectedCompletionAnim.value;
+        final animatedDays = (daysRemaining * val).round();
+        final animatedProgress = currentProgress * val;
+        final animatedAvgDailyGain = avgDailyGain * val;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Projected Completion',
-              style: GoogleFonts.outfit(
-                color: Colors.white54,
-                fontSize: context.s(11),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: context.s(6), vertical: context.s(2)),
-              decoration: BoxDecoration(
-                color: confidenceColor.withAlpha(20),
-                borderRadius: BorderRadius.circular(context.s(4)),
-              ),
-              child: Text(
-                confidenceLabel,
-                style: GoogleFonts.outfit(
-                  color: confidenceColor,
-                  fontSize: context.s(9),
-                  fontWeight: FontWeight.bold,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Projected Completion',
+                  style: GoogleFonts.outfit(
+                    color: Colors.white54,
+                    fontSize: context.s(11),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: context.s(6), vertical: context.s(2)),
+                  decoration: BoxDecoration(
+                    color: confidenceColor.withAlpha(20),
+                    borderRadius: BorderRadius.circular(context.s(4)),
+                  ),
+                  child: Text(
+                    confidenceLabel,
+                    style: GoogleFonts.outfit(
+                      color: confidenceColor,
+                      fontSize: context.s(9),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: context.s(8)),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(Icons.flag_rounded, color: accentColor, size: context.s(18)),
+                SizedBox(width: context.s(6)),
+                Opacity(
+                  opacity: val,
+                  child: Text(
+                    dateStr,
+                    style: GoogleFonts.orbitron(
+                      color: Colors.white,
+                      fontSize: context.s(16),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: context.s(10)),
+            Row(
+              children: [
+                _projStat(context, '$animatedDays', 'days left', accentColor),
+                SizedBox(width: context.s(20)),
+                _projStat(context, '${animatedProgress.toStringAsFixed(1)}%', 'done now',
+                    Colors.white70),
+                SizedBox(width: context.s(20)),
+                _projStat(context, '+${animatedAvgDailyGain.toStringAsFixed(2)}%', 'per day avg',
+                    Colors.white70),
+              ],
             ),
           ],
-        ),
-        SizedBox(height: context.s(8)),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(Icons.flag_rounded, color: accentColor, size: context.s(18)),
-            SizedBox(width: context.s(6)),
-            Text(
-              dateStr,
-              style: GoogleFonts.orbitron(
-                color: Colors.white,
-                fontSize: context.s(16),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: context.s(10)),
-        Row(
-          children: [
-            _projStat(context, '$daysRemaining', 'days left', accentColor),
-            SizedBox(width: context.s(20)),
-            _projStat(context, '${currentProgress.toStringAsFixed(1)}%', 'done now',
-                Colors.white70),
-            SizedBox(width: context.s(20)),
-            _projStat(context, '+${avgDailyGain.toStringAsFixed(2)}%', 'per day avg',
-                Colors.white70),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -2017,6 +2209,7 @@ class WaveAreaChartPainter extends CustomPainter {
   final double animValue;
   final bool showGoalLine;
   final bool sharpLines;
+  final bool disableGlow;
 
   WaveAreaChartPainter({
     required this.data,
@@ -2027,6 +2220,7 @@ class WaveAreaChartPainter extends CustomPainter {
     this.animValue = 1.0,
     this.showGoalLine = true,
     this.sharpLines = false,
+    this.disableGlow = false,
   });
 
   @override
@@ -2105,8 +2299,9 @@ class WaveAreaChartPainter extends CustomPainter {
       for (int i = 0; i < points.length - 1; i++) {
         final p0 = points[i];
         final p1 = points[i + 1];
-        final controlX = p0.dx + colWidth / 2;
-        path.cubicTo(controlX, p0.dy, controlX, p1.dy, p1.dx, p1.dy);
+        final controlX1 = p0.dx + colWidth / 3.2;
+        final controlX2 = p1.dx - colWidth / 3.2;
+        path.cubicTo(controlX1, p0.dy, controlX2, p1.dy, p1.dx, p1.dy);
       }
     }
 
@@ -2127,13 +2322,15 @@ class WaveAreaChartPainter extends CustomPainter {
 
     // NEON GLOW (Reduced)
     // Layer 2: Medium glow
-    final shadowPaint2 = Paint()
-      ..color = accentColor.withAlpha(60)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
-    canvas.drawPath(path, shadowPaint2);
+    if (!disableGlow) {
+      final shadowPaint2 = Paint()
+        ..color = accentColor.withAlpha(60)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.0
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+      canvas.drawPath(path, shadowPaint2);
+    }
 
     // Layer 3: Main Accent color line
     final strokePaintAccent = Paint()
@@ -2253,8 +2450,9 @@ class WaveAreaChartPainter extends CustomPainter {
 
 class DonutChartPainter extends CustomPainter {
   final List<CategoryStudyTime> sections;
+  final double animValue;
 
-  DonutChartPainter({required this.sections});
+  DonutChartPainter({required this.sections, required this.animValue});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2265,7 +2463,7 @@ class DonutChartPainter extends CustomPainter {
     double startAngle = -pi / 2;
 
     for (final s in sections) {
-      final sweepAngle = (s.percentage / 100) * 2 * pi;
+      final sweepAngle = (s.percentage / 100) * 2 * pi * animValue;
       if (sweepAngle <= 0) continue;
 
       final paint = Paint()
@@ -2279,6 +2477,8 @@ class DonutChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant DonutChartPainter oldDelegate) {
+    return oldDelegate.animValue != animValue || oldDelegate.sections != sections;
+  }
 }
 

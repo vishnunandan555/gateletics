@@ -75,14 +75,15 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         children: [
           PageView(
             controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
             onPageChanged: (index) {
               setState(() {
                 _currentIndex = index;
               });
             },
             children: [
-              const KeepAliveWrapper(child: DashboardScreen()),
               const KeepAliveWrapper(child: ProgressHistoryScreen()),
+              const KeepAliveWrapper(child: DashboardScreen()),
               KeepAliveWrapper(child: HomeScreen(shellPageController: _pageController)),
               KeepAliveWrapper(child: FocusScreen(progressColor: progressColor)),
               const KeepAliveWrapper(child: SettingsScreen()),
@@ -124,14 +125,14 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 children: [
                   _buildNavItem(
                     index: 0,
-                    icon: Icons.percent_rounded,
-                    label: 'Completion',
+                    icon: Icons.analytics_rounded,
+                    label: 'Stats',
                     color: progressColor,
                   ),
                   _buildNavItem(
                     index: 1,
-                    icon: Icons.analytics_rounded,
-                    label: 'Stats',
+                    icon: Icons.percent_rounded,
+                    label: 'Completion',
                     color: progressColor,
                   ),
                   _buildNavItem(
@@ -167,32 +168,30 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     required Color color,
   }) {
     final isSelected = _currentIndex == index;
-    return InkWell(
-      onTap: () {
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.fastOutSlowIn,
-        );
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? color : Colors.white30,
-            size: 26,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: GoogleFonts.outfit(
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          _pageController.jumpToPage(index);
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
               color: isSelected ? color : Colors.white30,
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              size: 26,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.outfit(
+                color: isSelected ? color : Colors.white30,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -223,56 +222,54 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
 
     final timeStr = formatNavDuration(displaySeconds, isCountUp);
 
-    return InkWell(
-      onTap: () {
-        _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.fastOutSlowIn,
-        );
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.hourglass_empty_rounded,
-                color: itemColor,
-                size: 26,
-              ),
-              if (hasActiveSession) ...[
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: itemColor, width: 1),
-                  ),
-                  child: Text(
-                    timeStr,
-                    style: GoogleFonts.outfit(
-                      color: itemColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          _pageController.jumpToPage(index);
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.hourglass_empty_rounded,
+                  color: itemColor,
+                  size: 26,
+                ),
+                if (hasActiveSession) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: itemColor, width: 1),
+                    ),
+                    child: Text(
+                      timeStr,
+                      style: GoogleFonts.outfit(
+                        color: itemColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Focus',
-            style: GoogleFonts.outfit(
-              color: isSelected ? (hasActiveSession ? itemColor : color) : Colors.white30,
-              fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              'Focus',
+              style: GoogleFonts.outfit(
+                color: isSelected ? (hasActiveSession ? itemColor : color) : Colors.white30,
+                fontSize: 10,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -323,26 +320,32 @@ class _SharedShellHeader extends ConsumerWidget {
           page = currentIndex.toDouble();
         }
 
-        // Header opacity: 1.0 at page 0 (Completion) and page 2 (Home), 0.0 at page 1 (Stats) and page 3+
+        // Header opacity: 0.0 at page 0 (Stats), 1.0 at page 1 (Completion) and page 2 (Home), 0.0 at page 3 (Focus) and page 4 (Settings)
         double headerOpacity = 0.0;
         if (page <= 1.0) {
-          headerOpacity = (1.0 - page).clamp(0.0, 1.0);
+          headerOpacity = page.clamp(0.0, 1.0);
         } else if (page > 1.0 && page <= 2.0) {
-          headerOpacity = (page - 1.0).clamp(0.0, 1.0);
+          headerOpacity = 1.0;
         } else if (page > 2.0 && page <= 3.0) {
           headerOpacity = (3.0 - page).clamp(0.0, 1.0);
         }
 
-        // Background transition from transparent to solid black when scrolled down in Completion screen (page 0)
+        // Background transition from transparent to solid black when scrolled down in Completion screen (page 1)
         Color headerBgColor = Colors.transparent;
-        if (isScrolled && page <= 1.0) {
-          headerBgColor = Colors.black.withValues(alpha: (1.0 - page).clamp(0.0, 1.0));
+        if (isScrolled) {
+          if (page <= 1.0) {
+            headerBgColor = Colors.black.withValues(alpha: page.clamp(0.0, 1.0));
+          } else if (page > 1.0 && page <= 2.0) {
+            headerBgColor = Colors.black.withValues(alpha: (2.0 - page).clamp(0.0, 1.0));
+          }
         }
 
-        // Countdown widget opacity: 1.0 at page 0 (Completion), 0.0 at page 1 (Stats) and page 2 (Home)
+        // Countdown widget opacity: 0.0 at page 0 (Stats), 1.0 at page 1 (Completion), 0.0 at page 2 (Home) and page 3+
         double countdownOpacity = 0.0;
         if (page <= 1.0) {
-          countdownOpacity = (1.0 - page).clamp(0.0, 1.0);
+          countdownOpacity = page.clamp(0.0, 1.0);
+        } else if (page > 1.0 && page <= 2.0) {
+          countdownOpacity = (2.0 - page).clamp(0.0, 1.0);
         }
 
         final ignorePointer = headerOpacity < 0.5;
@@ -360,7 +363,15 @@ class _SharedShellHeader extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const AppBarTitle(),
+                  AppBarTitle(
+                    onTap: () {
+                      pageController.animateToPage(
+                        1, // Navigate to Completion screen (index 1)
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.fastOutSlowIn,
+                      );
+                    },
+                  ),
                   Opacity(
                     opacity: countdownOpacity,
                     child: const CountdownWidget(),

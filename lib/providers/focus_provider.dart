@@ -158,6 +158,7 @@ class FocusSessionState {
     DateTime? sessionStartTime,
     bool? isBreakActive,
     int? selectedCategoryId,
+    bool clearCategoryId = false,
   }) {
     return FocusSessionState(
       status: status ?? this.status,
@@ -171,7 +172,7 @@ class FocusSessionState {
       sessionAccomplishments: sessionAccomplishments ?? this.sessionAccomplishments,
       sessionStartTime: sessionStartTime ?? this.sessionStartTime,
       isBreakActive: isBreakActive ?? this.isBreakActive,
-      selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
+      selectedCategoryId: clearCategoryId ? null : (selectedCategoryId ?? this.selectedCategoryId),
     );
   }
 
@@ -257,7 +258,11 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   }
 
   void setSelectedCategory(int? categoryId) {
-    state = state.copyWith(selectedCategoryId: categoryId);
+    if (categoryId == null) {
+      state = state.copyWith(clearCategoryId: true);
+    } else {
+      state = state.copyWith(selectedCategoryId: categoryId);
+    }
   }
 
   void resetState() {

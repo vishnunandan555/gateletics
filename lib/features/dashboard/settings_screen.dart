@@ -29,14 +29,15 @@ import '../../providers/category_font_size_provider.dart';
 import '../../providers/topic_font_size_provider.dart';
 import '../../providers/task_font_size_provider.dart';
 import '../../providers/overall_ui_scale_provider.dart';
-import 'widgets/settings/change_font_size_tile.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/hide_download_banner_provider.dart';
 import '../../providers/show_projected_completion_provider.dart';
+import '../../providers/disable_graph_glow_provider.dart';
 import '../../providers/glow_strength_provider.dart';
+import '../../providers/disable_home_screen_widget_provider.dart';
 import 'widgets/shell_common.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../database/backup_service.dart';
@@ -477,6 +478,17 @@ class SettingsScreen extends ConsumerWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isDesktop = screenWidth > 900;
 
+    final titleStyle = GoogleFonts.outfit(
+      color: Colors.white,
+      fontSize: context.s(13),
+      fontWeight: FontWeight.bold,
+    );
+
+    final subtitleStyle = GoogleFonts.outfit(
+      color: Colors.white30,
+      fontSize: context.s(11),
+    );
+
     Widget buildHeader(String title, {Color? color}) {
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
@@ -812,98 +824,99 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  backgroundColor: const Color(0xFF161B22),
-                                  title: Text(
-                                    'Delete Account',
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  content: Text(
-                                    'Are you sure you want to delete your account? This will permanently delete all your synced data backups from the cloud. Your local database will remain intact.',
-                                    style: GoogleFonts.outfit(color: Colors.white70),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop(false),
-                                      child: Text(
-                                        'Cancel',
-                                        style: GoogleFonts.outfit(color: Colors.grey),
+                          const SizedBox(height: 2),
+                          Center(
+                            child: TextButton(
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    backgroundColor: const Color(0xFF161B22),
+                                    title: Text(
+                                      'Delete Account',
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    TextButton(
-                                      onPressed: () => Navigator.of(context).pop(true),
-                                      child: Text(
-                                        'Delete Permanently',
-                                        style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold),
-                                      ),
+                                    content: Text(
+                                      'Are you sure you want to delete your account? This will permanently delete all your synced data backups from the cloud. Your local database will remain intact.',
+                                      style: GoogleFonts.outfit(color: Colors.white70),
                                     ),
-                                  ],
-                                ),
-                              );
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: Text(
+                                          'Cancel',
+                                          style: GoogleFonts.outfit(color: Colors.grey),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: Text(
+                                          'Delete Permanently',
+                                          style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
 
-                              if (confirm == true && context.mounted) {
-                                try {
-                                  await ref.read(authProvider.notifier).deleteAccount();
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Account and synced data deleted successfully.'),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  }
-                                } on FirebaseAuthException catch (e) {
-                                  if (e.code == 'requires-recent-login' && context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Please sign out and sign in again to verify your identity before deleting your account.'),
-                                        backgroundColor: Colors.redAccent,
-                                        duration: Duration(seconds: 5),
-                                      ),
-                                    );
-                                  } else if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Error: ${e.message}'),
-                                        backgroundColor: Colors.redAccent,
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Error: $e'),
-                                        backgroundColor: Colors.redAccent,
-                                      ),
-                                    );
+                                if (confirm == true && context.mounted) {
+                                  try {
+                                    await ref.read(authProvider.notifier).deleteAccount();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Account and synced data deleted successfully.'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+                                  } on FirebaseAuthException catch (e) {
+                                    if (e.code == 'requires-recent-login' && context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Please sign out and sign in again to verify your identity before deleting your account.'),
+                                          backgroundColor: Colors.redAccent,
+                                          duration: Duration(seconds: 5),
+                                        ),
+                                      );
+                                    } else if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Error: ${e.message}'),
+                                          backgroundColor: Colors.redAccent,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Error: $e'),
+                                          backgroundColor: Colors.redAccent,
+                                        ),
+                                      );
+                                    }
                                   }
                                 }
-                              }
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.redAccent),
-                              foregroundColor: Colors.redAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                              },
+                              style: TextButton.styleFrom(
+                                minimumSize: Size.zero,
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                foregroundColor: Colors.redAccent,
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            icon: const Icon(Icons.delete_forever_rounded, size: 16),
-                            label: Text(
-                              "DELETE ACCOUNT",
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                                letterSpacing: 0.5,
+                              child: const Text(
+                                "Delete Account",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.redAccent,
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
@@ -965,91 +978,89 @@ class SettingsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ListTile(
-                  leading: const Icon(Icons.badge_rounded, color: Colors.cyanAccent),
-                  title: const Text('Set Display Name'),
-                  subtitle: Text(
-                    profile.customDisplayName != null
-                        ? profile.customDisplayName!
-                        : (displayName ?? 'Not set'),
-                    style: const TextStyle(color: Colors.white70),
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(Icons.edit_rounded, color: accentColor),
-                    onPressed: () async {
-                      final controller = TextEditingController(text: profile.customDisplayName ?? displayName ?? '');
-                      final result = await showDialog<String>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          backgroundColor: const Color(0xFF18181B),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                          title: const Text("Set Custom Name"),
-                          content: TextField(
-                            controller: controller,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: "Enter name",
-                              hintStyle: const TextStyle(color: Colors.white30),
-                              focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: accentColor),
-                              ),
-                            ),
-                            maxLength: 30,
-                            autofocus: true,
+              leading: const Icon(Icons.badge_rounded, color: Colors.cyanAccent),
+              title: Text('Change Display Name', style: titleStyle),
+              subtitle: Text(
+                'Current: ${profile.customDisplayName != null ? profile.customDisplayName! : (displayName ?? 'Not set')}',
+                style: subtitleStyle,
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.edit_rounded, color: accentColor),
+                onPressed: () async {
+                  final controller = TextEditingController(text: profile.customDisplayName ?? displayName ?? '');
+                  final result = await showDialog<String>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: const Color(0xFF18181B),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      title: const Text("Set Custom Name"),
+                      content: TextField(
+                        controller: controller,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: "Enter name",
+                          hintStyle: const TextStyle(color: Colors.white30),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: accentColor),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                ref.read(profileProvider.notifier).setCustomDisplayName(null);
-                                Navigator.pop(ctx);
-                              },
-                              child: Text('Reset', style: TextStyle(color: Colors.redAccent)),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(ctx, controller.text),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: accentColor,
-                                foregroundColor: Colors.black,
-                              ),
-                              child: const Text('Save'),
-                            ),
-                          ],
                         ),
-                      );
-                      if (result != null) {
-                        await ref.read(profileProvider.notifier).setCustomDisplayName(result);
-                      }
-                    },
-                  ),
+                        maxLength: 30,
+                        autofocus: true,
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            ref.read(profileProvider.notifier).setCustomDisplayName(null);
+                            Navigator.pop(ctx);
+                          },
+                          child: Text('Reset', style: TextStyle(color: Colors.redAccent)),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(ctx, controller.text),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: accentColor,
+                            foregroundColor: Colors.black,
+                          ),
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (result != null) {
+                    await ref.read(profileProvider.notifier).setCustomDisplayName(result);
+                  }
+                },
+              ),
+            ),
+            const Divider(color: Colors.white10, height: 1),
+            ListTile(
+              leading: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accentColor, width: 1),
                 ),
-                const Divider(color: Colors.white10, height: 1),
-                ListTile(
-                  leading: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: accentColor, width: 1),
-                    ),
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundImage: displayImage,
-                      backgroundColor: Colors.white12,
-                      child: displayImage == null ? const Icon(Icons.person, size: 18, color: Colors.white54) : null,
-                    ),
-                  ),
-                  title: const Text('Set Profile Photo'),
-                  subtitle: Text(
-                    profile.profilePhotoMode == 'custom'
-                        ? 'Custom Photo'
-                        : profile.profilePhotoMode == 'google'
-                            ? 'Google Account Avatar'
-                            : 'No Profile Photo',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundImage: displayImage,
+                  backgroundColor: Colors.white12,
+                  child: displayImage == null ? const Icon(Icons.person, size: 18, color: Colors.white54) : null,
+                ),
+              ),
+              title: Text('Set Profile Photo', style: titleStyle),
+              subtitle: Text(
+                profile.profilePhotoMode == 'custom'
+                    ? 'Current: Custom Photo'
+                    : profile.profilePhotoMode == 'google'
+                        ? 'Current: Google Avatar'
+                        : 'No Profile Photo',
+                style: subtitleStyle,
+              ),
                   trailing: PopupMenuButton<String>(
                     icon: Icon(Icons.photo_camera_rounded, color: accentColor),
                     color: const Color(0xFF1F1F23),
@@ -1128,118 +1139,146 @@ class SettingsScreen extends ConsumerWidget {
           },
         );
 
-    final localBackupsHeader = buildHeader('LOCAL BACKUPS');
+    final resetDataContent = Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        iconColor: Colors.redAccent,
+        collapsedIconColor: Colors.redAccent.withValues(alpha: 0.5),
+        leading: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent),
+        title: Text(
+          'Reset Data',
+          style: titleStyle.copyWith(color: Colors.redAccent),
+        ),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
+            title: Text('Reset Tracking Data', style: titleStyle),
+            subtitle: Text(
+              'Set all progress counts to zero',
+              style: subtitleStyle,
+            ),
+            onTap: () => _performReset(context, ref, everything: false),
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          ListTile(
+            leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
+            title: Text('Reset Everything', style: titleStyle),
+            subtitle: Text(
+              'Clear sources, links, and progress',
+              style: subtitleStyle,
+            ),
+            onTap: () => _performReset(context, ref, everything: true),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
 
     final localBackupsContent = Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ListTile(
           leading: const Icon(Icons.upload_file, color: Color(0xFF00E5FF)),
-          title: const Text('Export Data'),
-          subtitle: const Text(
+          title: Text('Export Data', style: titleStyle),
+          subtitle: Text(
             'Save progress to JSON',
-            style: TextStyle(color: Colors.grey),
+            style: subtitleStyle,
           ),
           onTap: () => _exportData(context, ref),
         ),
         ListTile(
           leading: const Icon(Icons.download, color: Color(0xFF69F0AE)),
-          title: const Text('Import Data'),
-          subtitle: const Text(
+          title: Text('Import Data', style: titleStyle),
+          subtitle: Text(
             'Restore from JSON file',
-            style: TextStyle(color: Colors.grey),
+            style: subtitleStyle,
           ),
           onTap: () => _importData(context, ref),
         ),
+        resetDataContent,
       ],
     );
 
-    final completionTypeHeader = buildHeader('PRESETS');
+    final uiSwitchHeader = buildHeader('LAYOUT');
 
-    final completionTypeContent = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Consumer(
-        builder: (context, ref, _) {
-          return Column(
-            children: [
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-                title: const Text('Apply Syllabus Preset'),
-                subtitle: const Text(
-                  'Restore the default GATE checklist',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                onTap: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: const Color(0xFF18181B),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      title: const Text('Apply Syllabus Preset'),
-                      content: const Text(
-                        'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancel',
-                              style: TextStyle(color: Colors.grey)),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Colors.amberAccent,
-                            foregroundColor: Colors.black,
-                          ),
-                          child: const Text('Apply'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirmed == true) {
-                    await ref
-                        .read(syllabusControllerProvider.notifier)
-                        .applyPreset();
-                  }
-                },
+    final uiSwitchContent = ListTile(
+      leading: Icon(
+        GoRouterState.of(context).uri.path.startsWith('/desk')
+            ? Icons.phone_android_rounded
+            : Icons.desktop_windows_rounded,
+        color: Colors.cyanAccent,
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            GoRouterState.of(context).uri.path.startsWith('/desk')
+                ? 'Switch to Mobile UI'
+                : 'Switch to Desktop UI',
+            style: titleStyle,
+          ),
+          if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.cyanAccent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
               ),
-            ],
-          );
-        },
+              child: Text(
+                'BETA',
+                style: GoogleFonts.outfit(
+                  color: Colors.cyanAccent,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
-    );
-
-    final categoryOrderingHeader = buildHeader('CATEGORY ORDERING');
-
-    final categoryOrderingContent = SwitchListTile(
-      activeThumbColor: accentColor,
-      title: const Text('Auto-Sort Categories'),
-      subtitle: const Text(
-        'Move last interacted category to the top automatically',
-        style: TextStyle(color: Colors.grey, fontSize: 11),
+      subtitle: Text(
+        GoRouterState.of(context).uri.path.startsWith('/desk')
+            ? 'Return to the mobile-optimized layout'
+            : 'Experience the desktop layout on your web browser',
+        style: subtitleStyle,
       ),
-      value: autoSort,
-      onChanged: (val) {
-        ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
+      onTap: () async {
+        final prefs = await SharedPreferences.getInstance();
+        if (context.mounted) {
+          if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
+            await prefs.setBool('user_wants_desktop_ui', false);
+            if (context.mounted) context.go('/');
+          } else {
+            await prefs.setBool('user_wants_desktop_ui', true);
+            if (context.mounted) context.go('/desk');
+          }
+        }
       },
     );
 
-    final focusQuotesHeader = buildHeader('FOCUS SETTINGS');
+    final devOptionsContent = ListTile(
+      leading: Icon(Icons.developer_mode_rounded, color: accentColor),
+      title: Text('Dev: Inject Study Session', style: titleStyle),
+      subtitle: Text(
+        'Add focus session to test statistics and history grids',
+        style: subtitleStyle,
+      ),
+      onTap: () => _showDevInjectDialog(context, ref, accentColor),
+    );
 
     final focusQuotesContent = Consumer(
       builder: (context, ref, _) {
         final quotesEnabled = ref.watch(focusQuotesEnabledProvider);
         return SwitchListTile(
           activeThumbColor: accentColor,
-          title: const Text('Show Motivational Quotes'),
-          subtitle: const Text(
+          title: Text('Show Motivational Quotes during Timer (except Freestyle)', style: titleStyle),
+          subtitle: Text(
             'Display dynamic handwritten motivational quotes during focus sessions (Beta)',
-            style: TextStyle(color: Colors.grey, fontSize: 11),
+            style: subtitleStyle,
           ),
           value: quotesEnabled,
           onChanged: (val) {
@@ -1253,10 +1292,10 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         final animType = ref.watch(focusAnimationProvider);
         return ListTile(
-          title: const Text('Active Focus Animation'),
-          subtitle: const Text(
+          title: Text('Active Focus Home Screen Animation', style: titleStyle),
+          subtitle: Text(
             'Change the style of the looping animation shown on the Home Screen when focusing',
-            style: TextStyle(color: Colors.grey, fontSize: 11),
+            style: subtitleStyle,
           ),
           trailing: DropdownButton<FocusAnimationType>(
             value: animType,
@@ -1303,10 +1342,10 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context, ref, _) {
         final fillStyle = ref.watch(resumeFillStyleProvider);
         return ListTile(
-          title: const Text('Resume Button Style'),
-          subtitle: const Text(
+          title: Text('Resume Button Style change', style: titleStyle),
+          subtitle: Text(
             'Change the progress filling style of the Start/Resume button on the Home Screen',
-            style: TextStyle(color: Colors.grey, fontSize: 11),
+            style: subtitleStyle,
           ),
           trailing: DropdownButton<ResumeFillStyle>(
             value: fillStyle,
@@ -1343,8 +1382,6 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final accentColorHeader = buildHeader('ACCENT COLOR OPTIONS');
-
     final accentColorContent = Consumer(
       builder: (context, ref, _) {
         final colorNotifier = ref.watch(overallProgressColorProvider.notifier);
@@ -1356,11 +1393,13 @@ class SettingsScreen extends ConsumerWidget {
             isAuto ? Icons.brightness_auto_rounded : Icons.color_lens_rounded,
             color: currentColor,
           ),
-          title: const Text(
+          title: Text(
             'Accent Color Options',
+            style: titleStyle,
           ),
           subtitle: Text(
             isAuto ? 'Auto-cycling' : 'Frozen custom color',
+            style: subtitleStyle,
           ),
           trailing: Container(
             width: 24,
@@ -1382,188 +1421,285 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final fontHeader = buildHeader('ACCENT & CATEGORY FONT');
+    final appSettingsHeader = buildHeader('App Settings');
 
-    final fontContent = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Consumer(
-        builder: (context, ref, _) {
-          final currentFont = ref.watch(progressFontProvider);
-
-          return Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.start,
-            children: ProgressFont.values.map((font) {
-              String label;
-              switch (font) {
-                case ProgressFont.orbitron:
-                  label = 'Orbitron';
-                  break;
-                case ProgressFont.jersey15:
-                  label = 'Jersey 15';
-                  break;
-                case ProgressFont.jersey10:
-                  label = 'Jersey 10';
-                  break;
-                case ProgressFont.tektur:
-                  label = 'Tektur';
-                  break;
-                case ProgressFont.odibeeSans:
-                  label = 'Odibee Sans';
-                  break;
-                case ProgressFont.pressStart2P:
-                  label = 'Press Start 2P';
-                  break;
-                case ProgressFont.boldonse:
-                  label = 'Boldonse';
-                  break;
-              }
-
-              final isSelected = currentFont == font;
-
-              return InkWell(
-                onTap: () => ref
-                    .read(progressFontProvider.notifier)
-                    .setProgressFont(font),
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? accentColor.withValues(alpha: 0.2)
-                        : Colors.white10,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isSelected
-                          ? accentColor
-                          : Colors.transparent,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: isSelected
-                          ? accentColor
-                          : Colors.white70,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          );
-        },
-      ),
-    );
-
-    final uiSwitchHeader = buildHeader('LAYOUT');
-
-    final uiSwitchContent = ListTile(
-      leading: Icon(
-        GoRouterState.of(context).uri.path.startsWith('/desk')
-            ? Icons.phone_android_rounded
-            : Icons.desktop_windows_rounded,
-        color: Colors.cyanAccent,
-      ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            GoRouterState.of(context).uri.path.startsWith('/desk')
-                ? 'Switch to Mobile UI'
-                : 'Switch to Desktop UI',
-            style: GoogleFonts.outfit(
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.cyanAccent.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.4), width: 1),
-              ),
-              child: Text(
-                'BETA',
-                style: GoogleFonts.outfit(
-                  color: Colors.cyanAccent,
-                  fontSize: 8,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-      subtitle: Text(
-        GoRouterState.of(context).uri.path.startsWith('/desk')
-            ? 'Return to the mobile-optimized layout'
-            : 'Experience the desktop layout on your web browser',
-        style: const TextStyle(color: Colors.grey, fontSize: 11),
-      ),
-      onTap: () async {
-        final prefs = await SharedPreferences.getInstance();
-        if (context.mounted) {
-          if (GoRouterState.of(context).uri.path.startsWith('/desk')) {
-            await prefs.setBool('user_wants_desktop_ui', false);
-            if (context.mounted) context.go('/');
-          } else {
-            await prefs.setBool('user_wants_desktop_ui', true);
-            if (context.mounted) context.go('/desk');
-          }
-        }
-      },
-    );
-
-    final resetDataHeader = buildHeader('RESET DATA', color: Colors.redAccent);
-
-    final resetDataContent = Column(
+    final appSettingsContent = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ListTile(
-          leading: const Icon(Icons.history_rounded, color: Colors.redAccent),
-          title: const Text('Reset Tracking Data'),
-          subtitle: const Text(
-            'Set all progress counts to zero',
-            style: TextStyle(color: Colors.grey),
+        SwitchListTile(
+          activeThumbColor: accentColor,
+          title: Text('Auto-Sort Categories', style: titleStyle),
+          subtitle: Text(
+            'Move last interacted category to the top automatically',
+            style: subtitleStyle,
           ),
-          onTap: () => _performReset(context, ref, everything: false),
+          value: autoSort,
+          onChanged: (val) {
+            ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
+          },
         ),
         ListTile(
-          leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-          title: const Text('Reset Everything'),
-          subtitle: const Text(
-            'Clear sources, links, and progress',
-            style: TextStyle(color: Colors.grey),
+          leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
+          title: Text('Apply Preset', style: titleStyle),
+          subtitle: Text(
+            'Restore the default GATE checklist preset',
+            style: subtitleStyle,
           ),
-          onTap: () => _performReset(context, ref, everything: true),
+          onTap: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF18181B),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                title: const Text('Apply Syllabus Preset'),
+                content: const Text(
+                  'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
+                  style: TextStyle(color: Colors.white70),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.amberAccent,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text('Apply'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed == true) {
+              await ref.read(syllabusControllerProvider.notifier).applyPreset();
+            }
+          },
+        ),
+        accentColorContent,
+        Consumer(
+          builder: (context, ref, _) {
+            final currentFont = ref.watch(progressFontProvider);
+            return ListTile(
+              leading: Icon(Icons.font_download_rounded, color: accentColor),
+              title: Text('Change Font', style: titleStyle),
+              subtitle: Text(
+                'Select a style for statistics headers and completion progress text',
+                style: subtitleStyle,
+              ),
+              trailing: DropdownButtonHideUnderline(
+                child: DropdownButton<ProgressFont>(
+                  value: currentFont,
+                  dropdownColor: const Color(0xFF18181B),
+                  alignment: Alignment.centerRight,
+                  icon: Icon(Icons.arrow_drop_down, color: accentColor),
+                  style: TextStyle(color: accentColor),
+                  items: ProgressFont.values.map((font) {
+                    String label;
+                    switch (font) {
+                      case ProgressFont.orbitron:
+                        label = 'Orbitron';
+                        break;
+                      case ProgressFont.jersey15:
+                        label = 'Jersey 15';
+                        break;
+                      case ProgressFont.jersey10:
+                        label = 'Jersey 10';
+                        break;
+                      case ProgressFont.tektur:
+                        label = 'Tektur';
+                        break;
+                      case ProgressFont.odibeeSans:
+                        label = 'Odibee';
+                        break;
+                      case ProgressFont.pressStart2P:
+                        label = 'Press Start';
+                        break;
+                      case ProgressFont.boldonse:
+                        label = 'Boldonse';
+                        break;
+                    }
+                    return DropdownMenuItem(
+                      value: font,
+                      child: Text(
+                        label,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      ref.read(progressFontProvider.notifier).setProgressFont(val);
+                    }
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+        Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            iconColor: accentColor,
+            collapsedIconColor: Colors.white30,
+            leading: Icon(Icons.format_size_rounded, color: accentColor),
+            title: Text('Change Font Size', style: titleStyle),
+            subtitle: Text(
+              'Adjust UI scale, category, card, and checklist font sizes',
+              style: subtitleStyle,
+            ),
+            children: [
+              Consumer(
+                builder: (context, ref, _) {
+                  final currentScale = ref.watch(overallUiScaleProvider);
+                  final currentCategorySize = ref.watch(categoryFontSizeProvider);
+                  final currentTopicSize = ref.watch(topicFontSizeProvider);
+                  final currentTaskSize = ref.watch(taskFontSizeProvider);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Overall UI Scale', style: titleStyle),
+                          subtitle: Text('Scale all texts and margins', style: subtitleStyle),
+                          trailing: DropdownButtonHideUnderline(
+                            child: DropdownButton<OverallUiScale>(
+                              value: currentScale,
+                              dropdownColor: const Color(0xFF18181B),
+                              alignment: Alignment.centerRight,
+                              items: OverallUiScale.values.map((scale) {
+                                String name = '';
+                                switch (scale) {
+                                  case OverallUiScale.xs: name = 'XS (0.8x)'; break;
+                                  case OverallUiScale.s: name = 'S (0.9x)'; break;
+                                  case OverallUiScale.normal: name = 'Normal (1.0x)'; break;
+                                  case OverallUiScale.l: name = 'L (1.1x)'; break;
+                                  case OverallUiScale.xl: name = 'XL (1.2x)'; break;
+                                }
+                                return DropdownMenuItem(
+                                  value: scale,
+                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  ref.read(overallUiScaleProvider.notifier).setScale(val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const Divider(color: Colors.white10, height: 1),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Category Font Size', style: titleStyle),
+                          subtitle: Text('Resize checklist category titles', style: subtitleStyle),
+                          trailing: DropdownButtonHideUnderline(
+                            child: DropdownButton<CategoryFontSize>(
+                              value: currentCategorySize,
+                              dropdownColor: const Color(0xFF18181B),
+                              alignment: Alignment.centerRight,
+                              items: CategoryFontSize.values.map((size) {
+                                String name = '';
+                                switch (size) {
+                                  case CategoryFontSize.level1: name = 'XS'; break;
+                                  case CategoryFontSize.level2: name = 'S'; break;
+                                  case CategoryFontSize.level3: name = 'Normal'; break;
+                                  case CategoryFontSize.level4: name = 'L'; break;
+                                  case CategoryFontSize.level5: name = 'XL'; break;
+                                }
+                                return DropdownMenuItem(
+                                  value: size,
+                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  ref.read(categoryFontSizeProvider.notifier).setFontSize(val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const Divider(color: Colors.white10, height: 1),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Card/Topic Font Size', style: titleStyle),
+                          subtitle: Text('Resize subject card titles', style: subtitleStyle),
+                          trailing: DropdownButtonHideUnderline(
+                            child: DropdownButton<TopicFontSize>(
+                              value: currentTopicSize,
+                              dropdownColor: const Color(0xFF18181B),
+                              alignment: Alignment.centerRight,
+                              items: TopicFontSize.values.map((size) {
+                                String name = '';
+                                switch (size) {
+                                  case TopicFontSize.level1: name = 'XS'; break;
+                                  case TopicFontSize.level2: name = 'S'; break;
+                                  case TopicFontSize.level3: name = 'Normal'; break;
+                                  case TopicFontSize.level4: name = 'L'; break;
+                                  case TopicFontSize.level5: name = 'XL'; break;
+                                }
+                                return DropdownMenuItem(
+                                  value: size,
+                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  ref.read(topicFontSizeProvider.notifier).setFontSize(val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const Divider(color: Colors.white10, height: 1),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('Checklist Font Size', style: titleStyle),
+                          subtitle: Text('Resize task checkbox text', style: subtitleStyle),
+                          trailing: DropdownButtonHideUnderline(
+                            child: DropdownButton<TaskFontSize>(
+                              value: currentTaskSize,
+                              dropdownColor: const Color(0xFF18181B),
+                              alignment: Alignment.centerRight,
+                              items: TaskFontSize.values.map((size) {
+                                String name = '';
+                                switch (size) {
+                                  case TaskFontSize.level1: name = 'XS'; break;
+                                  case TaskFontSize.level2: name = 'S'; break;
+                                  case TaskFontSize.level3: name = 'Normal'; break;
+                                  case TaskFontSize.level4: name = 'L'; break;
+                                  case TaskFontSize.level5: name = 'XL'; break;
+                                }
+                                return DropdownMenuItem(
+                                  value: size,
+                                  child: Text(name, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  ref.read(taskFontSizeProvider.notifier).setFontSize(val);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ],
-    );
-
-    final devOptionsHeader = buildHeader('DEVELOPER OPTIONS');
-    final devOptionsContent = ListTile(
-      leading: Icon(Icons.developer_mode_rounded, color: accentColor),
-      title: const Text(
-        'Dev: Inject Study Session',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
-      ),
-      subtitle: const Text(
-        'Add focus session to test statistics and history grids',
-        style: TextStyle(color: Colors.white30, fontSize: 11),
-      ),
-      onTap: () => _showDevInjectDialog(context, ref, accentColor),
     );
 
     final advancedOptionsContent = Theme(
@@ -1572,13 +1708,9 @@ class SettingsScreen extends ConsumerWidget {
         iconColor: accentColor,
         collapsedIconColor: Colors.white30,
         leading: Icon(Icons.settings_suggest_rounded, color: accentColor),
-        title: const Text(
+        title: Text(
           'Advanced Options',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+          style: titleStyle,
         ),
         children: [
           Consumer(
@@ -1601,10 +1733,10 @@ class SettingsScreen extends ConsumerWidget {
               }
               return ListTile(
                 leading: Icon(Icons.sync_lock_rounded, color: accentColor),
-                title: const Text('Background Sync Frequency'),
+                title: Text('Background Sync Frequency', style: titleStyle),
                 subtitle: Text(
                   label,
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: subtitleStyle,
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
                 onTap: () => _showSyncFrequencyDialog(context, ref, freq, accentColor),
@@ -1617,10 +1749,10 @@ class SettingsScreen extends ConsumerWidget {
               final mins = ref.watch(checkInGoalMinutesProvider);
               return ListTile(
                 leading: Icon(Icons.check_circle_outline_rounded, color: accentColor),
-                title: const Text('Daily Check-in Goal'),
+                title: Text('Daily Check-in Goal', style: titleStyle),
                 subtitle: Text(
                   '$mins minutes${mins == 15 ? ' (default)' : ''}',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: subtitleStyle,
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
                 onTap: () => _showCheckInGoalDialog(context, ref, mins, accentColor),
@@ -1633,10 +1765,10 @@ class SettingsScreen extends ConsumerWidget {
               final hideBanner = ref.watch(hideDownloadBannerProvider);
               return ListTile(
                 leading: Icon(Icons.devices_other_rounded, color: accentColor),
-                title: const Text('Hide Cross-Platform Promo'),
-                subtitle: const Text(
+                title: Text('Hide Cross-Platform Promo', style: titleStyle),
+                subtitle: Text(
                   'Hide the download banner shown under Cloud Sync on the web version',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                  style: subtitleStyle,
                 ),
                 trailing: Switch(
                   activeThumbColor: accentColor,
@@ -1652,34 +1784,13 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(color: Colors.white10, height: 1),
           Consumer(
             builder: (context, ref, _) {
-              final showProjComp = ref.watch(showProjectedCompletionProvider);
-              return ListTile(
-                leading: Icon(Icons.trending_up_rounded, color: accentColor),
-                title: const Text('Show Projected Completion Card'),
-                subtitle: const Text(
-                  'Display syllabus completion predictions on the Stats Hub',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
-                ),
-                trailing: Switch(
-                  activeThumbColor: accentColor,
-                  value: showProjComp,
-                  onChanged: (val) async {
-                    await ref.read(showProjectedCompletionProvider.notifier).setEnabled(val);
-                  },
-                ),
-              );
-            },
-          ),
-          const Divider(color: Colors.white10, height: 1),
-          Consumer(
-            builder: (context, ref, _) {
               final strength = ref.watch(glowStrengthProvider);
               return ListTile(
                 leading: Icon(Icons.blur_circular_rounded, color: accentColor),
-                title: const Text('Home Glow Strength'),
+                title: Text('Home Screen Glow Strength', style: titleStyle),
                 subtitle: Text(
                   '${(strength * 100).toStringAsFixed(0)}% intensity',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: subtitleStyle,
                 ),
                 trailing: SizedBox(
                   width: 140,
@@ -1691,7 +1802,7 @@ class SettingsScreen extends ConsumerWidget {
                     inactiveColor: Colors.white10,
                     value: strength.clamp(0.0, 4.0),
                     onChanged: (val) async {
-                      await ref.read(glowStrengthProvider.notifier).setStrength(val);
+                       await ref.read(glowStrengthProvider.notifier).setStrength(val);
                     },
                   ),
                 ),
@@ -1704,10 +1815,10 @@ class SettingsScreen extends ConsumerWidget {
               final profile = ref.watch(profileProvider);
               return ListTile(
                 leading: Icon(Icons.photo_size_select_large_rounded, color: accentColor),
-                title: const Text('Profile Photo Size'),
+                title: Text('Profile Photo Size', style: titleStyle),
                 subtitle: Text(
                   '${profile.profilePhotoSize.toStringAsFixed(0)} px radius',
-                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                  style: subtitleStyle,
                 ),
                 trailing: SizedBox(
                   width: 140,
@@ -1726,6 +1837,90 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
+              final disableWidget = ref.watch(disableHomeScreenWidgetProvider);
+              return ListTile(
+                leading: Icon(Icons.disabled_by_default_rounded, color: accentColor),
+                title: Text('Disable Home Screen Widget', style: titleStyle),
+                subtitle: Text(
+                  'Remove the countdown timer from the home screen layout',
+                  style: subtitleStyle,
+                ),
+                trailing: Switch(
+                  activeThumbColor: accentColor,
+                  value: disableWidget,
+                  onChanged: (val) async {
+                    await ref.read(disableHomeScreenWidgetProvider.notifier).setEnabled(val);
+                  },
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+
+    final betaOptionsContent = Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        iconColor: accentColor,
+        collapsedIconColor: Colors.white30,
+        leading: Icon(Icons.science_rounded, color: accentColor),
+        title: Text(
+          'Beta Options',
+          style: titleStyle,
+        ),
+        children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final showProjComp = ref.watch(showProjectedCompletionProvider);
+              return ListTile(
+                leading: Icon(Icons.trending_up_rounded, color: accentColor),
+                title: Text('Show Projected Completion Card', style: titleStyle),
+                subtitle: Text(
+                  'Display syllabus completion predictions on the Stats Hub',
+                  style: subtitleStyle,
+                ),
+                trailing: Switch(
+                  activeThumbColor: accentColor,
+                  value: showProjComp,
+                  onChanged: (val) async {
+                    await ref.read(showProjectedCompletionProvider.notifier).setEnabled(val);
+                  },
+                ),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          Consumer(
+            builder: (context, ref, _) {
+              final disableGlow = ref.watch(disableGraphGlowProvider);
+              return ListTile(
+                leading: Icon(Icons.blur_off_rounded, color: accentColor),
+                title: Text('Disable Graph Glow in Stats', style: titleStyle),
+                subtitle: Text(
+                  'Turn off neon glow/blur effect on charts for a sharper performance-friendly display',
+                  style: subtitleStyle,
+                ),
+                trailing: Switch(
+                  activeThumbColor: accentColor,
+                  value: disableGlow,
+                  onChanged: (val) async {
+                    await ref.read(disableGraphGlowProvider.notifier).setEnabled(val);
+                  },
+                ),
+              );
+            },
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          resumeButtonStyleContent,
+          const Divider(color: Colors.white10, height: 1),
+          focusAnimationStyleContent,
+          const Divider(color: Colors.white10, height: 1),
+          focusQuotesContent,
           const SizedBox(height: 8),
         ],
       ),
@@ -1733,10 +1928,10 @@ class SettingsScreen extends ConsumerWidget {
 
     final aboutAppContent = ListTile(
       leading: Icon(Icons.info_outline_rounded, color: accentColor),
-      title: const Text('About App'),
-      subtitle: const Text(
+      title: Text('About App', style: titleStyle),
+      subtitle: Text(
         'Show Info about App, Developer and Repository',
-        style: TextStyle(color: Colors.grey),
+        style: subtitleStyle,
       ),
       onTap: () {
         showAboutTrackerDialog(context, ref);
@@ -1780,168 +1975,118 @@ class SettingsScreen extends ConsumerWidget {
           ),
           centerTitle: true,
         ),
-      body: SafeArea(
-        child: isDesktop
-            ? SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Column(
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              cloudSyncHeader,
-                              cloudSyncContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              profileSettingsHeader,
-                              profileSettingsContent,
-                              if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
-                                  defaultTargetPlatform != TargetPlatform.android &&
-                                  defaultTargetPlatform != TargetPlatform.iOS) ...[
+        body: SafeArea(
+          child: isDesktop
+              ? SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                cloudSyncHeader,
+                                cloudSyncContent,
                                 const SizedBox(height: 8),
                                 const Divider(color: Colors.white12),
                                 const SizedBox(height: 4),
-                                uiSwitchHeader,
-                                uiSwitchContent,
+                                profileSettingsHeader,
+                                profileSettingsContent,
+                                if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
+                                    defaultTargetPlatform != TargetPlatform.android &&
+                                    defaultTargetPlatform != TargetPlatform.iOS) ...[
+                                  const SizedBox(height: 8),
+                                  const Divider(color: Colors.white12),
+                                  const SizedBox(height: 4),
+                                  uiSwitchHeader,
+                                  uiSwitchContent,
+                                ],
+                                const SizedBox(height: 8),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 4),
+                                localBackupsContent,
+                                const SizedBox(height: 8),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 4),
+                                aboutAppContent,
                               ],
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              localBackupsHeader,
-                              localBackupsContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              completionTypeHeader,
-                              completionTypeContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              resetDataHeader,
-                              resetDataContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              aboutAppContent,
-                            ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              categoryOrderingHeader,
-                              categoryOrderingContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              focusQuotesHeader,
-                              focusQuotesContent,
-                              focusAnimationStyleContent,
-                              resumeButtonStyleContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              accentColorHeader,
-                              accentColorContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              fontHeader,
-                              fontContent,
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              ChangeFontSizeTile(accentColor: accentColor),
-                              const SizedBox(height: 8),
-                              const Divider(color: Colors.white12),
-                              const SizedBox(height: 4),
-                              advancedOptionsContent,
-                            ],
+                          const SizedBox(width: 32),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                appSettingsHeader,
+                                appSettingsContent,
+                                const SizedBox(height: 8),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 4),
+                                advancedOptionsContent,
+                                const SizedBox(height: 8),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 4),
+                                betaOptionsContent,
+                                const SizedBox(height: 8),
+                                const Divider(color: Colors.white12),
+                                const SizedBox(height: 4),
+                                devOptionsContent,
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    const Divider(color: Colors.white10),
-                    const SizedBox(height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      const Divider(color: Colors.white10),
+                      const SizedBox(height: 12),
+                      versionText,
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                )
+              : ListView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
+                  children: [
+                    cloudSyncHeader,
+                    cloudSyncContent,
+                    const Divider(color: Colors.white12),
+                    profileSettingsHeader,
+                    profileSettingsContent,
+                    if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
+                        defaultTargetPlatform != TargetPlatform.android &&
+                        defaultTargetPlatform != TargetPlatform.iOS) ...[
+                      const Divider(color: Colors.white12),
+                      uiSwitchHeader,
+                      uiSwitchContent,
+                    ],
+                    const Divider(color: Colors.white12),
+                    appSettingsHeader,
+                    appSettingsContent,
+                    const Divider(color: Colors.white12),
+                    advancedOptionsContent,
+                    const Divider(color: Colors.white12),
+                    betaOptionsContent,
+                    const Divider(color: Colors.white12),
+                    localBackupsContent,
+                    const Divider(color: Colors.white12),
+                    devOptionsContent,
+                    const Divider(color: Colors.white12),
+                    aboutAppContent,
+                    SizedBox(height: context.s(8)),
                     versionText,
-                    const SizedBox(height: 16),
+                    SizedBox(height: context.s(16)),
                   ],
                 ),
-              )
-            : ListView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
-                children: [
-                  cloudSyncHeader,
-                  cloudSyncContent,
-                  const Divider(color: Colors.white12),
-                  profileSettingsHeader,
-                  profileSettingsContent,
-                  if ((kIsWeb || defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux) &&
-                      defaultTargetPlatform != TargetPlatform.android &&
-                      defaultTargetPlatform != TargetPlatform.iOS) ...[
-                    const Divider(color: Colors.white12),
-                    uiSwitchHeader,
-                    uiSwitchContent,
-                  ],
-                  const Divider(color: Colors.white12),
-                  localBackupsHeader,
-                  localBackupsContent,
-                  const Divider(color: Colors.white12),
-                  completionTypeHeader,
-                  completionTypeContent,
-                  SizedBox(height: context.s(4)),
-                  const Divider(color: Colors.white12),
-                  categoryOrderingHeader,
-                  categoryOrderingContent,
-                  SizedBox(height: context.s(4)),
-                  const Divider(color: Colors.white12),
-                  focusQuotesHeader,
-                  focusQuotesContent,
-                  focusAnimationStyleContent,
-                  resumeButtonStyleContent,
-                  SizedBox(height: context.s(4)),
-                  const Divider(color: Colors.white12),
-                  accentColorHeader,
-                  accentColorContent,
-                  const Divider(color: Colors.white12),
-                  fontHeader,
-                  fontContent,
-                  SizedBox(height: context.s(4)),
-                  ChangeFontSizeTile(accentColor: accentColor),
-                  const Divider(color: Colors.white12),
-                  resetDataHeader,
-                  resetDataContent,
-                  SizedBox(height: context.s(4)),
-                  const Divider(color: Colors.white10),
-                  advancedOptionsContent,
-                  SizedBox(height: context.s(4)),
-                  const Divider(color: Colors.white10),
-                  devOptionsHeader,
-                  devOptionsContent,
-                  SizedBox(height: context.s(4)),
-                  const Divider(color: Colors.white10),
-                  aboutAppContent,
-                  SizedBox(height: context.s(8)),
-                  const Divider(color: Colors.white10),
-                  SizedBox(height: context.s(8)),
-                  versionText,
-                  SizedBox(height: context.s(16)),
-                ],
-              ),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
 
   void _showSyncFrequencyDialog(
       BuildContext context, WidgetRef ref, SyncFrequency currentFreq, Color accentColor) {
@@ -2023,6 +2168,12 @@ class SettingsScreen extends ConsumerWidget {
 
   void _showAccentColorDialog(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.of(context).size;
+    final colorNotifier = ref.read(overallProgressColorProvider.notifier);
+    final currentColor = ref.read(overallProgressColorProvider);
+
+    int r = (currentColor.r * 255).round().clamp(0, 255);
+    int g = (currentColor.g * 255).round().clamp(0, 255);
+    int b = (currentColor.b * 255).round().clamp(0, 255);
 
     showDialog(
       context: context,
@@ -2044,136 +2195,244 @@ class SettingsScreen extends ConsumerWidget {
                 border: Border.all(color: Colors.white.withAlpha(12), width: 1.5),
               ),
               padding: const EdgeInsets.all(24.0),
-              child: Consumer(
-                builder: (context, ref, _) {
-                  final colorNotifier = ref.watch(overallProgressColorProvider.notifier);
-                  final currentActiveColor = ref.watch(overallProgressColorProvider);
+              child: StatefulBuilder(
+                builder: (context, setDialogState) {
                   final isAuto = colorNotifier.mode == 'auto';
+                  final previewColor = Color.fromARGB(255, r, g, b);
 
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        'Accent Color',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                  return SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Accent Color',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      // Top Option: Auto-change with auto icon
-                      InkWell(
-                        onTap: () {
-                          ref.read(overallProgressColorProvider.notifier).setAutoMode();
-                          Navigator.pop(context);
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: isAuto
-                                ? currentActiveColor.withValues(alpha: 0.15)
-                                : Colors.white10,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isAuto ? currentActiveColor : Colors.transparent,
-                              width: 1.5,
+                        const SizedBox(height: 20),
+                        InkWell(
+                          onTap: () {
+                            colorNotifier.setAutoMode();
+                            Navigator.pop(context);
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: isAuto
+                                  ? currentColor.withAlpha(38)
+                                  : Colors.white10,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isAuto ? currentColor : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.brightness_auto_rounded,
+                                  color: isAuto ? currentColor : Colors.white70,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Text(
+                                    'Auto-change color',
+                                    style: GoogleFonts.outfit(
+                                      color: isAuto ? Colors.white : Colors.white70,
+                                      fontSize: 15,
+                                      fontWeight: isAuto ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                if (isAuto)
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: currentColor,
+                                    size: 20,
+                                  ),
+                              ],
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.brightness_auto_rounded,
-                                color: isAuto ? currentActiveColor : Colors.white70,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  'Auto-change color',
-                                  style: GoogleFonts.outfit(
-                                    color: isAuto ? Colors.white : Colors.white70,
-                                    fontSize: 15,
-                                    fontWeight: isAuto ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                              if (isAuto)
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  color: currentActiveColor,
-                                  size: 20,
-                                ),
-                            ],
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Preset Colors:',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white38,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Freeze a color:',
-                        style: GoogleFonts.outfit(
-                          color: Colors.white38,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Wrap of all available colors in circle
-                      Center(
-                        child: Wrap(
-                          spacing: 16,
-                          runSpacing: 16,
-                          alignment: WrapAlignment.center,
-                          children: AppColors.neonCycle.map((color) {
-                            final isSelected = !isAuto &&
-                                colorNotifier.frozenColor?.toARGB32() == color.toARGB32();
+                        const SizedBox(height: 10),
+                        Center(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.center,
+                            children: AppColors.neonCycle.map((color) {
+                              final isSelected = !isAuto &&
+                                  colorNotifier.frozenColor?.toARGB32() == color.toARGB32();
 
-                            return InkWell(
-                              onTap: () {
-                                ref.read(overallProgressColorProvider.notifier).setFrozenColor(color);
-                                Navigator.pop(context);
-                              },
-                              customBorder: const CircleBorder(),
-                              child: Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.white24,
-                                    width: isSelected ? 3.0 : 1.5,
+                              return InkWell(
+                                onTap: () {
+                                  colorNotifier.setFrozenColor(color);
+                                  Navigator.pop(context);
+                                },
+                                customBorder: const CircleBorder(),
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? Colors.white : Colors.white24,
+                                      width: isSelected ? 2.5 : 1.2,
+                                    ),
+                                    boxShadow: [
+                                      if (isSelected)
+                                        BoxShadow(
+                                          color: color.withAlpha(150),
+                                          blurRadius: 10,
+                                          spreadRadius: 1,
+                                        ),
+                                    ],
                                   ),
-                                  boxShadow: [
-                                    if (isSelected)
-                                      BoxShadow(
-                                        color: color.withValues(alpha: 0.6),
-                                        blurRadius: 12,
-                                        spreadRadius: 2,
-                                      ),
-                                  ],
+                                  child: isSelected
+                                      ? const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.black,
+                                          size: 18,
+                                          fontWeight: FontWeight.bold,
+                                        )
+                                      : null,
                                 ),
-                                child: isSelected
-                                    ? const Icon(
-                                        Icons.check_rounded,
-                                        color: Colors.black,
-                                        size: 20,
-                                        fontWeight: FontWeight.bold,
-                                      )
-                                    : null,
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                        const SizedBox(height: 24),
+                        Text(
+                          'Custom Color Picker:',
+                          style: GoogleFonts.outfit(
+                            color: Colors.white38,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: previewColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white30, width: 1.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: previewColor.withAlpha(100),
+                                    blurRadius: 12,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                'RGB: ($r, $g, $b)\nHex: #${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}',
+                                style: GoogleFonts.orbitron(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            const SizedBox(width: 24, child: Text('R', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))),
+                            Expanded(
+                              child: Slider(
+                                value: r.toDouble(),
+                                min: 0,
+                                max: 255,
+                                activeColor: Colors.redAccent,
+                                inactiveColor: Colors.white10,
+                                onChanged: (val) {
+                                  setDialogState(() {
+                                    r = val.round();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            const SizedBox(width: 24, child: Text('G', style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
+                            Expanded(
+                              child: Slider(
+                                value: g.toDouble(),
+                                min: 0,
+                                max: 255,
+                                activeColor: Colors.greenAccent,
+                                inactiveColor: Colors.white10,
+                                onChanged: (val) {
+                                  setDialogState(() {
+                                    g = val.round();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            const SizedBox(width: 24, child: Text('B', style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))),
+                            Expanded(
+                              child: Slider(
+                                value: b.toDouble(),
+                                min: 0,
+                                max: 255,
+                                activeColor: Colors.blueAccent,
+                                inactiveColor: Colors.white10,
+                                onChanged: (val) {
+                                  setDialogState(() {
+                                    b = val.round();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: () {
+                            colorNotifier.setFrozenColor(Color.fromARGB(255, r, g, b));
+                            Navigator.pop(context);
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: previewColor,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Apply Custom Color', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
