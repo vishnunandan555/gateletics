@@ -85,6 +85,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 ref.read(noticeBoardModeProvider.notifier).state = false;
               }
               ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+              ref.read(syncProvider.notifier).syncIfPending();
             },
             children: [
               const KeepAliveWrapper(child: ProgressHistoryScreen()),

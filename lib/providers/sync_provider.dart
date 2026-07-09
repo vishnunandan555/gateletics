@@ -10,6 +10,7 @@ import '../database/backup_service.dart';
 import 'auth_provider.dart';
 import 'syllabus_provider.dart';
 import 'hide_download_banner_provider.dart';
+import 'rollover_provider.dart';
 import '../database/syllabus_preset.dart';
 
 enum SyncStatus {
@@ -68,8 +69,9 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      final freq = ref.read(syncFrequencyProvider);
-      if (freq == SyncFrequency.appClose && _hasPendingChanges) {
+      if (_hasPendingChanges) {
+        _syncTimer?.cancel();
+        _syncTimer = null;
         autoSync();
       }
     }
@@ -77,29 +79,20 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
   void triggerAutoSync() {
     _hasPendingChanges = true;
-    final freq = ref.read(syncFrequencyProvider);
-    switch (freq) {
-      case SyncFrequency.instant:
+    _syncTimer?.cancel();
+    _syncTimer = Timer(const Duration(seconds: 10), () {
+      if (_hasPendingChanges) {
         autoSync();
-        break;
-      case SyncFrequency.fiveMinutes:
-        _scheduleFiveMinuteSync();
-        break;
-      case SyncFrequency.appClose:
-      case SyncFrequency.manual:
-        // Do nothing automatically, wait for app close or manual sync
-        break;
-    }
+      }
+    });
   }
 
-  void _scheduleFiveMinuteSync() {
-    if (_syncTimer != null && _syncTimer!.isActive) return;
-    _syncTimer = Timer(const Duration(minutes: 5), () async {
-      if (_hasPendingChanges) {
-        await autoSync();
-      }
+  Future<void> syncIfPending() async {
+    if (_hasPendingChanges) {
+      _syncTimer?.cancel();
       _syncTimer = null;
-    });
+      await autoSync();
+    }
   }
 
   Future<void> _load() async {
@@ -306,24 +299,48 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           'topicKey': topicKey,
         };
       } else {
-        // If either completed, keep completed as true
         final existing = mergedSylTsks[key]!;
-        if (k['isCompleted'] == true) {
+        final lastSynced = state.lastSyncedAt;
+        
+        final localCompleted = existing['isCompleted'] == true;
+        final cloudCompleted = k['isCompleted'] == true;
+        
+        if (localCompleted && !cloudCompleted) {
+          // Local is completed, cloud is not. Keep local completion.
           existing['isCompleted'] = true;
-          // Merge completedAt
-          final existingTimeStr = existing['completedAt'] as String?;
-          final incomingTimeStr = k['completedAt'] as String?;
-          if (incomingTimeStr != null) {
-            if (existingTimeStr == null) {
-              existing['completedAt'] = incomingTimeStr;
-            } else {
-              final existingTime = DateTime.tryParse(existingTimeStr);
-              final incomingTime = DateTime.tryParse(incomingTimeStr);
-              if (existingTime != null && incomingTime != null && incomingTime.isAfter(existingTime)) {
-                existing['completedAt'] = incomingTimeStr;
-              }
+        } else if (!localCompleted && cloudCompleted) {
+          // Local is NOT completed, cloud IS completed.
+          final cloudTimeStr = k['completedAt'] as String?;
+          final cloudTime = cloudTimeStr != null ? DateTime.tryParse(cloudTimeStr) : null;
+          
+          if (lastSynced == null || cloudTime == null || cloudTime.isAfter(lastSynced)) {
+            // Cloud completion is newer (or no sync history exists). Merge to completed.
+            existing['isCompleted'] = true;
+            existing['completedAt'] = cloudTimeStr;
+          } else {
+            // Cloud completion is older than our last sync.
+            // This means the user unchecked it locally since the last sync. Keep it unchecked.
+            existing['isCompleted'] = false;
+            existing['completedAt'] = null;
+          }
+        } else if (localCompleted && cloudCompleted) {
+          // Both completed. Pick the latest completedAt timestamp.
+          existing['isCompleted'] = true;
+          final localTimeStr = existing['completedAt'] as String?;
+          final cloudTimeStr = k['completedAt'] as String?;
+          if (localTimeStr == null) {
+            existing['completedAt'] = cloudTimeStr;
+          } else if (cloudTimeStr != null) {
+            final localTime = DateTime.tryParse(localTimeStr);
+            final cloudTime = DateTime.tryParse(cloudTimeStr);
+            if (localTime != null && cloudTime != null && cloudTime.isAfter(localTime)) {
+              existing['completedAt'] = cloudTimeStr;
             }
           }
+        } else {
+          // Both unchecked.
+          existing['isCompleted'] = false;
+          existing['completedAt'] = null;
         }
       }
     }
@@ -375,14 +392,23 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       });
     });
 
-    // Merge Focus Sessions
+    // Merge Focus Sessions: Filter out sessions older than today based on rollover settings
+    final rollover = ref.read(studyDayRolloverProvider);
+    final now = DateTime.now();
+    final todayStart = getStudyDayStart(now, rollover: rollover);
+
     final localFocusSess = List<Map<String, dynamic>>.from(local['focusSessions'] ?? []);
     final cloudFocusSess = List<Map<String, dynamic>>.from(cloud['focusSessions'] ?? []);
     final mergedFocusSess = <String, Map<String, dynamic>>{};
     
     for (final fs in [...localFocusSess, ...cloudFocusSess]) {
-      final startTimeStr = fs['startTime'] as String;
-      mergedFocusSess[startTimeStr] = fs;
+      final startTimeStr = fs['startTime'] as String?;
+      if (startTimeStr != null) {
+        final startTime = DateTime.tryParse(startTimeStr);
+        if (startTime != null && !startTime.isBefore(todayStart)) {
+          mergedFocusSess[startTimeStr] = fs;
+        }
+      }
     }
     final finalFocusSess = mergedFocusSess.values.toList();
 
@@ -544,30 +570,13 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         return false;
       }
 
-      // Conflict: Both local and cloud have progress entries. Auto-merge!
-      final localData = await exportLocalData();
-      final merged = await _mergeData(localData, cloudData);
-
-      // Restore local DB with merged data if it actually changed
-      if (!_areDataEqual(localData, merged)) {
-        await _restoreLocalData(merged);
-      }
-
-      // Restore hideDownloadBanner
-      final hideBanner = cloudData['hideDownloadBanner'] as bool?;
-      if (hideBanner != null) {
-        await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
-      }
-
-      // Write merged data back to Cloud
-      merged['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'data': merged,
-        'lastSyncedAt': FieldValue.serverTimestamp(),
-      });
-
-      await _updateSyncState(status: SyncStatus.success, lastSyncedAt: DateTime.now());
-      return false;
+      // Conflict: Both local and cloud have progress entries. Requires user action/choice!
+      await _updateSyncState(
+        status: SyncStatus.requiresAction,
+        lastSyncedAt: cloudLastSynced,
+        pendingCloudData: cloudData,
+      );
+      return true;
     } catch (e) {
       await _updateSyncState(status: SyncStatus.error, errorMessage: e.toString());
       return false;
@@ -680,6 +689,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     if (!isFirebaseSupported()) return;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    if (state.status == SyncStatus.requiresAction) return;
 
     _hasPendingChanges = false;
     _syncTimer?.cancel();
@@ -729,8 +739,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'lastSyncedAt': FieldValue.serverTimestamp(),
       });
       await _updateSyncState(status: state.status, lastSyncedAt: DateTime.now());
-    } catch (_) {
-      // Fail silently on auto-sync (likely internet is down)
+    } catch (e, stack) {
+      debugPrint("Auto-sync error: $e\n$stack");
     }
   }
 
@@ -862,54 +872,4 @@ final syncProvider = NotifierProvider<SyncNotifier, SyncState>(() {
   return SyncNotifier();
 });
 
-enum SyncFrequency {
-  instant,
-  fiveMinutes,
-  appClose,
-  manual,
-}
 
-class SyncFrequencyNotifier extends Notifier<SyncFrequency> {
-  @override
-  SyncFrequency build() {
-    _load();
-    return SyncFrequency.instant;
-  }
-
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final val = prefs.getString('sync_frequency');
-    if (val != null) {
-      state = SyncFrequency.values.firstWhere(
-        (e) => e.name == val,
-        orElse: () => SyncFrequency.instant,
-      );
-    }
-  }
-
-  Future<void> setFrequency(SyncFrequency val) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('sync_frequency', val.name);
-    state = val;
-
-    final syncNotifier = ref.read(syncProvider.notifier);
-    if (val == SyncFrequency.instant) {
-      if (syncNotifier.hasPendingChanges) {
-        syncNotifier.autoSync();
-      }
-      syncNotifier._syncTimer?.cancel();
-      syncNotifier._syncTimer = null;
-    } else if (val == SyncFrequency.fiveMinutes) {
-      if (syncNotifier.hasPendingChanges) {
-        syncNotifier._scheduleFiveMinuteSync();
-      }
-    } else {
-      syncNotifier._syncTimer?.cancel();
-      syncNotifier._syncTimer = null;
-    }
-  }
-}
-
-final syncFrequencyProvider = NotifierProvider<SyncFrequencyNotifier, SyncFrequency>(() {
-  return SyncFrequencyNotifier();
-});

@@ -316,48 +316,188 @@ void showConflictDetailsDialog(
     return "Unknown";
   }
 
+  // Compute differences
+  final localCats = local['syllabusCategories'] as List? ?? [];
+  final localTops = local['syllabusTopics'] as List? ?? [];
+  final localTasksList = local['syllabusTasks'] as List? ?? [];
+  final cloudCats = cloud['syllabusCategories'] as List? ?? [];
+  final cloudTops = cloud['syllabusTopics'] as List? ?? [];
+  final cloudTasksList = cloud['syllabusTasks'] as List? ?? [];
+
+  final localCatMap = {for (var c in localCats) c['id']: c['name']};
+  final cloudCatMap = {for (var c in cloudCats) c['id']: c['name']};
+
+  final localTopicMap = <dynamic, String>{};
+  for (var t in localTops) {
+    final catName = localCatMap[t['categoryId']] ?? 'Unknown';
+    localTopicMap[t['id']] = "$catName / ${t['name']}";
+  }
+  final cloudTopicMap = <dynamic, String>{};
+  for (var t in cloudTops) {
+    final catName = cloudCatMap[t['categoryId']] ?? 'Unknown';
+    cloudTopicMap[t['id']] = "$catName / ${t['name']}";
+  }
+
+  final localTaskMap = <String, Map<String, dynamic>>{};
+  for (var t in localTasksList) {
+    final topicPath = localTopicMap[t['topicId']] ?? 'Unknown/Unknown';
+    final key = "$topicPath / ${t['name'] ?? ''}";
+    localTaskMap[key] = Map<String, dynamic>.from(t);
+  }
+
+  final cloudTaskMap = <String, Map<String, dynamic>>{};
+  for (var t in cloudTasksList) {
+    final topicPath = cloudTopicMap[t['topicId']] ?? 'Unknown/Unknown';
+    final key = "$topicPath / ${t['name'] ?? ''}";
+    cloudTaskMap[key] = Map<String, dynamic>.from(t);
+  }
+
+  final onlyLocalCompleted = <String>[];
+  final onlyCloudCompleted = <String>[];
+
+  localTaskMap.forEach((key, lt) {
+    final ct = cloudTaskMap[key];
+    final lComp = lt['isCompleted'] == true;
+    final cComp = ct != null && ct['isCompleted'] == true;
+    if (lComp && !cComp) {
+      onlyLocalCompleted.add(key);
+    }
+  });
+
+  cloudTaskMap.forEach((key, ct) {
+    final lt = localTaskMap[key];
+    final cComp = ct['isCompleted'] == true;
+    final lComp = lt != null && lt['isCompleted'] == true;
+    if (cComp && !lComp) {
+      onlyCloudCompleted.add(key);
+    }
+  });
+
+  final localSessionTimes = localSessions.map((s) => s['startTime'] as String?).whereType<String>().toSet();
+  final cloudSessionTimes = cloudSessions.map((s) => s['startTime'] as String?).whereType<String>().toSet();
+
+  final onlyLocalSessions = localSessions.where((s) => !cloudSessionTimes.contains(s['startTime'])).toList();
+  final onlyCloudSessions = cloudSessions.where((s) => !localSessionTimes.contains(s['startTime'])).toList();
+
+  String formatSessionTime(String startTimeStr) {
+    try {
+      final dt = DateTime.parse(startTimeStr).toLocal();
+      return "${dt.day}/${dt.month} at ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}";
+    } catch (_) {
+      return startTimeStr;
+    }
+  }
+
+  final onlyLocalSessionLabels = onlyLocalSessions.map((s) {
+    final method = s['method'] as String? ?? 'Freestyle';
+    final dur = ((s['durationSeconds'] ?? 0) as num).toInt() ~/ 60;
+    return "$method Session (${dur}m) on ${formatSessionTime(s['startTime'] as String)}";
+  }).toList();
+
+  final onlyCloudSessionLabels = onlyCloudSessions.map((s) {
+    final method = s['method'] as String? ?? 'Freestyle';
+    final dur = ((s['durationSeconds'] ?? 0) as num).toInt() ~/ 60;
+    return "$method Session (${dur}m) on ${formatSessionTime(s['startTime'] as String)}";
+  }).toList();
+
+  Widget buildConflictSection(String title, List<String> items, Color color) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: color, fontSize: 10),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 120),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withAlpha(5)),
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: items.length,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.check_circle_outline_rounded, color: color, size: 12),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          items[index],
+                          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: const Color(0xFF18181B),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Text(
-        "Data Comparison",
+        "Data Comparison Details",
         style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 18),
       ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      "LOCAL DEVICE",
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: accentColor, fontSize: 11),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        "LOCAL DEVICE",
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: accentColor, fontSize: 11),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      "CLOUD BACKUP",
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.cyanAccent, fontSize: 11),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        "CLOUD BACKUP",
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.cyanAccent, fontSize: 11),
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildStatComparisonRow("Focus Sessions", "${localSessions.length}", "${cloudSessions.length}"),
-            _buildStatComparisonRow("Hours Studied", "${localHours.toStringAsFixed(1)}h", "${cloudHours.toStringAsFixed(1)}h"),
-            _buildStatComparisonRow("Syllabus Tasks", "$localTasks completed", "$cloudTasks completed"),
-            _buildStatComparisonRow("Videos Tracked", "$localVideos completed", "$cloudVideos completed"),
-            _buildStatComparisonRow("Last Study Session", formatTime(localSessions), formatTime(cloudSessions)),
-          ],
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildStatComparisonRow("Focus Sessions", "${localSessions.length}", "${cloudSessions.length}"),
+              _buildStatComparisonRow("Hours Studied", "${localHours.toStringAsFixed(1)}h", "${cloudHours.toStringAsFixed(1)}h"),
+              _buildStatComparisonRow("Syllabus Tasks", "$localTasks completed", "$cloudTasks completed"),
+              _buildStatComparisonRow("Videos Tracked", "$localVideos completed", "$cloudVideos completed"),
+              _buildStatComparisonRow("Last Study Session", formatTime(localSessions), formatTime(cloudSessions)),
+              
+              buildConflictSection("COMPLETED LOCALLY ONLY (${onlyLocalCompleted.length})", onlyLocalCompleted, accentColor),
+              buildConflictSection("SESSIONS RECORDED LOCALLY ONLY (${onlyLocalSessionLabels.length})", onlyLocalSessionLabels, accentColor),
+              buildConflictSection("COMPLETED IN CLOUD ONLY (${onlyCloudCompleted.length})", onlyCloudCompleted, Colors.cyanAccent),
+              buildConflictSection("SESSIONS RECORDED IN CLOUD ONLY (${onlyCloudSessionLabels.length})", onlyCloudSessionLabels, Colors.cyanAccent),
+            ],
+          ),
         ),
       ),
       actions: [

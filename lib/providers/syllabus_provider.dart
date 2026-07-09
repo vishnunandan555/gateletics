@@ -59,7 +59,7 @@ final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>(
   if (topicsAsync.hasError) return AsyncValue.error(topicsAsync.error!, topicsAsync.stackTrace!);
   if (tasksAsync.hasError) return AsyncValue.error(tasksAsync.error!, tasksAsync.stackTrace!);
 
-  if (catsAsync.isLoading || topicsAsync.isLoading || tasksAsync.isLoading) {
+  if (!catsAsync.hasValue || !topicsAsync.hasValue || !tasksAsync.hasValue) {
     return const AsyncValue.loading();
   }
 

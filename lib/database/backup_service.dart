@@ -90,10 +90,10 @@ class BackupService {
 
         final oldCatIdToNewId = <int, int>{};
         for (final c in syllabusCategoriesData) {
-          final oldId = (c['id'] as num).toInt();
-          final name = c['name'] as String;
-          final color = (c['color'] as num).toInt();
-          final position = (c['position'] as num).toInt();
+          final oldId = ((c['id'] ?? 0) as num).toInt();
+          final name = c['name'] as String? ?? '';
+          final color = ((c['color'] ?? 0xFF00E5FF) as num).toInt();
+          final position = ((c['position'] ?? 0) as num).toInt();
           final lastIntStr = c['lastInteractedAt'] as String?;
           final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
 
@@ -103,10 +103,10 @@ class BackupService {
 
         final oldTopicIdToNewId = <int, int>{};
         for (final t in syllabusTopicsData) {
-          final oldId = (t['id'] as num).toInt();
-          final oldCatId = (t['categoryId'] as num).toInt();
-          final name = t['name'] as String;
-          final position = (t['position'] as num).toInt();
+          final oldId = ((t['id'] ?? 0) as num).toInt();
+          final oldCatId = ((t['categoryId'] ?? 0) as num).toInt();
+          final name = t['name'] as String? ?? '';
+          final position = ((t['position'] ?? 0) as num).toInt();
 
           final newCatId = oldCatIdToNewId[oldCatId];
           if (newCatId != null) {
@@ -116,10 +116,10 @@ class BackupService {
         }
 
         for (final k in syllabusTasksData) {
-          final oldTopicId = (k['topicId'] as num).toInt();
-          final name = k['name'] as String;
-          final isCompleted = k['isCompleted'] as bool;
-          final position = (k['position'] as num).toInt();
+          final oldTopicId = ((k['topicId'] ?? 0) as num).toInt();
+          final name = k['name'] as String? ?? '';
+          final isCompleted = k['isCompleted'] as bool? ?? false;
+          final position = ((k['position'] ?? 0) as num).toInt();
           final completedAtStr = k['completedAt'] as String?;
           final completedAt = completedAtStr != null ? DateTime.tryParse(completedAtStr) : null;
 
@@ -135,19 +135,22 @@ class BackupService {
       if (focusSessionsData != null) {
         await db.delete(db.focusSessions).go();
         for (final fs in focusSessionsData) {
-          final method = fs['method'] as String;
-          final startTime = DateTime.parse(fs['startTime'] as String);
-          final durationSeconds = (fs['durationSeconds'] as num).toInt();
+          final method = fs['method'] as String? ?? 'Freestyle';
+          final startTimeStr = fs['startTime'] as String?;
+          final startTime = startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
+          final durationSeconds = ((fs['durationSeconds'] ?? 0) as num).toInt();
           final accomplishments = fs['accomplishments'] as String?;
-          final progressDelta = (fs['progressDelta'] as num?)?.toDouble() ?? 0.0;
+          final progressDelta = ((fs['progressDelta'] ?? 0.0) as num).toDouble();
 
-          await db.addFocusSession(FocusSessionsCompanion.insert(
-            method: method,
-            startTime: startTime,
-            durationSeconds: durationSeconds,
-            accomplishments: Value(accomplishments),
-            progressDelta: Value(progressDelta),
-          ));
+          if (startTime != null) {
+            await db.addFocusSession(FocusSessionsCompanion.insert(
+              method: method,
+              startTime: startTime,
+              durationSeconds: durationSeconds,
+              accomplishments: Value(accomplishments),
+              progressDelta: Value(progressDelta),
+            ));
+          }
         }
       }
 
@@ -155,19 +158,21 @@ class BackupService {
       if (dailyHistoryData != null) {
         await db.delete(db.dailyHistory).go();
         for (final dh in dailyHistoryData) {
-          final dateStr = dh['dateStr'] as String;
-          final totalFocusSeconds = (dh['totalFocusSeconds'] as num).toInt();
-          final targetGoalSeconds = (dh['targetGoalSeconds'] as num).toInt();
-          final isGoalCompleted = dh['isGoalCompleted'] as bool;
-          final syllabusProgressPct = (dh['syllabusProgressPct'] as num).toDouble();
+          final dateStr = dh['dateStr'] as String? ?? '';
+          final totalFocusSeconds = ((dh['totalFocusSeconds'] ?? 0) as num).toInt();
+          final targetGoalSeconds = ((dh['targetGoalSeconds'] ?? 7200) as num).toInt();
+          final isGoalCompleted = dh['isGoalCompleted'] as bool? ?? false;
+          final syllabusProgressPct = ((dh['syllabusProgressPct'] ?? 0.0) as num).toDouble();
 
-          await db.upsertDailyHistory(
-            dateStr: dateStr,
-            totalFocusSeconds: totalFocusSeconds,
-            targetGoalSeconds: targetGoalSeconds,
-            isGoalCompleted: isGoalCompleted,
-            syllabusProgressPct: syllabusProgressPct,
-          );
+          if (dateStr.isNotEmpty) {
+            await db.upsertDailyHistory(
+              dateStr: dateStr,
+              totalFocusSeconds: totalFocusSeconds,
+              targetGoalSeconds: targetGoalSeconds,
+              isGoalCompleted: isGoalCompleted,
+              syllabusProgressPct: syllabusProgressPct,
+            );
+          }
         }
       }
 
@@ -175,17 +180,20 @@ class BackupService {
       if (customTasksData != null) {
         await db.delete(db.customTasks).go();
         for (final ct in customTasksData) {
-          final content = ct['content'] as String;
-          final isCompleted = ct['isCompleted'] as bool;
-          final createdAt = DateTime.parse(ct['createdAt'] as String);
-          final position = (ct['position'] as num).toInt();
+          final content = ct['content'] as String? ?? '';
+          final isCompleted = ct['isCompleted'] as bool? ?? false;
+          final createdAtStr = ct['createdAt'] as String?;
+          final createdAt = createdAtStr != null ? DateTime.tryParse(createdAtStr) : null;
+          final position = ((ct['position'] ?? 0) as num).toInt();
 
-          await db.into(db.customTasks).insert(CustomTasksCompanion.insert(
-            content: content,
-            isCompleted: Value(isCompleted),
-            createdAt: createdAt,
-            position: Value(position),
-          ));
+          if (createdAt != null) {
+            await db.into(db.customTasks).insert(CustomTasksCompanion.insert(
+              content: content,
+              isCompleted: Value(isCompleted),
+              createdAt: createdAt,
+              position: Value(position),
+            ));
+          }
         }
       }
     });

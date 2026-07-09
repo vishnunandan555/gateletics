@@ -519,7 +519,10 @@ class SettingsScreen extends ConsumerWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(context.s(16)),
-          child: child,
+          child: Material(
+            color: Colors.transparent,
+            child: child,
+          ),
         ),
       );
     }
@@ -1815,37 +1818,7 @@ class SettingsScreen extends ConsumerWidget {
             style: subtitleStyle,
           ),
           children: [
-            Consumer(
-              builder: (context, ref, _) {
-                final freq = ref.watch(syncFrequencyProvider);
-                String label;
-                switch (freq) {
-                  case SyncFrequency.instant:
-                    label = 'Instant';
-                    break;
-                  case SyncFrequency.fiveMinutes:
-                    label = 'Every 5 Minutes';
-                    break;
-                  case SyncFrequency.appClose:
-                    label = 'On App Close';
-                    break;
-                  case SyncFrequency.manual:
-                    label = 'Manual';
-                    break;
-                }
-                return ListTile(
-                  leading: Icon(Icons.sync_lock_rounded, color: accentColor),
-                  title: Text('Cloud Sync Frequency', style: titleStyle),
-                  subtitle: Text(
-                    'Interval for background database uploads: $label',
-                    style: subtitleStyle,
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white30),
-                  onTap: () => _showSyncFrequencyDialog(context, ref, freq, accentColor),
-                );
-              },
-            ),
-            const Divider(color: Colors.white10, height: 1),
+
             Consumer(
               builder: (context, ref, _) {
                 final mins = ref.watch(checkInGoalMinutesProvider);
@@ -2185,83 +2158,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
 
-  void _showSyncFrequencyDialog(
-      BuildContext context, WidgetRef ref, SyncFrequency currentFreq, Color accentColor) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF18181B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(
-            'Sync Frequency',
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: SyncFrequency.values.map((freq) {
-              String title;
-              String subtitle;
-              switch (freq) {
-                case SyncFrequency.instant:
-                  title = 'Instant';
-                  subtitle = 'Upload changes to the cloud immediately.';
-                  break;
-                case SyncFrequency.fiveMinutes:
-                  title = 'Every 5 Minutes';
-                  subtitle = 'Batch and upload changes every 5 minutes.';
-                  break;
-                case SyncFrequency.appClose:
-                  title = 'On App Close';
-                  subtitle = 'Upload changes when app goes to background.';
-                  break;
-                case SyncFrequency.manual:
-                  title = 'Manual';
-                  subtitle = 'Only upload when you manually press Sync.';
-                  break;
-              }
 
-              return Theme(
-                data: Theme.of(ctx).copyWith(
-                  unselectedWidgetColor: Colors.white30,
-                ),
-                child: RadioListTile<SyncFrequency>(
-                  activeColor: accentColor,
-                  title: Text(
-                    title,
-                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white54, fontSize: 11),
-                  ),
-                  value: freq,
-                  // ignore: deprecated_member_use
-                  groupValue: currentFreq,
-                  // ignore: deprecated_member_use
-                  onChanged: (val) {
-                    if (val != null) {
-                      ref.read(syncFrequencyProvider.notifier).setFrequency(val);
-                    }
-                    Navigator.of(ctx).pop();
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: accentColor),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   void _showAccentColorDialog(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.of(context).size;
