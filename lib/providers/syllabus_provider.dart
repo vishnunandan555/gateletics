@@ -153,20 +153,26 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   // Task methods
   Future<void> toggleTask(int taskId, bool isCompleted) async {
-    await _db.updateSyllabusTaskCompletion(taskId, isCompleted);
-    await _db.updateSyllabusCategoryInteractionByTaskId(taskId);
+    await _db.transaction(() async {
+      await _db.updateSyllabusTaskCompletion(taskId, isCompleted);
+      await _db.updateSyllabusCategoryInteractionByTaskId(taskId);
+    });
     _triggerSync();
   }
 
   Future<void> addTask(int topicId, String name) async {
-    await _db.addSyllabusTask(topicId, name);
-    await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
+    await _db.transaction(() async {
+      await _db.addSyllabusTask(topicId, name);
+      await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
+    });
     _triggerSync();
   }
 
   Future<void> renameTask(int id, String name, bool isCompleted) async {
-    await _db.updateSyllabusTaskDetails(id, name, isCompleted);
-    await _db.updateSyllabusCategoryInteractionByTaskId(id);
+    await _db.transaction(() async {
+      await _db.updateSyllabusTaskDetails(id, name, isCompleted);
+      await _db.updateSyllabusCategoryInteractionByTaskId(id);
+    });
     _triggerSync();
   }
 
@@ -176,21 +182,27 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   }
 
   Future<void> reorderTasks(int topicId, List<int> orderedIds) async {
-    await _db.updateSyllabusTaskPositions(topicId, orderedIds);
-    await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
+    await _db.transaction(() async {
+      await _db.updateSyllabusTaskPositions(topicId, orderedIds);
+      await _db.updateSyllabusCategoryInteractionByTopicId(topicId);
+    });
     _triggerSync();
   }
 
   // Topic methods
   Future<void> addTopic(int categoryId, String name) async {
-    await _db.addSyllabusTopic(categoryId, name);
-    await _db.updateSyllabusCategoryInteraction(categoryId);
+    await _db.transaction(() async {
+      await _db.addSyllabusTopic(categoryId, name);
+      await _db.updateSyllabusCategoryInteraction(categoryId);
+    });
     _triggerSync();
   }
 
   Future<void> renameTopic(int id, String name) async {
-    await _db.updateSyllabusTopicDetails(id, name);
-    await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    await _db.transaction(() async {
+      await _db.updateSyllabusTopicDetails(id, name);
+      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    });
     _triggerSync();
   }
 
@@ -200,8 +212,10 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   }
 
   Future<void> reorderTopics(int categoryId, List<int> orderedIds) async {
-    await _db.updateSyllabusTopicPositions(categoryId, orderedIds);
-    await _db.updateSyllabusCategoryInteraction(categoryId);
+    await _db.transaction(() async {
+      await _db.updateSyllabusTopicPositions(categoryId, orderedIds);
+      await _db.updateSyllabusCategoryInteraction(categoryId);
+    });
     _triggerSync();
   }
 

@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.9-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.10-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -113,6 +113,12 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.10 Highlights
+
+- **Fixed Completion Screen Glitching & Reloading**: Wrapped syllabus progress updates inside atomic database transactions so that multiple database writes update stream queries exactly once, preventing double UI refreshes.
+- **Fixed Subject Cards Auto-Collapse**: Included the `hideDownloadBanner` preference property directly inside `exportLocalData()` and merged data outputs to prevent false negatives in the data equality comparison. This eliminates unintended local database restores that were resetting the expanded card caches on every subtask toggle.
+- **Robust Local Database Restores**: Removed manual cache clearing from the background sync restore method. Sync updates will now silently populate in the background without collapsing user's open topic/subject panels.
 
 ## 🌟 Version 1.2.9 Highlights
 

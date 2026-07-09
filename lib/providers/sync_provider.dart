@@ -190,14 +190,16 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
   AppDatabase get _db => ref.read(appDatabaseProvider);
 
   // Helper: Export local database to backup JSON format
-  Future<Map<String, dynamic>> exportLocalData() {
-    return BackupService.exportDatabase(_db);
+  Future<Map<String, dynamic>> exportLocalData() async {
+    final exported = await BackupService.exportDatabase(_db);
+    exported['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
+    return exported;
   }
 
   // Helper: Restore database from backup JSON format
   Future<void> _restoreLocalData(Map<String, dynamic> payload) async {
     await BackupService.restoreDatabase(_db, payload);
-    clearDatabaseCaches();
+    // DO NOT clear expanded/collapsed state caches on sync restores
   }
 
   void clearDatabaseCaches() {
@@ -451,6 +453,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       'dailyHistory': finalDailyHist,
       'customTasks': finalCustomTasks,
       'lastInteractedAt': DateTime.now().toIso8601String(),
+      'hideDownloadBanner': local['hideDownloadBanner'] ?? cloud['hideDownloadBanner'] ?? false,
     };
   }
 
