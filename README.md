@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.8-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.9-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -113,6 +113,15 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.9 Highlights
+
+- **Auto-Sort and Navigation Fixes**: Cleared locked category sorting order when switching tabs, so that returning to the Completion page re-sorts categories correctly by recent interaction.
+- **Subject Cards Collapse Fix**: Optimized data sync logic to avoid local database restores when no remote updates are found. This prevents expanded subject cards from collapsing on subtask click.
+- **Complete Reinstall Reset**: Updated the "Reset Everything" feature to completely sign out Firebase and Google Sign-in, clear all local database tables (syllabus tasks, custom tasks, focus sessions, daily history), and purge SharedPreferences to simulate a fresh reinstall.
+- **Improved Reset Tracking Data**: "Reset Tracking Data" now completely purges all focus sessions, daily history, and custom tasks, and resets syllabus tasks completions to false and completedAt timestamps to null.
+- **Delete Account Warning**: Added a compliant "local data still exists" warning dialog after server-side deletion, which signs out the user locally on OK press and returns them to the auth screen.
+- **UI Tweaks**: Changed statistics timeframe labels to grammatical nouns (week, month, year) and redesigned the update notification SnackBar to align text and actions side-by-side in a single row.
 
 ## 🌟 Version 1.2.8 Highlights
 
