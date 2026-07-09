@@ -1039,7 +1039,10 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
             builder: (context, _) {
               final val = _chartDataAnimController.value;
               final animatedHours = totalHours * val;
-                final animatedPctChange = pctChange * val;
+              final animatedPctChange = pctChange * val;
+              final timeframeNoun = _timeframe.toLowerCase() == 'weekly'
+                  ? 'week'
+                  : (_timeframe.toLowerCase() == 'monthly' ? 'month' : 'year');
 
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1057,7 +1060,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                         ),
                         SizedBox(height: context.s(2)),
                         Text(
-                          'total this ${_timeframe.toLowerCase()}',
+                          'total this $timeframeNoun',
                           style: GoogleFonts.outfit(
                             color: Colors.white38,
                             fontSize: context.s(11),
@@ -1096,7 +1099,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                           ),
                           SizedBox(height: context.s(4)),
                           Text(
-                            "vs last ${_timeframe.toLowerCase()}",
+                            "vs last $timeframeNoun",
                             style: GoogleFonts.outfit(
                               color: Colors.white38,
                               fontSize: context.s(10),

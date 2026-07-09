@@ -221,7 +221,23 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     for (final c in [...localSylCats, ...cloudSylCats]) {
       final name = c['name'] as String;
       if (!mergedSylCats.containsKey(name)) {
-        mergedSylCats[name] = c;
+        mergedSylCats[name] = Map<String, dynamic>.from(c);
+      } else {
+        // Resolve lastInteractedAt
+        final existing = mergedSylCats[name]!;
+        final existingTimeStr = existing['lastInteractedAt'] as String?;
+        final incomingTimeStr = c['lastInteractedAt'] as String?;
+        if (incomingTimeStr != null) {
+          if (existingTimeStr == null) {
+            existing['lastInteractedAt'] = incomingTimeStr;
+          } else {
+            final existingTime = DateTime.tryParse(existingTimeStr);
+            final incomingTime = DateTime.tryParse(incomingTimeStr);
+            if (existingTime != null && incomingTime != null && incomingTime.isAfter(existingTime)) {
+              existing['lastInteractedAt'] = incomingTimeStr;
+            }
+          }
+        }
       }
     }
 
@@ -292,6 +308,20 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         final existing = mergedSylTsks[key]!;
         if (k['isCompleted'] == true) {
           existing['isCompleted'] = true;
+          // Merge completedAt
+          final existingTimeStr = existing['completedAt'] as String?;
+          final incomingTimeStr = k['completedAt'] as String?;
+          if (incomingTimeStr != null) {
+            if (existingTimeStr == null) {
+              existing['completedAt'] = incomingTimeStr;
+            } else {
+              final existingTime = DateTime.tryParse(existingTimeStr);
+              final incomingTime = DateTime.tryParse(incomingTimeStr);
+              if (existingTime != null && incomingTime != null && incomingTime.isAfter(existingTime)) {
+                existing['completedAt'] = incomingTimeStr;
+              }
+            }
+          }
         }
       }
     }
@@ -311,6 +341,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'name': name,
         'position': c['position'],
         'color': c['color'],
+        'lastInteractedAt': c['lastInteractedAt'],
       });
     });
 
@@ -338,6 +369,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'name': k['name'],
         'isCompleted': k['isCompleted'],
         'position': k['position'],
+        'completedAt': k['completedAt'],
       });
     });
 
@@ -513,8 +545,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       final localData = await exportLocalData();
       final merged = await _mergeData(localData, cloudData);
 
-      // Restore local DB with merged data
-      await _restoreLocalData(merged);
+      // Restore local DB with merged data if it actually changed
+      if (!_areDataEqual(localData, merged)) {
+        await _restoreLocalData(merged);
+      }
 
       // Restore hideDownloadBanner
       final hideBanner = cloudData['hideDownloadBanner'] as bool?;
@@ -614,8 +648,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         final localData = await exportLocalData();
         final merged = await _mergeData(localData, dataToMerge);
         
-        // Restore local DB with merged data
-        await _restoreLocalData(merged);
+        // Restore local DB with merged data if it actually changed
+        if (!_areDataEqual(localData, merged)) {
+          await _restoreLocalData(merged);
+        }
 
         // Restore hideDownloadBanner
         final hideBanner = dataToMerge['hideDownloadBanner'] as bool?;
@@ -674,7 +710,9 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       // Conflict/Difference: Auto-merge!
       final merged = await _mergeData(localData, cloudData);
-      await _restoreLocalData(merged);
+      if (!_areDataEqual(localData, merged)) {
+        await _restoreLocalData(merged);
+      }
 
       // Restore hideDownloadBanner
       final hideBanner = cloudData['hideDownloadBanner'] as bool?;

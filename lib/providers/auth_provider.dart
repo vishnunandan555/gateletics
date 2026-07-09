@@ -397,6 +397,47 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       rethrow;
     }
   }
+
+  // Delete user account data on Firebase/Firestore server only
+  Future<void> deleteServerAccountOnly() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Delete Firestore document first
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+      } catch (e) {
+        debugPrint("Error deleting user Firestore data: $e");
+      }
+      // Delete FirebaseAuth user
+      await user.delete();
+    }
+  }
+
+  // Complete local sign out after confirming server deletion
+  Future<void> completeLocalSignOut() async {
+    state = const AsyncValue.loading();
+    try {
+      if (isFirebaseSupported()) {
+        if (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) {
+          await GoogleSignIn().signOut();
+        }
+        await FirebaseAuth.instance.signOut();
+      }
+      await _prefs.setBool('has_chosen_offline', false);
+      try {
+        await ref.read(syncProvider.notifier).clearSyncState();
+      } catch (e) {
+        debugPrint("Error clearing sync state: $e");
+      }
+      state = AsyncValue.data(AuthState(
+        user: null,
+        isOfflineMode: false,
+        isLoading: false,
+      ));
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
 }
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(() {

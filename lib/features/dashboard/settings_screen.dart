@@ -269,32 +269,25 @@ class SettingsScreen extends ConsumerWidget {
 
     try {
       if (everything) {
-        await ref.read(syllabusControllerProvider.notifier).resetEverything();
+        // 1. Sign out on the server and locally
+        await ref.read(authProvider.notifier).resetAuthChoice();
 
-        // 1. Delete all focus sessions
+        // 2. Delete all database tables completely
         final db = ref.read(appDatabaseProvider);
+        await db.delete(db.syllabusTasks).go();
+        await db.delete(db.syllabusTopics).go();
+        await db.delete(db.syllabusCategories).go();
         await db.delete(db.focusSessions).go();
+        await db.delete(db.dailyHistory).go();
+        await db.delete(db.customTasks).go();
 
-        // 2. Clear focus related SharedPreferences
+        // 3. Clear SharedPreferences completely
         final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('focus_selected_method_index');
-        await prefs.remove('focus_custom_timer_minutes');
-        await prefs.remove('daily_focus_goal_minutes');
-        await prefs.remove('beta_focus_quotes_enabled');
+        await prefs.clear();
 
-        // Other settings/onboarding keys
-        await prefs.remove('has_agreed_legal');
-        await prefs.remove('has_completed_setup');
-        await prefs.remove('completion_type');
-        await prefs.remove('has_seen_desktop_warning');
-        await prefs.remove('last_seen_desktop_warning_version');
-        await prefs.remove('desktop_warning_seen_time_ms');
-        await prefs.remove('category_font_size');
-        await prefs.remove('topic_font_size');
-        await prefs.remove('task_font_size');
-        await prefs.remove('overall_ui_scale');
-
-        // 3. Reset/invalidate all focus-related providers
+        // 4. Invalidate/reset all providers
+        ref.invalidate(authProvider);
+        ref.invalidate(syllabusProvider);
         ref.read(focusProvider.notifier).resetState();
         ref.invalidate(todayFocusSessionsProvider);
         ref.invalidate(todayFocusDurationProvider);
@@ -309,7 +302,19 @@ class SettingsScreen extends ConsumerWidget {
         ref.invalidate(overallUiScaleProvider);
         await ref.read(overallProgressColorProvider.notifier).setAutoMode();
       } else {
+        // 1. Reset syllabus tracking completions
         await ref.read(syllabusControllerProvider.notifier).resetTrackingData();
+
+        // 2. Delete focus sessions, daily history, and custom tasks tables
+        final db = ref.read(appDatabaseProvider);
+        await db.delete(db.focusSessions).go();
+        await db.delete(db.dailyHistory).go();
+        await db.delete(db.customTasks).go();
+
+        // 3. Invalidate relevant tracking providers
+        ref.invalidate(todayFocusSessionsProvider);
+        ref.invalidate(todayFocusDurationProvider);
+        ref.invalidate(dailyFocusGoalProvider);
       }
 
       if (context.mounted) {
@@ -870,7 +875,7 @@ class SettingsScreen extends ConsumerWidget {
                                         onPressed: () => Navigator.of(context).pop(true),
                                         child: Text(
                                           'Delete Permanently',
-                                          style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold),
+                                      style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                     ],
@@ -878,8 +883,61 @@ class SettingsScreen extends ConsumerWidget {
                                 );
 
                                 if (confirm == true && context.mounted) {
+                                  // Show loading spinner
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  );
+
                                   try {
-                                    await ref.read(authProvider.notifier).deleteAccount();
+                                    // 1. Delete server account first
+                                    await ref.read(authProvider.notifier).deleteServerAccountOnly();
+
+                                    // Hide loading spinner
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                    }
+
+                                    // 2. Show prompt "local data still exists"
+                                    if (context.mounted) {
+                                      await showDialog<void>(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (context) => AlertDialog(
+                                          backgroundColor: const Color(0xFF161B22),
+                                          title: Text(
+                                            'Local Data Remains',
+                                            style: GoogleFonts.outfit(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          content: Text(
+                                            'local data still exists',
+                                            style: GoogleFonts.outfit(color: Colors.white70),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.of(context).pop(),
+                                              child: Text(
+                                                'OK',
+                                                style: GoogleFonts.outfit(
+                                                  color: Colors.cyanAccent,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+
+                                    // 3. Log out and navigate back to logged out version
+                                    await ref.read(authProvider.notifier).completeLocalSignOut();
+
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
@@ -889,6 +947,10 @@ class SettingsScreen extends ConsumerWidget {
                                       );
                                     }
                                   } on FirebaseAuthException catch (e) {
+                                    // Hide loading spinner if it is still showing
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                    }
                                     if (e.code == 'requires-recent-login' && context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(
@@ -906,6 +968,10 @@ class SettingsScreen extends ConsumerWidget {
                                       );
                                     }
                                   } catch (e) {
+                                    // Hide loading spinner if it is still showing
+                                    if (context.mounted) {
+                                      Navigator.of(context).pop();
+                                    }
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(

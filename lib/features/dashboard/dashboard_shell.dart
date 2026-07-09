@@ -16,6 +16,7 @@ import 'settings_screen.dart';
 import 'widgets/app_bar_title.dart';
 import 'widgets/countdown_widget.dart';
 import '../../providers/overall_ui_scale_provider.dart';
+import '../../providers/syllabus_provider.dart';
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -83,6 +84,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
               if (index != 2) {
                 ref.read(noticeBoardModeProvider.notifier).state = false;
               }
+              ref.read(syllabusCategoriesOrderProvider.notifier).clear();
             },
             children: [
               const KeepAliveWrapper(child: ProgressHistoryScreen()),

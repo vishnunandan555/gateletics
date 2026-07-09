@@ -273,7 +273,10 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 extension SyllabusReset on AppDatabase {
   Future<void> resetSyllabusTrackingData() async {
     await (update(syllabusTasks)).write(
-      const SyllabusTasksCompanion(isCompleted: Value(false)),
+      const SyllabusTasksCompanion(
+        isCompleted: Value(false),
+        completedAt: Value(null),
+      ),
     );
   }
 
