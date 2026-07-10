@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../database/app_database.dart';
 import '../../../providers/syllabus_provider.dart';
 import '../../../providers/topic_font_size_provider.dart';
@@ -25,8 +26,8 @@ class SyllabusTopicCard extends ConsumerWidget {
     final topic = topicWithTasks.topic;
     final tasks = topicWithTasks.tasks;
 
-    final completedCount = tasks.where((t) => t.isCompleted).length;
-    final totalCount = tasks.length;
+    final completedCount = topic.isCounter ? topic.currentCount : tasks.where((t) => t.isCompleted).length;
+    final totalCount = topic.isCounter ? topic.maxCount : tasks.length;
     final percentage = totalCount == 0 ? 0.0 : (completedCount / totalCount) * 100;
 
     final expandedSet = ref.watch(expandedTopicsProvider);
@@ -74,7 +75,7 @@ class SyllabusTopicCard extends ConsumerWidget {
               ref.read(expandedTopicsProvider.notifier).toggle(topic.id);
             },
             onLongPress: () {
-              _showTopicContextMenu(context, topicTapDetails, topic, tasks, ref);
+              _showTopicContextMenu(context, topicTapDetails, topic, tasks, ref, categoryColor);
             },
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: context.s(12) * overallScale, vertical: context.s(8) * overallScale),
@@ -87,15 +88,30 @@ class SyllabusTopicCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          topic.name,
-                          style: GoogleFonts.outfit(
-                            fontSize: topicFontSize,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white.withAlpha(235),
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (topic.isCounter) ...[
+                              Icon(
+                                Icons.book_rounded,
+                                size: topicFontSize * 0.85,
+                                color: categoryColor.withAlpha(220),
+                              ),
+                              SizedBox(width: context.s(6) * overallScale),
+                            ],
+                            Expanded(
+                              child: Text(
+                                topic.name,
+                                style: GoogleFonts.outfit(
+                                  fontSize: topicFontSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withAlpha(235),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                         SizedBox(height: context.s(6) * overallScale),
                         ProgressBar(
@@ -152,7 +168,7 @@ class SyllabusTopicCard extends ConsumerWidget {
           ),
 
           // Collapsible Checklist Area
-          if (isExpanded) ...[
+          if (isExpanded && !topic.isCounter) ...[
             const Divider(color: Colors.white10, height: 1),
             if (totalCount == 0)
               Padding(
@@ -234,91 +250,254 @@ class SyllabusTopicCard extends ConsumerWidget {
                 );
               }),
           ],
+
+          if (topic.isCounter && isExpanded) ...[
+            const Divider(color: Colors.white10, height: 1),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.s(12) * overallScale,
+                vertical: context.s(6) * overallScale,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Resource Link Button (filled book button)
+                  if (topic.resourceUrl != null && topic.resourceUrl!.trim().isNotEmpty)
+                    IconButton.filled(
+                      onPressed: () async {
+                        final uri = Uri.parse(topic.resourceUrl!.trim());
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      icon: Icon(
+                        Icons.book_rounded,
+                        size: context.s(14) * overallScale,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: categoryColor.withAlpha(200),
+                        foregroundColor: Colors.black,
+                        minimumSize: Size(context.s(28) * overallScale, context.s(28) * overallScale),
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(context.s(6)),
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  
+                  // Counter increment/decrement buttons
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton.filled(
+                        onPressed: topic.currentCount > 0
+                            ? () {
+                                ref.read(syllabusControllerProvider.notifier).updateCounterValue(
+                                      topic.id,
+                                      topic.currentCount - 1,
+                                    );
+                              }
+                            : null,
+                        icon: Icon(
+                          Icons.remove_rounded,
+                          size: context.s(14) * overallScale,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFF27272A),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFF18181B),
+                          disabledForegroundColor: Colors.white24,
+                          minimumSize: Size(context.s(28) * overallScale, context.s(28) * overallScale),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(context.s(6)),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: context.s(8) * overallScale),
+                      IconButton.filled(
+                        onPressed: topic.currentCount < topic.maxCount
+                            ? () {
+                                ref.read(syllabusControllerProvider.notifier).updateCounterValue(
+                                      topic.id,
+                                      topic.currentCount + 1,
+                                    );
+                              }
+                            : null,
+                        icon: Icon(
+                          Icons.add_rounded,
+                          size: context.s(14) * overallScale,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: categoryColor,
+                          foregroundColor: Colors.black,
+                          disabledBackgroundColor: const Color(0xFF18181B),
+                          disabledForegroundColor: Colors.white24,
+                          minimumSize: Size(context.s(28) * overallScale, context.s(28) * overallScale),
+                          padding: EdgeInsets.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(context.s(6)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
   void _showTopicContextMenu(
-      BuildContext context, TapDownDetails details, SyllabusTopic topic, List<SyllabusTask> tasks, WidgetRef ref) {
+      BuildContext context, TapDownDetails details, SyllabusTopic topic, List<SyllabusTask> tasks, WidgetRef ref, Color categoryColor) {
     final position = details.globalPosition;
     showMenu(
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
       color: const Color(0xFF1E1E22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      items: [
-        PopupMenuItem(
-          value: 'rename',
-          height: 36,
-          child: Row(
-            children: [
-              Icon(Icons.edit_rounded, color: categoryColor, size: 18),
-              const SizedBox(width: 10),
-              const Text('Rename Topic', style: TextStyle(color: Colors.white70)),
+      items: topic.isCounter
+          ? [
+              PopupMenuItem(
+                value: 'edit_counter',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Edit Card', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'complete',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Mark as Complete', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'reset',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.replay_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Reset Stats', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                height: 36,
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                    const SizedBox(width: 10),
+                    Text('Delete Card', style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
+            ]
+          : [
+              PopupMenuItem(
+                value: 'rename',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Rename Topic', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'add_task',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.add_circle_outline_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Add Task', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'complete',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Mark as Complete', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'reset',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.replay_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Reset Stats', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'reorder',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_vert_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Reorder Tasks', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'convert_counter',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(Icons.slow_motion_video_rounded, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    const Text('Convert to Counter Card', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                height: 36,
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                    const SizedBox(width: 10),
+                    Text('Delete Topic', style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
             ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'add_task',
-          height: 36,
-          child: Row(
-            children: [
-              Icon(Icons.add_circle_outline_rounded, color: categoryColor, size: 18),
-              const SizedBox(width: 10),
-              const Text('Add Task', style: TextStyle(color: Colors.white70)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'complete',
-          height: 36,
-          child: Row(
-            children: [
-              Icon(Icons.check_circle_outline_rounded, color: categoryColor, size: 18),
-              const SizedBox(width: 10),
-              const Text('Mark as Complete', style: TextStyle(color: Colors.white70)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'reset',
-          height: 36,
-          child: Row(
-            children: [
-              Icon(Icons.replay_rounded, color: categoryColor, size: 18),
-              const SizedBox(width: 10),
-              const Text('Reset Stats', style: TextStyle(color: Colors.white70)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'reorder',
-          height: 36,
-          child: Row(
-            children: [
-              Icon(Icons.swap_vert_rounded, color: categoryColor, size: 18),
-              const SizedBox(width: 10),
-              const Text('Reorder Tasks', style: TextStyle(color: Colors.white70)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          height: 36,
-          child: Row(
-            children: [
-              const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
-              const SizedBox(width: 10),
-              Text('Delete Topic', style: TextStyle(color: Colors.redAccent)),
-            ],
-          ),
-        ),
-      ],
     ).then((val) {
       if (!context.mounted) return;
       if (val == 'rename') {
         showRenameSyllabusTopicDialog(context, topic, categoryColor, ref);
+      } else if (val == 'edit_counter') {
+        showEditCounterCardDialog(context, topic, categoryColor, ref);
+      } else if (val == 'convert_counter') {
+        showConvertToCounterCardDialog(context, topic, categoryColor, ref);
       } else if (val == 'add_task') {
         showAddSyllabusTaskDialog(context, topic, categoryColor, ref);
       } else if (val == 'complete') {

@@ -24,6 +24,10 @@ class BackupService {
       'categoryId': t.categoryId,
       'name': t.name,
       'position': t.position,
+      'isCounter': t.isCounter,
+      'currentCount': t.currentCount,
+      'maxCount': t.maxCount,
+      'resourceUrl': t.resourceUrl,
     }).toList();
 
     final exportedSyllabusTsks = syllabusTsks.map((k) => {
@@ -107,10 +111,22 @@ class BackupService {
           final oldCatId = ((t['categoryId'] ?? 0) as num).toInt();
           final name = t['name'] as String? ?? '';
           final position = ((t['position'] ?? 0) as num).toInt();
-
+          final isCounter = t['isCounter'] as bool? ?? false;
+          final currentCount = ((t['currentCount'] ?? 0) as num).toInt();
+          final maxCount = ((t['maxCount'] ?? 0) as num).toInt();
+          final resourceUrl = t['resourceUrl'] as String?;
+ 
           final newCatId = oldCatIdToNewId[oldCatId];
           if (newCatId != null) {
-            final newId = await db.addSyllabusTopic(newCatId, name, position: position);
+            final newId = await db.addSyllabusTopic(
+              newCatId,
+              name,
+              position: position,
+              isCounter: isCounter,
+              currentCount: currentCount,
+              maxCount: maxCount,
+              resourceUrl: resourceUrl,
+            );
             oldTopicIdToNewId[oldId] = newId;
           }
         }

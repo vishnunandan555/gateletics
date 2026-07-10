@@ -297,7 +297,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         accentColor: accentColor,
                                         onTabChange: _navigateToTab,
                                       ),
-                                      SizedBox(height: context.s(16)),
+                                      SizedBox(height: context.s(28)),
                                     ],
 
                                     // Resume Prep / Active Focus Button
@@ -328,7 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       ),
                                     ],
 
-                                    SizedBox(height: context.s(16)),
+                                    SizedBox(height: context.s(28)),
 
                                     _buildConsistencyGrid(accentColor, dailyGoalMinutes),
                                   ],

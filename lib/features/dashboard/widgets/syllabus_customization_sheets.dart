@@ -996,3 +996,282 @@ void showDeleteSyllabusTaskConfirm(BuildContext context, SyllabusTask task, Colo
     ),
   );
 }
+
+// Convert Topic to Counter Card Dialog
+void showConvertToCounterCardDialog(BuildContext context, SyllabusTopic topic, Color accentColor, WidgetRef ref) {
+  final nameController = TextEditingController(text: topic.name);
+  final maxCountController = TextEditingController(text: '100');
+  final linkController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'CONVERT TO COUNTER CARD',
+          style: GoogleFonts.jersey15(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: accentColor,
+            letterSpacing: 0.8,
+          ),
+        ),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'WARNING: Converting to a Counter Card will delete all existing tasks under this topic. This action cannot be undone.',
+                  style: GoogleFonts.outfit(color: Colors.redAccent.withAlpha(220), fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: nameController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Subject Name',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Name is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: maxCountController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Max Count (ex. 111)',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Max count is required';
+                    }
+                    final parsed = int.tryParse(val.trim());
+                    if (parsed == null || parsed <= 0) {
+                      return 'Must be a positive integer';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: linkController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Resource Link (Optional)',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('CANCEL', style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final name = nameController.text.trim();
+                final maxCount = int.parse(maxCountController.text.trim());
+                final link = linkController.text.trim().isEmpty ? null : linkController.text.trim();
+                ref.read(syllabusControllerProvider.notifier).convertToCounterCard(topic.id, name, maxCount, link);
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: Text('CONVERT', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// Edit Counter Card Dialog
+void showEditCounterCardDialog(BuildContext context, SyllabusTopic topic, Color accentColor, WidgetRef ref) {
+  final nameController = TextEditingController(text: topic.name);
+  final currentCountController = TextEditingController(text: topic.currentCount.toString());
+  final maxCountController = TextEditingController(text: topic.maxCount.toString());
+  final linkController = TextEditingController(text: topic.resourceUrl ?? '');
+  final formKey = GlobalKey<FormState>();
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'EDIT COUNTER CARD',
+          style: GoogleFonts.jersey15(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: accentColor,
+            letterSpacing: 0.8,
+          ),
+        ),
+        content: Form(
+          key: formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Subject Name',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Name is required';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: currentCountController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Current Count',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Current count is required';
+                    }
+                    final parsed = int.tryParse(val.trim());
+                    if (parsed == null || parsed < 0) {
+                      return 'Must be a non-negative integer';
+                    }
+                    final maxVal = int.tryParse(maxCountController.text.trim()) ?? 0;
+                    if (parsed > maxVal) {
+                      return 'Cannot exceed max count';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: maxCountController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Max Count',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Max count is required';
+                    }
+                    final parsed = int.tryParse(val.trim());
+                    if (parsed == null || parsed <= 0) {
+                      return 'Must be a positive integer';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: linkController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Resource Link (Optional)',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('CANCEL', style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                final name = nameController.text.trim();
+                final currentCount = int.parse(currentCountController.text.trim());
+                final maxCount = int.parse(maxCountController.text.trim());
+                final link = linkController.text.trim().isEmpty ? null : linkController.text.trim();
+                ref.read(syllabusControllerProvider.notifier).updateCounterCard(topic.id, name, currentCount, maxCount, link);
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: Text('SAVE', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    ),
+  );
+}

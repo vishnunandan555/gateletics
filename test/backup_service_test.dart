@@ -24,6 +24,15 @@ void main() {
     // 1. Seed custom syllabus data
     final catId = await db.addSyllabusCategory('Syllabus Cat 1', 0xFF0000FF, position: 0);
     final topicId = await db.addSyllabusTopic(catId, 'Syllabus Topic 1', position: 0);
+    final topicId2 = await db.addSyllabusTopic(
+      catId,
+      'Syllabus Topic 2',
+      position: 1,
+      isCounter: true,
+      currentCount: 5,
+      maxCount: 10,
+      resourceUrl: 'https://youtube.com/playlist',
+    );
     final taskId1 = await db.addSyllabusTask(topicId, 'Task 1', position: 0);
     final taskId2 = await db.addSyllabusTask(topicId, 'Task 2', position: 1);
 
@@ -39,8 +48,14 @@ void main() {
     expect(categories.first['name'], 'Syllabus Cat 1');
 
     final topics = payload['syllabusTopics'] as List<dynamic>;
-    expect(topics.length, 1);
-    expect(topics.first['name'], 'Syllabus Topic 1');
+    expect(topics.length, 2);
+    expect(topics[0]['name'], 'Syllabus Topic 1');
+    expect(topics[0]['isCounter'], false);
+    expect(topics[1]['name'], 'Syllabus Topic 2');
+    expect(topics[1]['isCounter'], true);
+    expect(topics[1]['currentCount'], 5);
+    expect(topics[1]['maxCount'], 10);
+    expect(topics[1]['resourceUrl'], 'https://youtube.com/playlist');
 
     final tasks = payload['syllabusTasks'] as List<dynamic>;
     expect(tasks.length, 2);
@@ -67,8 +82,14 @@ void main() {
     expect(restoredCategories.first.name, 'Syllabus Cat 1');
 
     final restoredTopics = await db.select(db.syllabusTopics).get();
-    expect(restoredTopics.length, 1);
-    expect(restoredTopics.first.name, 'Syllabus Topic 1');
+    expect(restoredTopics.length, 2);
+    expect(restoredTopics[0].name, 'Syllabus Topic 1');
+    expect(restoredTopics[0].isCounter, false);
+    expect(restoredTopics[1].name, 'Syllabus Topic 2');
+    expect(restoredTopics[1].isCounter, true);
+    expect(restoredTopics[1].currentCount, 5);
+    expect(restoredTopics[1].maxCount, 10);
+    expect(restoredTopics[1].resourceUrl, 'https://youtube.com/playlist');
 
     final restoredTasks = await db.select(db.syllabusTasks).get();
     expect(restoredTasks.length, 2);

@@ -268,6 +268,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
 
     // Capture initial snapshots for accomplishments comparison
     final initialCompletedTaskIds = <int>{};
+    final initialCounterCounts = <int, int>{};
 
     try {
       final tasks = await db.select(db.syllabusTasks).get();
@@ -278,7 +279,14 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       }
     } catch (_) {}
 
-    // Removed resource tracking completion checks
+    try {
+      final topics = await db.select(db.syllabusTopics).get();
+      for (final t in topics) {
+        if (t.isCounter) {
+          initialCounterCounts[t.id] = t.currentCount;
+        }
+      }
+    } catch (_) {}
 
     state = state.copyWith(
       status: FocusStatus.focusing,
@@ -287,7 +295,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       completedFocusIntervals: 0,
       sessionStartTime: startTime,
       initialCompletedTaskIds: initialCompletedTaskIds,
-      initialSubjectCompletedVideos: const {},
+      initialSubjectCompletedVideos: initialCounterCounts,
       sessionAccomplishments: [],
       isBreakActive: false,
     );
@@ -331,6 +339,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       final topicMap = {for (final t in topics) t.id: t};
 
       final newCompletedTasksByTopic = <int, List<String>>{};
+      final newCompletedCountersByTopic = <int, String>{};
 
       for (final t in tasks) {
         if (t.isCompleted && !state.initialCompletedTaskIds.contains(t.id)) {
@@ -338,7 +347,17 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
         }
       }
 
-      if (newCompletedTasksByTopic.isNotEmpty) {
+      for (final t in topics) {
+        if (t.isCounter) {
+          final initialVal = state.initialSubjectCompletedVideos[t.id] ?? 0;
+          if (t.currentCount > initialVal) {
+            newCompletedCountersByTopic[t.id] =
+                "count increased from $initialVal to ${t.currentCount} (Max ${t.maxCount})";
+          }
+        }
+      }
+
+      if (newCompletedTasksByTopic.isNotEmpty || newCompletedCountersByTopic.isNotEmpty) {
         accomplishments.add("Completed:");
         for (final topicId in newCompletedTasksByTopic.keys) {
           final topic = topicMap[topicId];
@@ -350,10 +369,16 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
             }
           }
         }
+        for (final topicId in newCompletedCountersByTopic.keys) {
+          final topic = topicMap[topicId];
+          if (topic != null) {
+            final catName = categoryMap[topic.categoryId] ?? "Syllabus";
+            accomplishments.add("  $catName > ${topic.name}:");
+            accomplishments.add("    - ${newCompletedCountersByTopic[topicId]}");
+          }
+        }
       }
     } catch (_) {}
-
-    // Removed resource achievements check
 
     state = state.copyWith(sessionAccomplishments: accomplishments);
   }
@@ -369,11 +394,23 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     double progressDelta = 0.0;
     try {
       final tasks = await db.select(db.syllabusTasks).get();
-      final totalTasks = tasks.length;
-      if (totalTasks > 0) {
-        final initialCount = state.initialCompletedTaskIds.length;
-        final currentCount = tasks.where((t) => t.isCompleted).length;
-        progressDelta = ((currentCount - initialCount) / totalTasks) * 100.0;
+      final topics = await db.select(db.syllabusTopics).get();
+
+      int initialCompleted = state.initialCompletedTaskIds.length;
+      int currentCompleted = tasks.where((t) => t.isCompleted).length;
+      int totalItems = tasks.length;
+
+      for (final t in topics) {
+        if (t.isCounter) {
+          final initialCount = state.initialSubjectCompletedVideos[t.id] ?? 0;
+          initialCompleted += initialCount;
+          currentCompleted += t.currentCount;
+          totalItems += t.maxCount;
+        }
+      }
+
+      if (totalItems > 0) {
+        progressDelta = ((currentCompleted - initialCompleted) / totalItems) * 100.0;
       }
     } catch (_) {}
     if (progressDelta < 0.0) progressDelta = 0.0;
@@ -646,7 +683,7 @@ List<String> calculateAccomplishmentsDelta({
       final delta = current - initial;
       final deltaPercent = (delta / total) * 100;
       final name = subjectNames[subjectId] ?? 'Subject';
-      result.add('$name: +${deltaPercent.toStringAsFixed(1)}% progress ($current/$total videos)');
+      result.add('$name: +${deltaPercent.toStringAsFixed(1)}% progress ($current/$total)');
     }
   }
 

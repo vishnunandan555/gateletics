@@ -269,10 +269,7 @@ class SettingsScreen extends ConsumerWidget {
 
     try {
       if (everything) {
-        // 1. Sign out on the server and locally
-        await ref.read(authProvider.notifier).resetAuthChoice();
-
-        // 2. Delete all database tables completely
+        // 1. Delete all database tables completely
         final db = ref.read(appDatabaseProvider);
         await db.delete(db.syllabusTasks).go();
         await db.delete(db.syllabusTopics).go();
@@ -281,9 +278,12 @@ class SettingsScreen extends ConsumerWidget {
         await db.delete(db.dailyHistory).go();
         await db.delete(db.customTasks).go();
 
-        // 3. Clear SharedPreferences completely
+        // 2. Clear SharedPreferences completely
         final prefs = await SharedPreferences.getInstance();
         await prefs.clear();
+
+        // 3. Sign out on the server and locally
+        await ref.read(authProvider.notifier).resetAuthChoice();
 
         // 4. Invalidate/reset all providers
         ref.invalidate(authProvider);

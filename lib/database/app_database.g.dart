@@ -424,8 +424,67 @@ class $SyllabusTopicsTable extends SyllabusTopics
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _isCounterMeta = const VerificationMeta(
+    'isCounter',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, categoryId, name, position];
+  late final GeneratedColumn<bool> isCounter = GeneratedColumn<bool>(
+    'is_counter',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_counter" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _currentCountMeta = const VerificationMeta(
+    'currentCount',
+  );
+  @override
+  late final GeneratedColumn<int> currentCount = GeneratedColumn<int>(
+    'current_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _maxCountMeta = const VerificationMeta(
+    'maxCount',
+  );
+  @override
+  late final GeneratedColumn<int> maxCount = GeneratedColumn<int>(
+    'max_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _resourceUrlMeta = const VerificationMeta(
+    'resourceUrl',
+  );
+  @override
+  late final GeneratedColumn<String> resourceUrl = GeneratedColumn<String>(
+    'resource_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    categoryId,
+    name,
+    position,
+    isCounter,
+    currentCount,
+    maxCount,
+    resourceUrl,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -465,6 +524,36 @@ class $SyllabusTopicsTable extends SyllabusTopics
     } else if (isInserting) {
       context.missing(_positionMeta);
     }
+    if (data.containsKey('is_counter')) {
+      context.handle(
+        _isCounterMeta,
+        isCounter.isAcceptableOrUnknown(data['is_counter']!, _isCounterMeta),
+      );
+    }
+    if (data.containsKey('current_count')) {
+      context.handle(
+        _currentCountMeta,
+        currentCount.isAcceptableOrUnknown(
+          data['current_count']!,
+          _currentCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('max_count')) {
+      context.handle(
+        _maxCountMeta,
+        maxCount.isAcceptableOrUnknown(data['max_count']!, _maxCountMeta),
+      );
+    }
+    if (data.containsKey('resource_url')) {
+      context.handle(
+        _resourceUrlMeta,
+        resourceUrl.isAcceptableOrUnknown(
+          data['resource_url']!,
+          _resourceUrlMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -490,6 +579,22 @@ class $SyllabusTopicsTable extends SyllabusTopics
         DriftSqlType.int,
         data['${effectivePrefix}position'],
       )!,
+      isCounter: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_counter'],
+      )!,
+      currentCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_count'],
+      )!,
+      maxCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_count'],
+      )!,
+      resourceUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}resource_url'],
+      ),
     );
   }
 
@@ -504,11 +609,19 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
   final int categoryId;
   final String name;
   final int position;
+  final bool isCounter;
+  final int currentCount;
+  final int maxCount;
+  final String? resourceUrl;
   const SyllabusTopic({
     required this.id,
     required this.categoryId,
     required this.name,
     required this.position,
+    required this.isCounter,
+    required this.currentCount,
+    required this.maxCount,
+    this.resourceUrl,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -517,6 +630,12 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     map['category_id'] = Variable<int>(categoryId);
     map['name'] = Variable<String>(name);
     map['position'] = Variable<int>(position);
+    map['is_counter'] = Variable<bool>(isCounter);
+    map['current_count'] = Variable<int>(currentCount);
+    map['max_count'] = Variable<int>(maxCount);
+    if (!nullToAbsent || resourceUrl != null) {
+      map['resource_url'] = Variable<String>(resourceUrl);
+    }
     return map;
   }
 
@@ -526,6 +645,12 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       categoryId: Value(categoryId),
       name: Value(name),
       position: Value(position),
+      isCounter: Value(isCounter),
+      currentCount: Value(currentCount),
+      maxCount: Value(maxCount),
+      resourceUrl: resourceUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resourceUrl),
     );
   }
 
@@ -539,6 +664,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       categoryId: serializer.fromJson<int>(json['categoryId']),
       name: serializer.fromJson<String>(json['name']),
       position: serializer.fromJson<int>(json['position']),
+      isCounter: serializer.fromJson<bool>(json['isCounter']),
+      currentCount: serializer.fromJson<int>(json['currentCount']),
+      maxCount: serializer.fromJson<int>(json['maxCount']),
+      resourceUrl: serializer.fromJson<String?>(json['resourceUrl']),
     );
   }
   @override
@@ -549,6 +678,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       'categoryId': serializer.toJson<int>(categoryId),
       'name': serializer.toJson<String>(name),
       'position': serializer.toJson<int>(position),
+      'isCounter': serializer.toJson<bool>(isCounter),
+      'currentCount': serializer.toJson<int>(currentCount),
+      'maxCount': serializer.toJson<int>(maxCount),
+      'resourceUrl': serializer.toJson<String?>(resourceUrl),
     };
   }
 
@@ -557,11 +690,19 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     int? categoryId,
     String? name,
     int? position,
+    bool? isCounter,
+    int? currentCount,
+    int? maxCount,
+    Value<String?> resourceUrl = const Value.absent(),
   }) => SyllabusTopic(
     id: id ?? this.id,
     categoryId: categoryId ?? this.categoryId,
     name: name ?? this.name,
     position: position ?? this.position,
+    isCounter: isCounter ?? this.isCounter,
+    currentCount: currentCount ?? this.currentCount,
+    maxCount: maxCount ?? this.maxCount,
+    resourceUrl: resourceUrl.present ? resourceUrl.value : this.resourceUrl,
   );
   SyllabusTopic copyWithCompanion(SyllabusTopicsCompanion data) {
     return SyllabusTopic(
@@ -571,6 +712,14 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
           : this.categoryId,
       name: data.name.present ? data.name.value : this.name,
       position: data.position.present ? data.position.value : this.position,
+      isCounter: data.isCounter.present ? data.isCounter.value : this.isCounter,
+      currentCount: data.currentCount.present
+          ? data.currentCount.value
+          : this.currentCount,
+      maxCount: data.maxCount.present ? data.maxCount.value : this.maxCount,
+      resourceUrl: data.resourceUrl.present
+          ? data.resourceUrl.value
+          : this.resourceUrl,
     );
   }
 
@@ -580,13 +729,26 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
           ..write('id: $id, ')
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('isCounter: $isCounter, ')
+          ..write('currentCount: $currentCount, ')
+          ..write('maxCount: $maxCount, ')
+          ..write('resourceUrl: $resourceUrl')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, categoryId, name, position);
+  int get hashCode => Object.hash(
+    id,
+    categoryId,
+    name,
+    position,
+    isCounter,
+    currentCount,
+    maxCount,
+    resourceUrl,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -594,7 +756,11 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
           other.id == this.id &&
           other.categoryId == this.categoryId &&
           other.name == this.name &&
-          other.position == this.position);
+          other.position == this.position &&
+          other.isCounter == this.isCounter &&
+          other.currentCount == this.currentCount &&
+          other.maxCount == this.maxCount &&
+          other.resourceUrl == this.resourceUrl);
 }
 
 class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
@@ -602,17 +768,29 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
   final Value<int> categoryId;
   final Value<String> name;
   final Value<int> position;
+  final Value<bool> isCounter;
+  final Value<int> currentCount;
+  final Value<int> maxCount;
+  final Value<String?> resourceUrl;
   const SyllabusTopicsCompanion({
     this.id = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.name = const Value.absent(),
     this.position = const Value.absent(),
+    this.isCounter = const Value.absent(),
+    this.currentCount = const Value.absent(),
+    this.maxCount = const Value.absent(),
+    this.resourceUrl = const Value.absent(),
   });
   SyllabusTopicsCompanion.insert({
     this.id = const Value.absent(),
     required int categoryId,
     required String name,
     required int position,
+    this.isCounter = const Value.absent(),
+    this.currentCount = const Value.absent(),
+    this.maxCount = const Value.absent(),
+    this.resourceUrl = const Value.absent(),
   }) : categoryId = Value(categoryId),
        name = Value(name),
        position = Value(position);
@@ -621,12 +799,20 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     Expression<int>? categoryId,
     Expression<String>? name,
     Expression<int>? position,
+    Expression<bool>? isCounter,
+    Expression<int>? currentCount,
+    Expression<int>? maxCount,
+    Expression<String>? resourceUrl,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (categoryId != null) 'category_id': categoryId,
       if (name != null) 'name': name,
       if (position != null) 'position': position,
+      if (isCounter != null) 'is_counter': isCounter,
+      if (currentCount != null) 'current_count': currentCount,
+      if (maxCount != null) 'max_count': maxCount,
+      if (resourceUrl != null) 'resource_url': resourceUrl,
     });
   }
 
@@ -635,12 +821,20 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     Value<int>? categoryId,
     Value<String>? name,
     Value<int>? position,
+    Value<bool>? isCounter,
+    Value<int>? currentCount,
+    Value<int>? maxCount,
+    Value<String?>? resourceUrl,
   }) {
     return SyllabusTopicsCompanion(
       id: id ?? this.id,
       categoryId: categoryId ?? this.categoryId,
       name: name ?? this.name,
       position: position ?? this.position,
+      isCounter: isCounter ?? this.isCounter,
+      currentCount: currentCount ?? this.currentCount,
+      maxCount: maxCount ?? this.maxCount,
+      resourceUrl: resourceUrl ?? this.resourceUrl,
     );
   }
 
@@ -659,6 +853,18 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     if (position.present) {
       map['position'] = Variable<int>(position.value);
     }
+    if (isCounter.present) {
+      map['is_counter'] = Variable<bool>(isCounter.value);
+    }
+    if (currentCount.present) {
+      map['current_count'] = Variable<int>(currentCount.value);
+    }
+    if (maxCount.present) {
+      map['max_count'] = Variable<int>(maxCount.value);
+    }
+    if (resourceUrl.present) {
+      map['resource_url'] = Variable<String>(resourceUrl.value);
+    }
     return map;
   }
 
@@ -668,7 +874,11 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
           ..write('id: $id, ')
           ..write('categoryId: $categoryId, ')
           ..write('name: $name, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('isCounter: $isCounter, ')
+          ..write('currentCount: $currentCount, ')
+          ..write('maxCount: $maxCount, ')
+          ..write('resourceUrl: $resourceUrl')
           ..write(')'))
         .toString();
   }
@@ -2637,6 +2847,10 @@ typedef $$SyllabusTopicsTableCreateCompanionBuilder =
       required int categoryId,
       required String name,
       required int position,
+      Value<bool> isCounter,
+      Value<int> currentCount,
+      Value<int> maxCount,
+      Value<String?> resourceUrl,
     });
 typedef $$SyllabusTopicsTableUpdateCompanionBuilder =
     SyllabusTopicsCompanion Function({
@@ -2644,6 +2858,10 @@ typedef $$SyllabusTopicsTableUpdateCompanionBuilder =
       Value<int> categoryId,
       Value<String> name,
       Value<int> position,
+      Value<bool> isCounter,
+      Value<int> currentCount,
+      Value<int> maxCount,
+      Value<String?> resourceUrl,
     });
 
 final class $$SyllabusTopicsTableReferences
@@ -2722,6 +2940,26 @@ class $$SyllabusTopicsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isCounter => $composableBuilder(
+    column: $table.isCounter,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currentCount => $composableBuilder(
+    column: $table.currentCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxCount => $composableBuilder(
+    column: $table.maxCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resourceUrl => $composableBuilder(
+    column: $table.resourceUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SyllabusCategoriesTableFilterComposer get categoryId {
     final $$SyllabusCategoriesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2795,6 +3033,26 @@ class $$SyllabusTopicsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isCounter => $composableBuilder(
+    column: $table.isCounter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currentCount => $composableBuilder(
+    column: $table.currentCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get maxCount => $composableBuilder(
+    column: $table.maxCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resourceUrl => $composableBuilder(
+    column: $table.resourceUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SyllabusCategoriesTableOrderingComposer get categoryId {
     final $$SyllabusCategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2836,6 +3094,22 @@ class $$SyllabusTopicsTableAnnotationComposer
 
   GeneratedColumn<int> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<bool> get isCounter =>
+      $composableBuilder(column: $table.isCounter, builder: (column) => column);
+
+  GeneratedColumn<int> get currentCount => $composableBuilder(
+    column: $table.currentCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get maxCount =>
+      $composableBuilder(column: $table.maxCount, builder: (column) => column);
+
+  GeneratedColumn<String> get resourceUrl => $composableBuilder(
+    column: $table.resourceUrl,
+    builder: (column) => column,
+  );
 
   $$SyllabusCategoriesTableAnnotationComposer get categoryId {
     final $$SyllabusCategoriesTableAnnotationComposer composer =
@@ -2921,11 +3195,19 @@ class $$SyllabusTopicsTableTableManager
                 Value<int> categoryId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> position = const Value.absent(),
+                Value<bool> isCounter = const Value.absent(),
+                Value<int> currentCount = const Value.absent(),
+                Value<int> maxCount = const Value.absent(),
+                Value<String?> resourceUrl = const Value.absent(),
               }) => SyllabusTopicsCompanion(
                 id: id,
                 categoryId: categoryId,
                 name: name,
                 position: position,
+                isCounter: isCounter,
+                currentCount: currentCount,
+                maxCount: maxCount,
+                resourceUrl: resourceUrl,
               ),
           createCompanionCallback:
               ({
@@ -2933,11 +3215,19 @@ class $$SyllabusTopicsTableTableManager
                 required int categoryId,
                 required String name,
                 required int position,
+                Value<bool> isCounter = const Value.absent(),
+                Value<int> currentCount = const Value.absent(),
+                Value<int> maxCount = const Value.absent(),
+                Value<String?> resourceUrl = const Value.absent(),
               }) => SyllabusTopicsCompanion.insert(
                 id: id,
                 categoryId: categoryId,
                 name: name,
                 position: position,
+                isCounter: isCounter,
+                currentCount: currentCount,
+                maxCount: maxCount,
+                resourceUrl: resourceUrl,
               ),
           withReferenceMapper: (p0) => p0
               .map(

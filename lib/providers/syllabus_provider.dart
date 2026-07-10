@@ -206,6 +206,30 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     _triggerSync();
   }
 
+  Future<void> convertToCounterCard(int id, String name, int maxCount, String? resourceLink) async {
+    await _db.transaction(() async {
+      await _db.convertToCounterCard(id, name, maxCount, resourceLink);
+      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    });
+    _triggerSync();
+  }
+
+  Future<void> updateCounterCard(int id, String name, int currentCount, int maxCount, String? resourceLink) async {
+    await _db.transaction(() async {
+      await _db.updateCounterCard(id, name, currentCount, maxCount, resourceLink);
+      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    });
+    _triggerSync();
+  }
+
+  Future<void> updateCounterValue(int id, int newCount) async {
+    await _db.transaction(() async {
+      await _db.updateCounterValue(id, newCount);
+      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    });
+    _triggerSync();
+  }
+
   Future<void> deleteTopic(int id) async {
     await _db.deleteSyllabusTopic(id);
     _triggerSync();
@@ -286,12 +310,19 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
 extension SyllabusReset on AppDatabase {
   Future<void> resetSyllabusTrackingData() async {
-    await (update(syllabusTasks)).write(
-      const SyllabusTasksCompanion(
-        isCompleted: Value(false),
-        completedAt: Value(null),
-      ),
-    );
+    await transaction(() async {
+      await (update(syllabusTasks)).write(
+        const SyllabusTasksCompanion(
+          isCompleted: Value(false),
+          completedAt: Value(null),
+        ),
+      );
+      await (update(syllabusTopics)).write(
+        const SyllabusTopicsCompanion(
+          currentCount: Value(0),
+        ),
+      );
+    });
   }
 
   Future<void> resetSyllabusEverything() async {

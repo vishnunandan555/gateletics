@@ -264,6 +264,24 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           ...t,
           'categoryName': catName,
         };
+      } else {
+        // Resolve counter card merge if it exists
+        final existing = mergedSylTops[key]!;
+        final localIsCounter = existing['isCounter'] == true;
+        final cloudIsCounter = t['isCounter'] == true;
+
+        if (localIsCounter || cloudIsCounter) {
+          existing['isCounter'] = true;
+          existing['currentCount'] = max(
+            ((existing['currentCount'] ?? 0) as num).toInt(),
+            ((t['currentCount'] ?? 0) as num).toInt(),
+          );
+          existing['maxCount'] = max(
+            ((existing['maxCount'] ?? 0) as num).toInt(),
+            ((t['maxCount'] ?? 0) as num).toInt(),
+          );
+          existing['resourceUrl'] = existing['resourceUrl'] ?? t['resourceUrl'];
+        }
       }
     }
 
@@ -375,6 +393,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'categoryId': catId,
         'name': t['name'],
         'position': t['position'],
+        'isCounter': t['isCounter'] ?? false,
+        'currentCount': t['currentCount'] ?? 0,
+        'maxCount': t['maxCount'] ?? 0,
+        'resourceUrl': t['resourceUrl'],
       });
     });
 
@@ -567,6 +589,12 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           await ref.read(hideDownloadBannerProvider.notifier).setHidden(hideBanner);
         }
         await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
+        return false;
+      }
+
+      // If we have synced before, we can safely auto-merge the data instead of showing a conflict dialog
+      if (state.lastSyncedAt != null) {
+        await mergeCloudAndLocal();
         return false;
       }
 

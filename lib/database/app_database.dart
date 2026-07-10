@@ -20,6 +20,10 @@ class SyllabusTopics extends Table {
   IntColumn get categoryId => integer().references(SyllabusCategories, #id, onDelete: KeyAction.cascade)();
   TextColumn get name => text().withLength(min: 1, max: 150)();
   IntColumn get position => integer()();
+  BoolColumn get isCounter => boolean().withDefault(const Constant(false))();
+  IntColumn get currentCount => integer().withDefault(const Constant(0))();
+  IntColumn get maxCount => integer().withDefault(const Constant(0))();
+  TextColumn get resourceUrl => text().nullable()();
 }
 
 class SyllabusTasks extends Table {
@@ -157,6 +161,14 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(syllabusTasks, syllabusTasks.completedAt);
             } catch (_) {}
           }
+          if (from < 11) {
+            try {
+              await m.addColumn(syllabusTopics, syllabusTopics.isCounter);
+              await m.addColumn(syllabusTopics, syllabusTopics.currentCount);
+              await m.addColumn(syllabusTopics, syllabusTopics.maxCount);
+              await m.addColumn(syllabusTopics, syllabusTopics.resourceUrl);
+            } catch (_) {}
+          }
         },
       );
 
@@ -274,7 +286,15 @@ class AppDatabase extends _$AppDatabase {
   // Syllabus Topic Operations
   // ----------------------------------------------------
 
-  Future<int> addSyllabusTopic(int categoryId, String name, {int? position}) async {
+  Future<int> addSyllabusTopic(
+    int categoryId,
+    String name, {
+    int? position,
+    bool isCounter = false,
+    int currentCount = 0,
+    int maxCount = 0,
+    String? resourceUrl,
+  }) async {
     int pos = position ?? 0;
     if (position == null) {
       final existing = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
@@ -284,6 +304,10 @@ class AppDatabase extends _$AppDatabase {
       categoryId: categoryId,
       name: name,
       position: pos,
+      isCounter: Value(isCounter),
+      currentCount: Value(currentCount),
+      maxCount: Value(maxCount),
+      resourceUrl: Value(resourceUrl),
     ));
   }
 
@@ -396,15 +420,23 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
       for (final topic in categoryTopics) {
-        final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).get();
-        for (final task in tasks) {
-          if (!task.isCompleted) {
-            await (update(syllabusTasks)..where((t) => t.id.equals(task.id))).write(
-              SyllabusTasksCompanion(
-                isCompleted: const Value(true),
-                completedAt: Value(DateTime.now()),
-              ),
-            );
+        if (topic.isCounter) {
+          await (update(syllabusTopics)..where((t) => t.id.equals(topic.id))).write(
+            SyllabusTopicsCompanion(
+              currentCount: Value(topic.maxCount),
+            ),
+          );
+        } else {
+          final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).get();
+          for (final task in tasks) {
+            if (!task.isCompleted) {
+              await (update(syllabusTasks)..where((t) => t.id.equals(task.id))).write(
+                SyllabusTasksCompanion(
+                  isCompleted: const Value(true),
+                  completedAt: Value(DateTime.now()),
+                ),
+              );
+            }
           }
         }
       }
@@ -416,12 +448,20 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId))).get();
       for (final topic in categoryTopics) {
-        await (update(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).write(
-          const SyllabusTasksCompanion(
-            isCompleted: Value(false),
-            completedAt: Value(null),
-          ),
-        );
+        if (topic.isCounter) {
+          await (update(syllabusTopics)..where((t) => t.id.equals(topic.id))).write(
+            const SyllabusTopicsCompanion(
+              currentCount: Value(0),
+            ),
+          );
+        } else {
+          await (update(syllabusTasks)..where((t) => t.topicId.equals(topic.id))).write(
+            const SyllabusTasksCompanion(
+              isCompleted: Value(false),
+              completedAt: Value(null),
+            ),
+          );
+        }
       }
       await updateSyllabusCategoryInteraction(categoryId);
     });
@@ -429,15 +469,24 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> markSyllabusTopicCompleted(int topicId) async {
     await transaction(() async {
-      final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topicId))).get();
-      for (final task in tasks) {
-        if (!task.isCompleted) {
-          await (update(syllabusTasks)..where((t) => t.id.equals(task.id))).write(
-            SyllabusTasksCompanion(
-              isCompleted: const Value(true),
-              completedAt: Value(DateTime.now()),
-            ),
-          );
+      final topic = await (select(syllabusTopics)..where((t) => t.id.equals(topicId))).getSingle();
+      if (topic.isCounter) {
+        await (update(syllabusTopics)..where((t) => t.id.equals(topicId))).write(
+          SyllabusTopicsCompanion(
+            currentCount: Value(topic.maxCount),
+          ),
+        );
+      } else {
+        final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topicId))).get();
+        for (final task in tasks) {
+          if (!task.isCompleted) {
+            await (update(syllabusTasks)..where((t) => t.id.equals(task.id))).write(
+              SyllabusTasksCompanion(
+                isCompleted: const Value(true),
+                completedAt: Value(DateTime.now()),
+              ),
+            );
+          }
         }
       }
       await updateSyllabusCategoryInteractionByTopicId(topicId);
@@ -446,14 +495,62 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> resetSyllabusTopicStats(int topicId) async {
     await transaction(() async {
-      await (update(syllabusTasks)..where((t) => t.topicId.equals(topicId))).write(
-        const SyllabusTasksCompanion(
-          isCompleted: Value(false),
-          completedAt: Value(null),
-        ),
-      );
+      final topic = await (select(syllabusTopics)..where((t) => t.id.equals(topicId))).getSingle();
+      if (topic.isCounter) {
+        await (update(syllabusTopics)..where((t) => t.id.equals(topicId))).write(
+          const SyllabusTopicsCompanion(
+            currentCount: Value(0),
+          ),
+        );
+      } else {
+        await (update(syllabusTasks)..where((t) => t.topicId.equals(topicId))).write(
+          const SyllabusTasksCompanion(
+            isCompleted: Value(false),
+            completedAt: Value(null),
+          ),
+        );
+      }
       await updateSyllabusCategoryInteractionByTopicId(topicId);
     });
+  }
+
+  // ----------------------------------------------------
+  // Counter Card Operations
+  // ----------------------------------------------------
+
+  Future<void> convertToCounterCard(int topicId, String name, int maxCount, String? resourceUrl) async {
+    await transaction(() async {
+      await (update(syllabusTopics)..where((t) => t.id.equals(topicId))).write(
+        SyllabusTopicsCompanion(
+          name: Value(name),
+          isCounter: const Value(true),
+          currentCount: const Value(0),
+          maxCount: Value(maxCount),
+          resourceUrl: Value(resourceUrl),
+        ),
+      );
+      // Delete all subtasks under this topic to avoid state contamination
+      await (delete(syllabusTasks)..where((t) => t.topicId.equals(topicId))).go();
+    });
+  }
+
+  Future<void> updateCounterCard(int topicId, String name, int currentCount, int maxCount, String? resourceUrl) async {
+    await (update(syllabusTopics)..where((t) => t.id.equals(topicId))).write(
+      SyllabusTopicsCompanion(
+        name: Value(name),
+        currentCount: Value(currentCount),
+        maxCount: Value(maxCount),
+        resourceUrl: Value(resourceUrl),
+      ),
+    );
+  }
+
+  Future<void> updateCounterValue(int topicId, int newCount) async {
+    await (update(syllabusTopics)..where((t) => t.id.equals(topicId))).write(
+      SyllabusTopicsCompanion(
+        currentCount: Value(newCount),
+      ),
+    );
   }
 
   // ----------------------------------------------------

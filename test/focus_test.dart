@@ -86,7 +86,7 @@ void main() {
         subjectTotalVideos: {101: 10},
       );
       expect(delta, hasLength(1));
-      expect(delta.first, 'Discrete Math: +20.0% progress (7/10 videos)');
+      expect(delta.first, 'Discrete Math: +20.0% progress (7/10)');
     });
 
     test('Mixed: one new task + one subject video increment', () {
@@ -100,7 +100,7 @@ void main() {
         subjectTotalVideos: {202: 15},
       );
       expect(delta, contains('Completed task: Graphs'));
-      expect(delta, contains('Algorithms: +20.0% progress (6/15 videos)'));
+      expect(delta, contains('Algorithms: +20.0% progress (6/15)'));
     });
 
     test('Subject progress not incremented — not included', () {

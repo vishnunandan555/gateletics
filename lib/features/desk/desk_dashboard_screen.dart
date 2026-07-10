@@ -41,9 +41,15 @@ class DeskDashboardScreen extends ConsumerWidget {
           int totalCompleted = 0, totalTasks = 0;
           if (!isSyllabusEmpty) {
             for (final cat in syllabusData) {
-              for (final topic in cat.topics) {
-                totalCompleted += topic.tasks.where((t) => t.isCompleted).length;
-                totalTasks += topic.tasks.length;
+              for (final topicWithTasks in cat.topics) {
+                final topic = topicWithTasks.topic;
+                if (topic.isCounter) {
+                  totalCompleted += topic.currentCount;
+                  totalTasks += topic.maxCount;
+                } else {
+                  totalCompleted += topicWithTasks.tasks.where((t) => t.isCompleted).length;
+                  totalTasks += topicWithTasks.tasks.length;
+                }
               }
             }
           }
@@ -183,9 +189,15 @@ class _SyllabusCategoryBlock extends ConsumerWidget {
     final topics = catWithTopics.topics;
 
     int catCompleted = 0, catTotal = 0;
-    for (final topic in topics) {
-      catCompleted += topic.tasks.where((t) => t.isCompleted).length;
-      catTotal += topic.tasks.length;
+    for (final topicWithTasks in topics) {
+      final topic = topicWithTasks.topic;
+      if (topic.isCounter) {
+        catCompleted += topic.currentCount;
+        catTotal += topic.maxCount;
+      } else {
+        catCompleted += topicWithTasks.tasks.where((t) => t.isCompleted).length;
+        catTotal += topicWithTasks.tasks.length;
+      }
     }
     final catProgress = catTotal == 0 ? 0.0 : (catCompleted / catTotal) * 100;
     final rawTopics = topics.map((e) => e.topic).toList();
@@ -198,9 +210,15 @@ class _SyllabusCategoryBlock extends ConsumerWidget {
     if (index > 0) {
       final prevCat = syllabusData[index - 1];
       int prevCompleted = 0, prevTotal = 0;
-      for (final topic in prevCat.topics) {
-        prevCompleted += topic.tasks.where((t) => t.isCompleted).length;
-        prevTotal += topic.tasks.length;
+      for (final topicWithTasks in prevCat.topics) {
+        final topic = topicWithTasks.topic;
+        if (topic.isCounter) {
+          prevCompleted += topic.currentCount;
+          prevTotal += topic.maxCount;
+        } else {
+          prevCompleted += topicWithTasks.tasks.where((t) => t.isCompleted).length;
+          prevTotal += topicWithTasks.tasks.length;
+        }
       }
       final prevProgress = prevTotal == 0 ? 0.0 : (prevCompleted / prevTotal) * 100;
       final prevCompletedCheck = prevProgress >= 100.0 && prevTotal > 0;
