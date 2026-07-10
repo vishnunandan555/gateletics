@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../database/app_database.dart';
 
 import 'category_autosort_provider.dart';
@@ -87,6 +88,16 @@ final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>(
         return _compareSyllabusCategories(a, b);
       });
     }
+  }
+
+  // Stable partition: pinned categories float to the top
+  final pinnedCats = ref.watch(pinnedCategoriesProvider);
+  if (pinnedCats.isNotEmpty) {
+    final pinnedList = cats.where((c) => pinnedCats.contains(c.id)).toList();
+    final unpinnedList = cats.where((c) => !pinnedCats.contains(c.id)).toList();
+    cats.clear();
+    cats.addAll(pinnedList);
+    cats.addAll(unpinnedList);
   }
 
   // Group tasks by topicId
@@ -359,3 +370,100 @@ final manuallyExpandedCompletedSyllabusCategoriesProvider =
     NotifierProvider<ManuallyExpandedCompletedSyllabusCategoriesNotifier, Set<int>>(() {
   return ManuallyExpandedCompletedSyllabusCategoriesNotifier();
 });
+
+class PinnedCategoriesNotifier extends Notifier<Set<int>> {
+  @override
+  Set<int> build() {
+    _load();
+    return {};
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('pinned_category_ids');
+    if (list != null) {
+      state = list.map(int.tryParse).whereType<int>().toSet();
+    }
+  }
+
+  Future<void> toggle(int id) async {
+    final newState = {...state};
+    if (newState.contains(id)) {
+      newState.remove(id);
+    } else {
+      newState.add(id);
+    }
+    state = newState;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('pinned_category_ids', state.map((e) => e.toString()).toList());
+  }
+}
+
+final pinnedCategoriesProvider = NotifierProvider<PinnedCategoriesNotifier, Set<int>>(() {
+  return PinnedCategoriesNotifier();
+});
+
+class WeakCategoriesNotifier extends Notifier<Set<int>> {
+  @override
+  Set<int> build() {
+    _load();
+    return {};
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('weak_category_ids');
+    if (list != null) {
+      state = list.map(int.tryParse).whereType<int>().toSet();
+    }
+  }
+
+  Future<void> toggle(int id) async {
+    final newState = {...state};
+    if (newState.contains(id)) {
+      newState.remove(id);
+    } else {
+      newState.add(id);
+    }
+    state = newState;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('weak_category_ids', state.map((e) => e.toString()).toList());
+  }
+}
+
+final weakCategoriesProvider = NotifierProvider<WeakCategoriesNotifier, Set<int>>(() {
+  return WeakCategoriesNotifier();
+});
+
+class WeakTopicsNotifier extends Notifier<Set<int>> {
+  @override
+  Set<int> build() {
+    _load();
+    return {};
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList('weak_topic_ids');
+    if (list != null) {
+      state = list.map(int.tryParse).whereType<int>().toSet();
+    }
+  }
+
+  Future<void> toggle(int id) async {
+    final newState = {...state};
+    if (newState.contains(id)) {
+      newState.remove(id);
+    } else {
+      newState.add(id);
+    }
+    state = newState;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('weak_topic_ids', state.map((e) => e.toString()).toList());
+  }
+}
+
+final weakTopicsProvider = NotifierProvider<WeakTopicsNotifier, Set<int>>(() {
+  return WeakTopicsNotifier();
+});
+

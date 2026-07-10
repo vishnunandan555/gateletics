@@ -20,6 +20,9 @@ const List<int> neonPalette = [
 void showSyllabusCategoryOptionsSheet(
     BuildContext context, SyllabusCategory category, WidgetRef ref, List<SyllabusTopic> topics) {
   final color = Color(category.color);
+  final isPinned = ref.read(pinnedCategoriesProvider).contains(category.id);
+  final isWeak = ref.read(weakCategoriesProvider).contains(category.id);
+
   showModalBottomSheet(
     context: context,
     backgroundColor: const Color(0xFF18181B),
@@ -104,6 +107,26 @@ void showSyllabusCategoryOptionsSheet(
               onTap: () {
                 Navigator.pop(context);
                 ref.read(syllabusControllerProvider.notifier).resetCategoryStats(category.id);
+              },
+            ),
+            ListTile(
+              leading: Icon(isPinned ? Icons.pin_end_rounded : Icons.push_pin_rounded, color: color),
+              title: Text(isPinned ? 'Unpin Category' : 'Pin Category to Top', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(pinnedCategoriesProvider.notifier).toggle(category.id);
+              },
+            ),
+            ListTile(
+              leading: Icon(isWeak ? Icons.warning_rounded : Icons.warning_amber_rounded, color: isWeak ? Colors.amberAccent : color),
+              title: Text(isWeak ? 'Unmark Category as Weak' : 'Mark Category as Weak Area', style: GoogleFonts.outfit(color: Colors.white)),
+              dense: true,
+              visualDensity: const VisualDensity(vertical: -2),
+              onTap: () {
+                Navigator.pop(context);
+                ref.read(weakCategoriesProvider.notifier).toggle(category.id);
               },
             ),
             ListTile(

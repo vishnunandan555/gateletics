@@ -1212,7 +1212,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           ),
           SizedBox(height: context.s(14)),
           // Bottom Pagination Info / Left-Right Controls
-          _buildGraphPaginationRow(accentColor, accountCreationDate),
+          _buildGraphPaginationRow(accentColor, accountCreationDate, history),
         ],
       ),
     );
@@ -1346,7 +1346,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     _chartDataAnimController.forward(from: 0.0);
   }
 
-  Widget _buildGraphPaginationRow(Color accentColor, DateTime accountCreationDate) {
+  Widget _buildGraphPaginationRow(Color accentColor, DateTime accountCreationDate, List<DailyHistoryData> history) {
     final now = DateTime.now();
     String infoText = '';
     bool isNotCurrent = false;

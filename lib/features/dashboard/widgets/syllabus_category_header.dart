@@ -76,6 +76,9 @@ class SyllabusCategoryHeader extends ConsumerWidget {
       }
     }
 
+    final isPinned = ref.watch(pinnedCategoriesProvider).contains(category.id);
+    final isWeak = ref.watch(weakCategoriesProvider).contains(category.id);
+
     final baseStyle = getCategoryStyle();
 
     Widget headerContent = Row(
@@ -97,6 +100,22 @@ class SyllabusCategoryHeader extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (isPinned) ...[
+                        Icon(
+                          Icons.push_pin_rounded,
+                          size: iconSize * 0.7,
+                          color: color,
+                        ),
+                        SizedBox(width: context.s(4)),
+                      ],
+                      if (isWeak) ...[
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: iconSize * 0.75,
+                          color: Colors.amberAccent,
+                        ),
+                        SizedBox(width: context.s(4)),
+                      ],
                       Flexible(
                         child: TweenAnimationBuilder<double>(
                           tween: Tween<double>(begin: 0, end: normalized),

@@ -32,6 +32,7 @@ class SyllabusTopicCard extends ConsumerWidget {
 
     final expandedSet = ref.watch(expandedTopicsProvider);
     final isExpanded = expandedSet.contains(topic.id);
+    final isWeak = ref.watch(weakTopicsProvider).contains(topic.id);
 
     final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
     final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
@@ -96,6 +97,14 @@ class SyllabusTopicCard extends ConsumerWidget {
                                 Icons.book_rounded,
                                 size: topicFontSize * 0.85,
                                 color: categoryColor.withAlpha(220),
+                              ),
+                              SizedBox(width: context.s(6) * overallScale),
+                            ],
+                            if (isWeak) ...[
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: topicFontSize * 0.85,
+                                color: Colors.amberAccent,
                               ),
                               SizedBox(width: context.s(6) * overallScale),
                             ],
@@ -359,6 +368,7 @@ class SyllabusTopicCard extends ConsumerWidget {
   void _showTopicContextMenu(
       BuildContext context, TapDownDetails details, SyllabusTopic topic, List<SyllabusTask> tasks, WidgetRef ref, Color categoryColor) {
     final position = details.globalPosition;
+    final isWeak = ref.read(weakTopicsProvider).contains(topic.id);
     showMenu(
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
@@ -374,6 +384,17 @@ class SyllabusTopicCard extends ConsumerWidget {
                     Icon(Icons.edit_rounded, color: categoryColor, size: 18),
                     const SizedBox(width: 10),
                     const Text('Edit Card', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'toggle_weak',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(isWeak ? Icons.warning_rounded : Icons.warning_amber_rounded, color: isWeak ? Colors.amberAccent : categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    Text(isWeak ? 'Unmark as Weak' : 'Mark as Weak Area', style: const TextStyle(color: Colors.white70)),
                   ],
                 ),
               ),
@@ -479,6 +500,17 @@ class SyllabusTopicCard extends ConsumerWidget {
                 ),
               ),
               PopupMenuItem(
+                value: 'toggle_weak',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(isWeak ? Icons.warning_rounded : Icons.warning_amber_rounded, color: isWeak ? Colors.amberAccent : categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    Text(isWeak ? 'Unmark as Weak' : 'Mark as Weak Area', style: const TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: 'delete',
                 height: 36,
                 child: Row(
@@ -506,6 +538,8 @@ class SyllabusTopicCard extends ConsumerWidget {
         ref.read(syllabusControllerProvider.notifier).resetTopicStats(topic.id);
       } else if (val == 'reorder') {
         showReorderSyllabusTasksDialog(context, topic, tasks, categoryColor, ref);
+      } else if (val == 'toggle_weak') {
+        ref.read(weakTopicsProvider.notifier).toggle(topic.id);
       } else if (val == 'delete') {
         showDeleteSyllabusTopicConfirm(context, topic, categoryColor, ref);
       }
