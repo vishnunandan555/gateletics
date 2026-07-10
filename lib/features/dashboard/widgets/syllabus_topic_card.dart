@@ -274,9 +274,28 @@ class SyllabusTopicCard extends ConsumerWidget {
                   if (topic.resourceUrl != null && topic.resourceUrl!.trim().isNotEmpty)
                     IconButton.filled(
                       onPressed: () async {
-                        final uri = Uri.parse(topic.resourceUrl!.trim());
-                        if (await canLaunchUrl(uri)) {
+                        final rawUrl = topic.resourceUrl!.trim();
+                        String urlToLaunch = rawUrl;
+                        // If the URL has no scheme, default to https://
+                        if (!RegExp(r'^[a-zA-Z]+:').hasMatch(urlToLaunch)) {
+                          urlToLaunch = 'https://$urlToLaunch';
+                        }
+                        final uri = Uri.parse(urlToLaunch);
+                        try {
                           await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (e) {
+                          try {
+                            await launchUrl(uri);
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Could not open link: $rawUrl'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
                         }
                       },
                       icon: Icon(
