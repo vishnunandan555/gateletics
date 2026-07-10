@@ -377,6 +377,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         }
       }
       await _prefs.setBool('has_chosen_offline', false);
+      await _prefs.remove('account_creation_date');
       try {
         await ref.read(syncProvider.notifier).clearSyncState();
       } catch (e) {
@@ -411,6 +412,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Delete FirebaseAuth user
       await user.delete();
     }
+    await _prefs.remove('account_creation_date');
   }
 
   // Complete local sign out after confirming server deletion
@@ -424,6 +426,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         await FirebaseAuth.instance.signOut();
       }
       await _prefs.setBool('has_chosen_offline', false);
+      await _prefs.remove('account_creation_date');
       try {
         await ref.read(syncProvider.notifier).clearSyncState();
       } catch (e) {
@@ -442,4 +445,21 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
 final authProvider = AsyncNotifierProvider<AuthNotifier, AuthState>(() {
   return AuthNotifier();
+});
+
+final accountCreationDateProvider = FutureProvider<DateTime>((ref) async {
+  final authState = ref.watch(authProvider).value;
+  final firebaseUser = authState?.user;
+  if (firebaseUser != null && firebaseUser.metadata.creationTime != null) {
+    return firebaseUser.metadata.creationTime!;
+  }
+  final prefs = await SharedPreferences.getInstance();
+  final localStr = prefs.getString('account_creation_date');
+  if (localStr != null) {
+    final date = DateTime.tryParse(localStr);
+    if (date != null) return date;
+  }
+  final now = DateTime.now();
+  await prefs.setString('account_creation_date', now.toIso8601String());
+  return now;
 });

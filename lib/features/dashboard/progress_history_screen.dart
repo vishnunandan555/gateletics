@@ -13,6 +13,7 @@ import '../../providers/subject_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import '../../utils/ui_scaling.dart';
 import '../../database/app_database.dart';
+import '../../providers/auth_provider.dart';
 
 class ProgressHistoryScreen extends ConsumerStatefulWidget {
   const ProgressHistoryScreen({super.key});
@@ -122,6 +123,8 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     final tasksAsync = ref.watch(syllabusTasksProvider);
     final projection = ref.watch(projectedCompletionProvider);
     final showProjComp = ref.watch(showProjectedCompletionProvider);
+    final accountCreationDateAsync = ref.watch(accountCreationDateProvider);
+    final accountCreationDate = accountCreationDateAsync.value ?? DateTime.now();
 
     final todayGoalSeconds = dailyGoalMinutes * 60;
     final todayProgressPct = todayGoalSeconds == 0 ? 0.0 : (todayFocusSeconds.toDouble() / todayGoalSeconds);
@@ -172,11 +175,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                   child: _isHeatmapMode
                       ? KeyedSubtree(
                           key: ValueKey('heatmap_$_heatmapYear'),
-                          child: _buildHeatmapContainer(context, history, accentColor),
+                          child: _buildHeatmapContainer(context, history, accentColor, accountCreationDate),
                         )
                       : KeyedSubtree(
                           key: ValueKey('calendar_${_selectedMonth.year}_${_selectedMonth.month}'),
-                          child: _buildCalendarContainer(context, history, dailyGoalMinutes, accentColor),
+                          child: _buildCalendarContainer(context, history, dailyGoalMinutes, accentColor, accountCreationDate),
                         ),
                 ),
               ),
@@ -204,7 +207,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                       ),
                     ),
                     SizedBox(height: context.s(12)),
-                    _buildGraphCard(context, history, dailyGoalMinutes, accentColor),
+                    _buildGraphCard(context, history, dailyGoalMinutes, accentColor, accountCreationDate),
                   ],
                 ),
               ),
@@ -332,7 +335,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     );
   }
 
-  Widget _buildCalendarContainer(BuildContext context, List<DailyHistoryData> history, int dailyGoalMinutes, Color accentColor) {
+  Widget _buildCalendarContainer(BuildContext context, List<DailyHistoryData> history, int dailyGoalMinutes, Color accentColor, DateTime accountCreationDate) {
     final firstDayOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
     final lastDayOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
     final daysInMonth = lastDayOfMonth.day;
@@ -344,6 +347,13 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
+
+    final canGoLeft = _selectedMonth.year > accountCreationDate.year ||
+        (_selectedMonth.year == accountCreationDate.year && _selectedMonth.month > accountCreationDate.month);
+
+    final now = DateTime.now();
+    final canGoRight = _selectedMonth.year < now.year ||
+        (_selectedMonth.year == now.year && _selectedMonth.month < now.month);
 
     return Container(
       padding: EdgeInsets.only(top: 0, left: context.s(12), right: context.s(12), bottom: context.s(8)),
@@ -359,24 +369,18 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
             children: [
               IconButton(
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withAlpha(12),
+                  backgroundColor: canGoLeft ? Colors.white.withAlpha(12) : Colors.white.withAlpha(4),
                   shape: const CircleBorder(),
                   padding: EdgeInsets.all(context.s(4)),
                 ),
                 constraints: BoxConstraints.tightFor(width: context.s(28), height: context.s(28)),
-                icon: Icon(Icons.chevron_left_rounded, color: accentColor, size: context.s(18)),
-                onPressed: () {
-                  final minYear = _getMinYear(history);
-                  final target = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
-                  if (target.year < minYear) {
-                    _showNoHistorySnackBar(context, target.year);
-                  } else {
-                    setState(() {
-                      _selectedMonth = target;
-                    });
-                    _calendarDataAnimController.forward(from: 0.0);
-                  }
-                },
+                icon: Icon(Icons.chevron_left_rounded, color: canGoLeft ? accentColor : Colors.white24, size: context.s(18)),
+                onPressed: canGoLeft ? () {
+                  setState(() {
+                    _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
+                  });
+                  _calendarDataAnimController.forward(from: 0.0);
+                } : null,
               ),
               Text(
                 '${monthNames[_selectedMonth.month - 1]} ${_selectedMonth.year}',
@@ -388,23 +392,18 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               ),
               IconButton(
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withAlpha(12),
+                  backgroundColor: canGoRight ? Colors.white.withAlpha(12) : Colors.white.withAlpha(4),
                   shape: const CircleBorder(),
                   padding: EdgeInsets.all(context.s(4)),
                 ),
                 constraints: BoxConstraints.tightFor(width: context.s(28), height: context.s(28)),
-                icon: Icon(Icons.chevron_right_rounded, color: accentColor, size: context.s(18)),
-                onPressed: () {
-                  final target = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
-                  if (target.year > DateTime.now().year) {
-                    _showNoHistorySnackBar(context, target.year);
-                  } else {
-                    setState(() {
-                      _selectedMonth = target;
-                    });
-                    _calendarDataAnimController.forward(from: 0.0);
-                  }
-                },
+                icon: Icon(Icons.chevron_right_rounded, color: canGoRight ? accentColor : Colors.white24, size: context.s(18)),
+                onPressed: canGoRight ? () {
+                  setState(() {
+                    _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
+                  });
+                  _calendarDataAnimController.forward(from: 0.0);
+                } : null,
               ),
             ],
           ),
@@ -521,17 +520,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     );
   }
 
-  Widget _buildHeatmapContainer(BuildContext context, List<DailyHistoryData> history, Color accentColor) {
+  Widget _buildHeatmapContainer(BuildContext context, List<DailyHistoryData> history, Color accentColor, DateTime accountCreationDate) {
     final dailyGoalMinutes = ref.watch(dailyFocusGoalProvider);
     final Map<String, DailyHistoryData> historyMap = {for (final h in history) h.dateStr: h};
 
-    int minYear = DateTime.now().year;
-    for (final h in history) {
-      final d = DateTime.tryParse(h.dateStr);
-      if (d != null && d.year < minYear) {
-        minYear = d.year;
-      }
-    }
+    final minYear = accountCreationDate.year;
     // Clamp chosen year between min year and current year
     final currentYear = DateTime.now().year;
     final activeYear = _heatmapYear.clamp(minYear, currentYear);
@@ -549,6 +542,9 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         ? 1.0
         : history.map((e) => e.totalFocusSeconds.toDouble()).reduce(max);
     final maxVal = maxFocusSeconds > 0 ? maxFocusSeconds : 1.0;
+
+    final canGoLeft = activeYear > minYear;
+    final canGoRight = activeYear < currentYear;
 
     return Container(
       padding: EdgeInsets.only(top: 0, left: context.s(12), right: context.s(12), bottom: context.s(12)),
@@ -586,52 +582,42 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                 children: [
                   IconButton(
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withAlpha(12),
+                      backgroundColor: canGoLeft ? Colors.white.withAlpha(12) : Colors.white.withAlpha(4),
                       shape: const CircleBorder(),
                       padding: EdgeInsets.all(context.s(4)),
                     ),
                     constraints: BoxConstraints.tightFor(width: context.s(28), height: context.s(28)),
                     icon: Icon(
                       Icons.chevron_left_rounded,
-                      color: accentColor,
+                      color: canGoLeft ? accentColor : Colors.white24,
                       size: context.s(18),
                     ),
-                    onPressed: () {
-                      final target = activeYear - 1;
-                      if (target < minYear) {
-                        _showNoHistorySnackBar(context, target);
-                      } else {
-                        setState(() {
-                          _heatmapYear = target;
-                        });
-                        _calendarDataAnimController.forward(from: 0.0);
-                      }
-                    },
+                    onPressed: canGoLeft ? () {
+                      setState(() {
+                        _heatmapYear = activeYear - 1;
+                      });
+                      _calendarDataAnimController.forward(from: 0.0);
+                    } : null,
                   ),
                   SizedBox(width: context.s(6)),
                   IconButton(
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withAlpha(12),
+                      backgroundColor: canGoRight ? Colors.white.withAlpha(12) : Colors.white.withAlpha(4),
                       shape: const CircleBorder(),
                       padding: EdgeInsets.all(context.s(4)),
                     ),
                     constraints: BoxConstraints.tightFor(width: context.s(28), height: context.s(28)),
                     icon: Icon(
                       Icons.chevron_right_rounded,
-                      color: accentColor,
+                      color: canGoRight ? accentColor : Colors.white24,
                       size: context.s(18),
                     ),
-                    onPressed: () {
-                      final target = activeYear + 1;
-                      if (target > currentYear) {
-                        _showNoHistorySnackBar(context, target);
-                      } else {
-                        setState(() {
-                          _heatmapYear = target;
-                        });
-                        _calendarDataAnimController.forward(from: 0.0);
-                      }
-                    },
+                    onPressed: canGoRight ? () {
+                      setState(() {
+                        _heatmapYear = activeYear + 1;
+                      });
+                      _calendarDataAnimController.forward(from: 0.0);
+                    } : null,
                   ),
                 ],
               ),
@@ -877,7 +863,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     );
   }
 
-  Widget _buildGraphCard(BuildContext context, List<DailyHistoryData> history, int dailyGoalMinutes, Color accentColor) {
+  Widget _buildGraphCard(BuildContext context, List<DailyHistoryData> history, int dailyGoalMinutes, Color accentColor, DateTime accountCreationDate) {
     final disableGlow = ref.watch(disableGraphGlowProvider);
     double totalHours = 0.0;
     List<double> dataPoints = [];
@@ -886,11 +872,13 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     // Comparison calculation variables
     double pctChange = 0.0;
     bool isUp = true;
+    double currentSum = 0.0;
+    double previousSum = 0.0;
 
     if (_timeframe == 'Weekly') {
       // Comparison: This Calendar Week vs Last Calendar Week
-      double currentSum = 0.0;
-      double previousSum = 0.0;
+      currentSum = 0.0;
+      previousSum = 0.0;
       final startOfWeek = _selectedWeekStart;
       final prevStartOfWeek = startOfWeek.subtract(const Duration(days: 7));
 
@@ -925,8 +913,8 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       }
     } else if (_timeframe == 'Monthly') {
       // Comparison: This Calendar Month vs Last Calendar Month
-      double currentSum = 0.0;
-      double previousSum = 0.0;
+      currentSum = 0.0;
+      previousSum = 0.0;
       for (final h in history) {
         final d = DateTime.tryParse(h.dateStr);
         if (d != null) {
@@ -961,8 +949,8 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       }
     } else {
       // Comparison: This Year vs Last Year
-      double currentSum = 0.0;
-      double previousSum = 0.0;
+      currentSum = 0.0;
+      previousSum = 0.0;
       for (final h in history) {
         final d = DateTime.tryParse(h.dateStr);
         if (d != null) {
@@ -1044,157 +1032,190 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                   ? 'week'
                   : (_timeframe.toLowerCase() == 'monthly' ? 'month' : 'year');
 
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${animatedHours.toStringAsFixed(1).replaceAll('.0', '')} hrs',
-                          style: GoogleFonts.orbitron(
-                            color: Colors.white,
-                            fontSize: context.s(20),
-                            fontWeight: FontWeight.bold,
-                          ),
+              final showOnlyUpArrow = previousSum == 0 && currentSum > 0;
+              final showNeutralZero = previousSum == 0 && currentSum == 0;
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${animatedHours.toStringAsFixed(1).replaceAll('.0', '')} hrs',
+                        style: GoogleFonts.orbitron(
+                          color: Colors.white,
+                          fontSize: context.s(20),
+                          fontWeight: FontWeight.bold,
                         ),
-                        SizedBox(height: context.s(2)),
-                        Text(
-                          'total this $timeframeNoun',
-                          style: GoogleFonts.outfit(
-                            color: Colors.white38,
-                            fontSize: context.s(11),
-                          ),
-                        ),
-                      ],
-                    ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: context.s(8), vertical: context.s(4)),
-                            decoration: BoxDecoration(
-                              color: isUp ? Colors.greenAccent.withAlpha(20) : Colors.redAccent.withAlpha(20),
-                              borderRadius: BorderRadius.circular(context.s(6)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                                  color: isUp ? Colors.greenAccent : Colors.redAccent,
-                                  size: context.s(12),
-                                ),
-                                SizedBox(width: context.s(4)),
-                                Text(
-                                  "${animatedPctChange.abs().toStringAsFixed(0)}%",
-                                  style: GoogleFonts.outfit(
-                                    color: isUp ? Colors.greenAccent : Colors.redAccent,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: context.s(11),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: context.s(4)),
-                          Text(
-                            "vs last $timeframeNoun",
-                            style: GoogleFonts.outfit(
-                              color: Colors.white38,
-                              fontSize: context.s(10),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
                       ),
-                  ],
-                );
-              },
-            ),
-            SizedBox(height: context.s(16)),
-            // Custom scaled line/bar chart
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final chartWidth = constraints.maxWidth;
-                return GestureDetector(
-                  onTapDown: (details) {
-                    final colWidth = chartWidth / dataPoints.length;
-                    final index = (details.localPosition.dx / colWidth).floor().clamp(0, dataPoints.length - 1);
-                    setState(() {
-                      if (_selectedChartIndex == index) {
-                        _selectedChartIndex = null;
-                      } else {
-                        _selectedChartIndex = index;
-                      }
-                    });
-                  },
-                  child: AnimatedBuilder(
-                    animation: _chartDataAnimController,
-                    builder: (context, _) {
-                      return SizedBox(
-                        height: context.s(120),
-                        child: hasData
-                            ? CustomPaint(
-                                painter: WaveAreaChartPainter(
-                                  data: dataPoints,
-                                  goalValue: referenceGoal,
-                                  accentColor: accentColor,
-                                  selectedIndex: _selectedChartIndex,
-                                  tooltipLabels: tooltipLabels,
-                                  animValue: _chartDataAnimController.value,
-                                  showGoalLine: _timeframe != 'Yearly',
-                                  sharpLines: false,
-                                  disableGlow: disableGlow,
-                                ),
-                              )
-                            : Center(
-                                child: Text(
-                                  'No data found',
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white30,
-                                    fontSize: context.s(13),
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                      SizedBox(height: context.s(2)),
+                      Text(
+                        'total this $timeframeNoun',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white38,
+                          fontSize: context.s(11),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (showNeutralZero)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: context.s(8), vertical: context.s(4)),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(12),
+                            borderRadius: BorderRadius.circular(context.s(6)),
+                          ),
+                          child: Text(
+                            "0%",
+                            style: GoogleFonts.outfit(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: context.s(11),
+                            ),
+                          ),
+                        )
+                      else if (showOnlyUpArrow)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: context.s(8), vertical: context.s(4)),
+                          decoration: BoxDecoration(
+                            color: Colors.greenAccent.withAlpha(20),
+                            borderRadius: BorderRadius.circular(context.s(6)),
+                          ),
+                          child: Icon(
+                            Icons.arrow_upward_rounded,
+                            color: Colors.greenAccent,
+                            size: context.s(12),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: context.s(8), vertical: context.s(4)),
+                          decoration: BoxDecoration(
+                            color: isUp ? Colors.greenAccent.withAlpha(20) : Colors.redAccent.withAlpha(20),
+                            borderRadius: BorderRadius.circular(context.s(6)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isUp ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                                color: isUp ? Colors.greenAccent : Colors.redAccent,
+                                size: context.s(12),
+                              ),
+                              SizedBox(width: context.s(4)),
+                              Text(
+                                "${animatedPctChange.abs().toStringAsFixed(0)}%",
+                                style: GoogleFonts.outfit(
+                                  color: isUp ? Colors.greenAccent : Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: context.s(11),
                                 ),
                               ),
-                      );
-                    },
+                            ],
+                          ),
+                        ),
+                      SizedBox(height: context.s(4)),
+                      Text(
+                        "vs last $timeframeNoun",
+                        style: GoogleFonts.outfit(
+                          color: Colors.white38,
+                          fontSize: context.s(10),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
-            SizedBox(height: context.s(8)),
-            // Chart labels
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(labels.length, (index) {
-                final label = labels[index];
-                final dayNum = index + 1;
-                final showLabel = _timeframe != 'Monthly' || (dayNum == 1 || dayNum % 5 == 0 || dayNum == labels.length);
-                final displayLabel = showLabel ? label : '';
-                return Expanded(
-                  child: Text(
-                    displayLabel,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.visible,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white30,
-                      fontSize: context.s(_timeframe == 'Monthly' ? 8.5 : 10),
-                      fontWeight: FontWeight.bold,
-                    ),
+                ],
+              );
+            },
+          ),
+          SizedBox(height: context.s(16)),
+          // Custom scaled line/bar chart
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final chartWidth = constraints.maxWidth;
+              return GestureDetector(
+                onTapDown: (details) {
+                  final colWidth = chartWidth / dataPoints.length;
+                  final index = (details.localPosition.dx / colWidth).floor().clamp(0, dataPoints.length - 1);
+                  setState(() {
+                    if (_selectedChartIndex == index) {
+                      _selectedChartIndex = null;
+                    } else {
+                      _selectedChartIndex = index;
+                    }
+                  });
+                },
+                child: AnimatedBuilder(
+                  animation: _chartDataAnimController,
+                  builder: (context, _) {
+                    return SizedBox(
+                      height: context.s(120),
+                      child: hasData
+                          ? CustomPaint(
+                              painter: WaveAreaChartPainter(
+                                data: dataPoints,
+                                goalValue: referenceGoal,
+                                accentColor: accentColor,
+                                selectedIndex: _selectedChartIndex,
+                                tooltipLabels: tooltipLabels,
+                                animValue: _chartDataAnimController.value,
+                                showGoalLine: _timeframe != 'Yearly',
+                                sharpLines: false,
+                                disableGlow: disableGlow,
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                'No data found',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white30,
+                                  fontSize: context.s(13),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          SizedBox(height: context.s(8)),
+          // Chart labels
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(labels.length, (index) {
+              final label = labels[index];
+              final dayNum = index + 1;
+              final showLabel = _timeframe != 'Monthly' || (dayNum == 1 || dayNum % 5 == 0 || dayNum == labels.length);
+              final displayLabel = showLabel ? label : '';
+              return Expanded(
+                child: Text(
+                  displayLabel,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
+                  style: GoogleFonts.outfit(
+                    color: Colors.white30,
+                    fontSize: context.s(_timeframe == 'Monthly' ? 8.5 : 10),
+                    fontWeight: FontWeight.bold,
                   ),
-                );
-              }),
-            ),
-            SizedBox(height: context.s(14)),
-            // Bottom Pagination Info / Left-Right Controls
-            _buildGraphPaginationRow(accentColor, history),
-          ],
-        ),
-      );
+                ),
+              );
+            }),
+          ),
+          SizedBox(height: context.s(14)),
+          // Bottom Pagination Info / Left-Right Controls
+          _buildGraphPaginationRow(accentColor, accountCreationDate),
+        ],
+      ),
+    );
   }
 
   // --- Graph Pagination / SWIPE Helper Methods ---
@@ -1215,14 +1236,6 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     return "Week $sundayCount | $monthName | ${weekStart.year}";
   }
 
-  bool _hasDataInYearOrEarlier(int year, List<DailyHistoryData> history) {
-    return history.any((h) {
-      if (h.totalFocusSeconds <= 0) return false;
-      final date = DateTime.tryParse(h.dateStr);
-      return date != null && date.year <= year;
-    });
-  }
-
   bool _canGoToNextWeek() {
     final now = DateTime.now();
     final currentWeekStart = now.subtract(Duration(days: now.weekday % 7));
@@ -1241,32 +1254,30 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     return _selectedYear < now.year;
   }
 
-  bool _canGoToPreviousWeek(List<DailyHistoryData> history) {
+  bool _canGoToPreviousWeek(DateTime accountCreationDate) {
     final prevWeekStart = _selectedWeekStart.subtract(const Duration(days: 7));
-    if (prevWeekStart.year == _selectedWeekStart.year) {
-      return true;
-    }
-    return _hasDataInYearOrEarlier(prevWeekStart.year, history);
+    final creationWeekStart = accountCreationDate.subtract(Duration(days: accountCreationDate.weekday % 7));
+    final prevWeekClean = DateTime(prevWeekStart.year, prevWeekStart.month, prevWeekStart.day);
+    final creationWeekClean = DateTime(creationWeekStart.year, creationWeekStart.month, creationWeekStart.day);
+    return prevWeekClean.isAtSameMomentAs(creationWeekClean) || prevWeekClean.isAfter(creationWeekClean);
   }
 
-  bool _canGoToPreviousMonth(List<DailyHistoryData> history) {
+  bool _canGoToPreviousMonth(DateTime accountCreationDate) {
     final prevMonth = _selectedMonth.month == 1
         ? DateTime(_selectedMonth.year - 1, 12)
         : DateTime(_selectedMonth.year, _selectedMonth.month - 1);
-    if (prevMonth.year == _selectedMonth.year) {
-      return true;
-    }
-    return _hasDataInYearOrEarlier(prevMonth.year, history);
+    return prevMonth.year > accountCreationDate.year ||
+        (prevMonth.year == accountCreationDate.year && prevMonth.month >= accountCreationDate.month);
   }
 
-  bool _canGoToPreviousYear(List<DailyHistoryData> history) {
+  bool _canGoToPreviousYear(DateTime accountCreationDate) {
     final prevYear = _selectedYear - 1;
-    return _hasDataInYearOrEarlier(prevYear, history);
+    return prevYear >= accountCreationDate.year;
   }
 
-  void _goToPrevSet(List<DailyHistoryData> history) {
+  void _goToPrevSet(DateTime accountCreationDate) {
     if (_timeframe == 'Weekly') {
-      if (_canGoToPreviousWeek(history)) {
+      if (_canGoToPreviousWeek(accountCreationDate)) {
         setState(() {
           _selectedWeekStart = _selectedWeekStart.subtract(const Duration(days: 7));
           _selectedChartIndex = null;
@@ -1274,7 +1285,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         _chartDataAnimController.forward(from: 0.0);
       }
     } else if (_timeframe == 'Monthly') {
-      if (_canGoToPreviousMonth(history)) {
+      if (_canGoToPreviousMonth(accountCreationDate)) {
         setState(() {
           _selectedMonth = _selectedMonth.month == 1
               ? DateTime(_selectedMonth.year - 1, 12)
@@ -1284,7 +1295,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
         _chartDataAnimController.forward(from: 0.0);
       }
     } else {
-      if (_canGoToPreviousYear(history)) {
+      if (_canGoToPreviousYear(accountCreationDate)) {
         setState(() {
           _selectedYear--;
           _selectedChartIndex = null;
@@ -1335,7 +1346,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     _chartDataAnimController.forward(from: 0.0);
   }
 
-  Widget _buildGraphPaginationRow(Color accentColor, List<DailyHistoryData> history) {
+  Widget _buildGraphPaginationRow(Color accentColor, DateTime accountCreationDate) {
     final now = DateTime.now();
     String infoText = '';
     bool isNotCurrent = false;
@@ -1348,7 +1359,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       final currentWeekClean = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day);
       final selectedWeekClean = DateTime(_selectedWeekStart.year, _selectedWeekStart.month, _selectedWeekStart.day);
       isNotCurrent = !selectedWeekClean.isAtSameMomentAs(currentWeekClean);
-      canGoPrev = _canGoToPreviousWeek(history);
+      canGoPrev = _canGoToPreviousWeek(accountCreationDate);
       canGoNext = _canGoToNextWeek();
     } else if (_timeframe == 'Monthly') {
       final monthNamesLong = [
@@ -1357,12 +1368,12 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       ];
       infoText = "${monthNamesLong[_selectedMonth.month - 1]} | ${_selectedMonth.year}";
       isNotCurrent = _selectedMonth.year != now.year || _selectedMonth.month != now.month;
-      canGoPrev = _canGoToPreviousMonth(history);
+      canGoPrev = _canGoToPreviousMonth(accountCreationDate);
       canGoNext = _canGoToNextMonth();
     } else {
       infoText = "$_selectedYear";
       isNotCurrent = _selectedYear != now.year;
-      canGoPrev = _canGoToPreviousYear(history);
+      canGoPrev = _canGoToPreviousYear(accountCreationDate);
       canGoNext = _canGoToNextYear();
     }
 
@@ -1370,7 +1381,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         GestureDetector(
-          onTap: canGoPrev ? () => _goToPrevSet(history) : null,
+          onTap: canGoPrev ? () => _goToPrevSet(accountCreationDate) : null,
           child: Container(
             width: context.s(32),
             height: context.s(32),
@@ -2224,36 +2235,6 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
 
   // ----------------------------------------------------------------
 
-
-  int _getMinYear(List<DailyHistoryData> history) {
-    int minYear = DateTime.now().year;
-    for (final h in history) {
-      final d = DateTime.tryParse(h.dateStr);
-      if (d != null && d.year < minYear) {
-        minYear = d.year;
-      }
-    }
-    return minYear;
-  }
-
-  void _showNoHistorySnackBar(BuildContext context, int year) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'No History Found for $year',
-          style: GoogleFonts.outfit(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: context.s(12),
-          ),
-        ),
-        backgroundColor: const Color(0xFF1C1C1E),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 
   String _getTooltipMessage(String dateStr, DailyHistoryData? record, int dailyGoalMinutes) {
     String dateLabel = dateStr;
