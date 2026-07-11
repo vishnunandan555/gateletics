@@ -232,6 +232,7 @@ The Syllabus is divided into 3 levels
 
 * [ ] Greedy paradigm execution (Fractional Knapsack, Job sequencing)
 * [ ] Huffman coding tree generation and bit calculations
+* [ ] Disjoint Set Union (Union-Find) operations
 * [ ] Dynamic programming execution (0/1 Knapsack, Longest Common Subsequence)
 * [ ] Dynamic programming matrix sequence optimization (Matrix Chain Multiplication)
 * [ ] Breadth-First Search (BFS) graph execution and tracking
