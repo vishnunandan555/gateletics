@@ -24,7 +24,7 @@ void main() {
     // 1. Seed custom syllabus data
     final catId = await db.addSyllabusCategory('Syllabus Cat 1', 0xFF0000FF, position: 0);
     final topicId = await db.addSyllabusTopic(catId, 'Syllabus Topic 1', position: 0);
-    final topicId2 = await db.addSyllabusTopic(
+    await db.addSyllabusTopic(
       catId,
       'Syllabus Topic 2',
       position: 1,

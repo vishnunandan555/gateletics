@@ -626,7 +626,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _showTaskOptionsDialog(BuildContext context, WidgetRef ref, CustomTask task) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: const Color(0xFF131316),
           shape: RoundedRectangleBorder(
@@ -644,7 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 leading: const Icon(Icons.edit_rounded, color: Colors.cyanAccent),
                 title: Text("Edit Task", style: GoogleFonts.outfit(color: Colors.white)),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
                   _showEditTaskDialog(context, ref, task);
                 },
               ),
@@ -653,7 +653,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 title: Text("Delete Task", style: GoogleFonts.outfit(color: Colors.white)),
                 onTap: () {
                   ref.read(customTasksNotifierProvider.notifier).deleteTask(task.id);
-                  Navigator.pop(context);
+                  Navigator.pop(dialogContext);
                 },
               ),
             ],

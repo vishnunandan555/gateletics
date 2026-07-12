@@ -29,7 +29,7 @@ void showSyllabusCategoryOptionsSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (context) => SafeArea(
+    builder: (sheetContext) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
         child: Column(
@@ -65,7 +65,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 showAddSyllabusTopicDialog(context, category, ref);
               },
             ),
@@ -75,7 +75,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 showEditSyllabusCategoryDialog(context, category, ref);
               },
             ),
@@ -85,7 +85,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 showCreateSyllabusCategoryDialog(context, ref);
               },
             ),
@@ -95,7 +95,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 ref.read(syllabusControllerProvider.notifier).markCategoryCompleted(category.id);
               },
             ),
@@ -105,7 +105,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 ref.read(syllabusControllerProvider.notifier).resetCategoryStats(category.id);
               },
             ),
@@ -115,7 +115,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 ref.read(pinnedCategoriesProvider.notifier).toggle(category.id);
               },
             ),
@@ -125,7 +125,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 ref.read(weakCategoriesProvider.notifier).toggle(category.id);
               },
             ),
@@ -135,7 +135,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 showReorderSyllabusTopicsDialog(context, category, topics, ref);
               },
             ),
@@ -145,7 +145,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 final list = ref.read(syllabusCategoriesProvider).value;
                 if (list != null) {
                   showReorderSyllabusCategoriesDialog(context, List.from(list), ref);
@@ -158,7 +158,7 @@ void showSyllabusCategoryOptionsSheet(
               dense: true,
               visualDensity: const VisualDensity(vertical: -2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 _showDeleteSyllabusCategoryConfirm(context, category, ref);
               },
             ),
