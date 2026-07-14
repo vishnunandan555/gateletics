@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.11-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.12-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -42,19 +42,21 @@ GATEletics is fully offline-first, requiring no network connection to operate. A
 
 ## ✨ Features
 
-- **Unified Home Dashboard:** A premium landing screen featuring a real-time `DAYS : HRS : MINS : SECS` countdown to the GATE exam, a motivational launch quote, a syllabus/resource completion card, a 7-day consistency grid, and an animated "Resume Preparation" button that tracks daily goal progress.
+- **Unified Home Dashboard:** A premium landing screen featuring a real-time `DAYS : HRS : MINS : SECS` countdown to the GATE exam, a motivational launch quote, a syllabus completion card, a 7-day consistency grid, and an animated "Resume Preparation" button that tracks daily goal progress.
+- **Setup Wizard & Multi-Branch Onboarding:** A 6-card setup wizard (Profile → Daily Goal → Exam Date → Branch → Tracking Slate → Review) runs on first launch or can be re-run from Settings. Supports all 7 GATE branches: CS, DA, EC, EE, CE, ME, CH.
 - **Progress Analytics:** Overall exam completion index visualized using a high-fidelity animated progress ring.
 - **Relational Structure:** Subjects are dynamically assigned to parent Categories (Syllabus Areas) with progress rolling up automatically.
 - **Customizable Subjects:** Tap-to-edit video syllabus counts, customized source channels, and direct course/playlist URLs.
-- **Pre-configured Presets:** Instantly bootstrap your tracking with complete syllabus and video count presets (e.g., GoClasses/YouTube).
+- **Pre-configured Presets:** Instantly bootstrap your tracking with complete syllabus presets for every GATE branch.
 - **Study Focus Mode (Pomodoro & Ultradian):** A dedicated productivity workspace with configurable focus timers and daily goal tracking. Sessions are permanently saved to the local database.
 - **JSON Import/Export:** Secure backup utility that lets you export or import your progress as a relational JSON schema, facilitating backup portability.
-- **Firebase Authentication & Cloud Sync:** Sign in with Google to enable automatic, offline-first progress backups with intelligent merge conflict resolution.
+- **Firebase Authentication & Cloud Sync:** Sign in with Google to enable automatic, offline-first progress backups with intelligent merge conflict resolution and soft-delete support.
 - **Premium Customization System:**
   - Profile customization (display name, photo mode, photo size).
   - 7 premium progress fonts (Orbitron, Jersey 15, Jersey 10, Tektur, OdibeeSans, PressStart2P, Boldonse).
   - Animated home screen glow, focus animation styles (Wave/Ripple), and Resume button fill styles.
   - Per-element font size controls (Category headers, Syllabus Topics, Syllabus Tasks) and a global UI scale.
+- **Advanced & Beta Settings:** Collapsible "Advanced Options" (glow intensity, avatar size, disable countdown, disable home widgets, disable chart glow) and "Beta" panel (projected completion, inject mock session) under a single ADVANCED section.
 - **Cross-Platform Promo Banner (Web):** A subtle informational card in Settings for web users promoting the native Android, Windows, and Linux versions, with a toggle to dismiss it permanently.
 
 ## 🌐 Web Deployment (Vercel)
