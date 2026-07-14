@@ -201,8 +201,44 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     ref.read(manuallyExpandedCompletedSyllabusCategoriesProvider.notifier).clear();
   }
 
+  Map<String, dynamic> _resolveConflict(Map<String, dynamic> localItem, Map<String, dynamic> cloudItem) {
+    final localTimeStr = localItem['lastInteractedAt'] as String?;
+    final cloudTimeStr = cloudItem['lastInteractedAt'] as String?;
+    if (localTimeStr == null && cloudTimeStr == null) {
+      final localDeleted = localItem['isDeleted'] == true;
+      final cloudDeleted = cloudItem['isDeleted'] == true;
+      return {
+        ...localItem,
+        ...cloudItem,
+        'isDeleted': localDeleted || cloudDeleted,
+      };
+    }
+    if (localTimeStr == null) return Map<String, dynamic>.from(cloudItem);
+    if (cloudTimeStr == null) return Map<String, dynamic>.from(localItem);
+
+    final localTime = DateTime.tryParse(localTimeStr);
+    final cloudTime = DateTime.tryParse(cloudTimeStr);
+    if (localTime == null && cloudTime == null) {
+      final localDeleted = localItem['isDeleted'] == true;
+      final cloudDeleted = cloudItem['isDeleted'] == true;
+      return {
+        ...localItem,
+        ...cloudItem,
+        'isDeleted': localDeleted || cloudDeleted,
+      };
+    }
+    if (localTime == null) return Map<String, dynamic>.from(cloudItem);
+    if (cloudTime == null) return Map<String, dynamic>.from(localItem);
+
+    if (cloudTime.isAfter(localTime)) {
+      return Map<String, dynamic>.from(cloudItem);
+    } else {
+      return Map<String, dynamic>.from(localItem);
+    }
+  }
+
   // Intelligent Merge local data with cloud data
-  Future<Map<String, dynamic>> _mergeData(Map<String, dynamic> local, Map<String, dynamic> cloud) async {
+  Future<Map<String, dynamic>> mergeData(Map<String, dynamic> local, Map<String, dynamic> cloud) async {
     // Merge Syllabus Categories, Topics & Tasks
     final localSylCats = List<Map<String, dynamic>>.from(local['syllabusCategories'] ?? []);
     final cloudSylCats = List<Map<String, dynamic>>.from(cloud['syllabusCategories'] ?? []);
@@ -218,21 +254,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (!mergedSylCats.containsKey(name)) {
         mergedSylCats[name] = Map<String, dynamic>.from(c);
       } else {
-        // Resolve lastInteractedAt
         final existing = mergedSylCats[name]!;
-        final existingTimeStr = existing['lastInteractedAt'] as String?;
-        final incomingTimeStr = c['lastInteractedAt'] as String?;
-        if (incomingTimeStr != null) {
-          if (existingTimeStr == null) {
-            existing['lastInteractedAt'] = incomingTimeStr;
-          } else {
-            final existingTime = DateTime.tryParse(existingTimeStr);
-            final incomingTime = DateTime.tryParse(incomingTimeStr);
-            if (existingTime != null && incomingTime != null && incomingTime.isAfter(existingTime)) {
-              existing['lastInteractedAt'] = incomingTimeStr;
-            }
-          }
-        }
+        mergedSylCats[name] = _resolveConflict(existing, c);
       }
     }
 
@@ -265,23 +288,12 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           'categoryName': catName,
         };
       } else {
-        // Resolve counter card merge if it exists
         final existing = mergedSylTops[key]!;
-        final localIsCounter = existing['isCounter'] == true;
-        final cloudIsCounter = t['isCounter'] == true;
-
-        if (localIsCounter || cloudIsCounter) {
-          existing['isCounter'] = true;
-          existing['currentCount'] = max(
-            ((existing['currentCount'] ?? 0) as num).toInt(),
-            ((t['currentCount'] ?? 0) as num).toInt(),
-          );
-          existing['maxCount'] = max(
-            ((existing['maxCount'] ?? 0) as num).toInt(),
-            ((t['maxCount'] ?? 0) as num).toInt(),
-          );
-          existing['resourceUrl'] = existing['resourceUrl'] ?? t['resourceUrl'];
-        }
+        final resolved = _resolveConflict(existing, t);
+        mergedSylTops[key] = {
+          ...resolved,
+          'categoryName': catName,
+        };
       }
     }
 
@@ -318,48 +330,11 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         };
       } else {
         final existing = mergedSylTsks[key]!;
-        final lastSynced = state.lastSyncedAt;
-        
-        final localCompleted = existing['isCompleted'] == true;
-        final cloudCompleted = k['isCompleted'] == true;
-        
-        if (localCompleted && !cloudCompleted) {
-          // Local is completed, cloud is not. Keep local completion.
-          existing['isCompleted'] = true;
-        } else if (!localCompleted && cloudCompleted) {
-          // Local is NOT completed, cloud IS completed.
-          final cloudTimeStr = k['completedAt'] as String?;
-          final cloudTime = cloudTimeStr != null ? DateTime.tryParse(cloudTimeStr) : null;
-          
-          if (lastSynced == null || cloudTime == null || cloudTime.isAfter(lastSynced)) {
-            // Cloud completion is newer (or no sync history exists). Merge to completed.
-            existing['isCompleted'] = true;
-            existing['completedAt'] = cloudTimeStr;
-          } else {
-            // Cloud completion is older than our last sync.
-            // This means the user unchecked it locally since the last sync. Keep it unchecked.
-            existing['isCompleted'] = false;
-            existing['completedAt'] = null;
-          }
-        } else if (localCompleted && cloudCompleted) {
-          // Both completed. Pick the latest completedAt timestamp.
-          existing['isCompleted'] = true;
-          final localTimeStr = existing['completedAt'] as String?;
-          final cloudTimeStr = k['completedAt'] as String?;
-          if (localTimeStr == null) {
-            existing['completedAt'] = cloudTimeStr;
-          } else if (cloudTimeStr != null) {
-            final localTime = DateTime.tryParse(localTimeStr);
-            final cloudTime = DateTime.tryParse(cloudTimeStr);
-            if (localTime != null && cloudTime != null && cloudTime.isAfter(localTime)) {
-              existing['completedAt'] = cloudTimeStr;
-            }
-          }
-        } else {
-          // Both unchecked.
-          existing['isCompleted'] = false;
-          existing['completedAt'] = null;
-        }
+        final resolved = _resolveConflict(existing, k);
+        mergedSylTsks[key] = {
+          ...resolved,
+          'topicKey': topicKey,
+        };
       }
     }
 
@@ -379,6 +354,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'position': c['position'],
         'color': c['color'],
         'lastInteractedAt': c['lastInteractedAt'],
+        'isDeleted': c['isDeleted'] ?? false,
       });
     });
 
@@ -397,6 +373,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'currentCount': t['currentCount'] ?? 0,
         'maxCount': t['maxCount'] ?? 0,
         'resourceUrl': t['resourceUrl'],
+        'isDeleted': t['isDeleted'] ?? false,
+        'lastInteractedAt': t['lastInteractedAt'],
       });
     });
 
@@ -411,6 +389,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'isCompleted': k['isCompleted'],
         'position': k['position'],
         'completedAt': k['completedAt'],
+        'isDeleted': k['isDeleted'] ?? false,
+        'lastInteractedAt': k['lastInteractedAt'],
       });
     });
 
@@ -483,11 +463,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (!mergedCustomTasks.containsKey(key)) {
         mergedCustomTasks[key] = ct;
       } else {
-        // If either is completed, mark it as completed
         final existing = mergedCustomTasks[key]!;
-        if (ct['isCompleted'] == true) {
-          existing['isCompleted'] = true;
-        }
+        mergedCustomTasks[key] = _resolveConflict(existing, ct);
       }
     }
     final finalCustomTasks = mergedCustomTasks.values.toList();
@@ -530,6 +507,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (currentSylCatNames.length != defaultSylCatNames.length || !currentSylCatNames.containsAll(defaultSylCatNames)) {
         return true;
       }
+
+      // 5. Check if there are custom notice board tasks
+      final customTsks = await _db.select(_db.customTasks).get();
+      if (customTsks.isNotEmpty) return true;
     } catch (e) {
       debugPrint("Error checking local modifications: $e");
       return true;
@@ -686,7 +667,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       if (dataToMerge != null) {
         final localData = await exportLocalData();
-        final merged = await _mergeData(localData, dataToMerge);
+        final merged = await mergeData(localData, dataToMerge);
         
         // Restore local DB with merged data if it actually changed
         if (!_areDataEqual(localData, merged)) {
@@ -750,7 +731,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       }
 
       // Conflict/Difference: Auto-merge!
-      final merged = await _mergeData(localData, cloudData);
+      final merged = await mergeData(localData, cloudData);
       if (!_areDataEqual(localData, merged)) {
         await _restoreLocalData(merged);
       }

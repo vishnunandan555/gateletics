@@ -202,8 +202,9 @@ class FocusSessionState {
 
 class FocusStateNotifier extends Notifier<FocusSessionState> {
   Timer? _timer;
-  DateTime? _lastTickTime;
-  int _accumulatedMilliseconds = 0;
+  DateTime? _segmentStartTime;
+  int _previousSegmentSeconds = 0;
+  int _previousTotalSecondsFocused = 0;
 
   @override
   FocusSessionState build() {
@@ -211,6 +212,14 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       _timer?.cancel();
     });
     _loadSelection();
+
+    // Listen to changes in the syllabus provider to update accomplishments dynamically in-memory
+    ref.listen<AsyncValue<List<SyllabusCategoryWithTopics>>>(syllabusProvider, (prev, next) {
+      if (state.status != FocusStatus.idle) {
+        checkAccomplishments();
+      }
+    });
+
     return FocusSessionState.initial();
   }
 
@@ -252,11 +261,11 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     _saveSelection();
   }
 
-
-
   void resetState() {
     _timer?.cancel();
-    _accumulatedMilliseconds = 0;
+    _segmentStartTime = null;
+    _previousSegmentSeconds = 0;
+    _previousTotalSecondsFocused = 0;
     state = FocusSessionState.initial();
   }
 
@@ -300,8 +309,10 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       isBreakActive: false,
     );
 
-    _lastTickTime = DateTime.now();
-    _accumulatedMilliseconds = 0;
+    _segmentStartTime = startTime;
+    _previousSegmentSeconds = 0;
+    _previousTotalSecondsFocused = 0;
+
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
@@ -309,6 +320,14 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   void pauseSession() {
     if (state.status != FocusStatus.focusing && state.status != FocusStatus.breakTime) return;
     _timer?.cancel();
+    if (_segmentStartTime != null) {
+      final elapsedSegmentSeconds = DateTime.now().difference(_segmentStartTime!).inSeconds;
+      _previousSegmentSeconds += elapsedSegmentSeconds;
+      if (state.status == FocusStatus.focusing) {
+        _previousTotalSecondsFocused += elapsedSegmentSeconds;
+      }
+    }
+    _segmentStartTime = null;
     state = state.copyWith(status: FocusStatus.paused);
   }
 
@@ -317,8 +336,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     state = state.copyWith(
       status: state.isBreakActive ? FocusStatus.breakTime : FocusStatus.focusing,
     );
-    _lastTickTime = DateTime.now();
-    _accumulatedMilliseconds = 0;
+    _segmentStartTime = DateTime.now();
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
@@ -326,59 +344,59 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   Future<void> checkAccomplishments() async {
     if (state.status == FocusStatus.idle) return;
 
-    final db = ref.read(appDatabaseProvider);
     final accomplishments = <String>[];
+    final syllabusAsync = ref.read(syllabusProvider);
+    if (!syllabusAsync.hasValue) return;
 
-    // Check syllabus task achievements
-    try {
-      final tasks = await db.select(db.syllabusTasks).get();
-      final topics = await db.select(db.syllabusTopics).get();
-      final cats = await db.select(db.syllabusCategories).get();
+    final syllabusData = syllabusAsync.value!;
+    final newCompletedTasksByTopic = <int, List<String>>{};
+    final newCompletedCountersByTopic = <int, String>{};
+    final topicMap = <int, SyllabusTopic>{};
+    final categoryMap = <int, String>{};
 
-      final categoryMap = {for (final c in cats) c.id: c.name};
-      final topicMap = {for (final t in topics) t.id: t};
-
-      final newCompletedTasksByTopic = <int, List<String>>{};
-      final newCompletedCountersByTopic = <int, String>{};
-
-      for (final t in tasks) {
-        if (t.isCompleted && !state.initialCompletedTaskIds.contains(t.id)) {
-          newCompletedTasksByTopic.putIfAbsent(t.topicId, () => []).add(t.name);
-        }
-      }
-
-      for (final t in topics) {
-        if (t.isCounter) {
-          final initialVal = state.initialSubjectCompletedVideos[t.id] ?? 0;
-          if (t.currentCount > initialVal) {
-            newCompletedCountersByTopic[t.id] =
-                "count increased from $initialVal to ${t.currentCount} (Max ${t.maxCount})";
+    for (final catWithTopics in syllabusData) {
+      final cat = catWithTopics.category;
+      categoryMap[cat.id] = cat.name;
+      for (final topicWithTasks in catWithTopics.topics) {
+        final topic = topicWithTasks.topic;
+        topicMap[topic.id] = topic;
+        if (topic.isCounter) {
+          final initialVal = state.initialSubjectCompletedVideos[topic.id] ?? 0;
+          if (topic.currentCount > initialVal) {
+            newCompletedCountersByTopic[topic.id] =
+                "count increased from $initialVal to ${topic.currentCount} (Max ${topic.maxCount})";
           }
-        }
-      }
-
-      if (newCompletedTasksByTopic.isNotEmpty || newCompletedCountersByTopic.isNotEmpty) {
-        accomplishments.add("Completed:");
-        for (final topicId in newCompletedTasksByTopic.keys) {
-          final topic = topicMap[topicId];
-          if (topic != null) {
-            final catName = categoryMap[topic.categoryId] ?? "Syllabus";
-            accomplishments.add("  $catName > ${topic.name}:");
-            for (final taskName in newCompletedTasksByTopic[topicId]!) {
-              accomplishments.add("    - $taskName");
+        } else {
+          for (final task in topicWithTasks.tasks) {
+            if (task.isCompleted && !state.initialCompletedTaskIds.contains(task.id)) {
+              newCompletedTasksByTopic.putIfAbsent(topic.id, () => []).add(task.name);
             }
           }
         }
-        for (final topicId in newCompletedCountersByTopic.keys) {
-          final topic = topicMap[topicId];
-          if (topic != null) {
-            final catName = categoryMap[topic.categoryId] ?? "Syllabus";
-            accomplishments.add("  $catName > ${topic.name}:");
-            accomplishments.add("    - ${newCompletedCountersByTopic[topicId]}");
+      }
+    }
+
+    if (newCompletedTasksByTopic.isNotEmpty || newCompletedCountersByTopic.isNotEmpty) {
+      accomplishments.add("Completed:");
+      for (final topicId in newCompletedTasksByTopic.keys) {
+        final topic = topicMap[topicId];
+        if (topic != null) {
+          final catName = categoryMap[topic.categoryId] ?? "Syllabus";
+          accomplishments.add("  $catName > ${topic.name}:");
+          for (final taskName in newCompletedTasksByTopic[topicId]!) {
+            accomplishments.add("    - $taskName");
           }
         }
       }
-    } catch (_) {}
+      for (final topicId in newCompletedCountersByTopic.keys) {
+        final topic = topicMap[topicId];
+        if (topic != null) {
+          final catName = categoryMap[topic.categoryId] ?? "Syllabus";
+          accomplishments.add("  $catName > ${topic.name}:");
+          accomplishments.add("    - ${newCompletedCountersByTopic[topicId]}");
+        }
+      }
+    }
 
     state = state.copyWith(sessionAccomplishments: accomplishments);
   }
@@ -386,6 +404,17 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   Future<FocusSession> stopSession() async {
     _timer?.cancel();
     final db = ref.read(appDatabaseProvider);
+
+    if (_segmentStartTime != null) {
+      final elapsedSegmentSeconds = DateTime.now().difference(_segmentStartTime!).inSeconds;
+      _previousSegmentSeconds += elapsedSegmentSeconds;
+      if (state.status == FocusStatus.focusing) {
+        _previousTotalSecondsFocused += elapsedSegmentSeconds;
+      }
+    }
+    _segmentStartTime = null;
+
+    final finalFocusedSeconds = _previousTotalSecondsFocused;
 
     await checkAccomplishments();
 
@@ -418,7 +447,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     final completedEntry = FocusSessionsCompanion.insert(
       method: state.details.name,
       startTime: state.sessionStartTime ?? DateTime.now(),
-      durationSeconds: state.totalSecondsFocused,
+      durationSeconds: finalFocusedSeconds,
       accomplishments: Value(finalAccomplishments.isNotEmpty ? finalAccomplishments : null),
       progressDelta: Value(progressDelta),
     );
@@ -432,7 +461,7 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       id: insertedId,
       method: state.details.name,
       startTime: state.sessionStartTime ?? DateTime.now(),
-      durationSeconds: state.totalSecondsFocused,
+      durationSeconds: finalFocusedSeconds,
       accomplishments: finalAccomplishments.isNotEmpty ? finalAccomplishments : null,
       progressDelta: progressDelta,
     );
@@ -452,27 +481,16 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   }
 
   void _tick() {
+    if (_segmentStartTime == null) return;
     final now = DateTime.now();
-    int diffMs = _lastTickTime != null ? now.difference(_lastTickTime!).inMilliseconds : 1000;
-    _lastTickTime = now;
-
-    // Normalize jitter: if the tick is roughly around 1s, count it as exactly 1s
-    // to prevent the timer display from skipping/double-ticking on scheduling jitter.
-    if (diffMs >= 800 && diffMs <= 1500) {
-      diffMs = 1000;
-    }
-
-    _accumulatedMilliseconds += diffMs;
-    final tickDelta = _accumulatedMilliseconds ~/ 1000;
-    if (tickDelta <= 0) return;
-    _accumulatedMilliseconds %= 1000;
+    final elapsedSegmentSeconds = now.difference(_segmentStartTime!).inSeconds;
 
     if (state.status == FocusStatus.focusing) {
       final target = state.currentTargetSeconds;
       final isFreestyle = state.details.isCountUp;
 
-      int nextElapsed = state.elapsedSeconds + tickDelta;
-      int nextTotalFocused = state.totalSecondsFocused + tickDelta;
+      int nextElapsed = _previousSegmentSeconds + elapsedSegmentSeconds;
+      int nextTotalFocused = _previousTotalSecondsFocused + elapsedSegmentSeconds;
 
       if (!isFreestyle && nextElapsed >= target) {
         // Interval completed!
@@ -491,8 +509,9 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
               elapsedSeconds: 0,
               isBreakActive: true,
             );
-            _lastTickTime = DateTime.now();
-            _accumulatedMilliseconds = 0;
+            _segmentStartTime = DateTime.now();
+            _previousSegmentSeconds = 0;
+            _previousTotalSecondsFocused = state.totalSecondsFocused;
             _timer?.cancel();
             _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
           } else {
@@ -505,14 +524,10 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
           elapsedSeconds: nextElapsed,
           totalSecondsFocused: nextTotalFocused,
         );
-        // Refresh accomplishments periodically during active session
-        if (nextElapsed % 5 == 0) {
-          checkAccomplishments();
-        }
       }
     } else if (state.status == FocusStatus.breakTime) {
       final target = state.currentTargetSeconds;
-      int nextElapsed = state.elapsedSeconds + tickDelta;
+      int nextElapsed = _previousSegmentSeconds + elapsedSegmentSeconds;
 
       if (nextElapsed >= target) {
         // Break ended, start next focus
@@ -522,8 +537,8 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
           elapsedSeconds: 0,
           isBreakActive: false,
         );
-        _lastTickTime = DateTime.now();
-        _accumulatedMilliseconds = 0;
+        _segmentStartTime = DateTime.now();
+        _previousSegmentSeconds = 0;
         _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
       } else {
         state = state.copyWith(elapsedSeconds: nextElapsed);
@@ -541,8 +556,9 @@ class DailyFocusGoalNotifier extends Notifier<int> {
   @override
   int build() {
     _load();
-    return 240; // Default: 4 hours (240 mins)
+    return 120; // Default: 2 hours (120 mins)
   }
+
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();

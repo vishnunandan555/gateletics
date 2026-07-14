@@ -8,6 +8,7 @@ import '../../widgets/pill_progress_widget.dart';
 import '../../providers/syllabus_provider.dart';
 import '../dashboard/widgets/syllabus_category_header.dart';
 import '../dashboard/widgets/syllabus_topic_card.dart';
+import '../../providers/completion_provider.dart';
 
 class DeskDashboardScreen extends ConsumerWidget {
   const DeskDashboardScreen({super.key});
@@ -37,23 +38,10 @@ class DeskDashboardScreen extends ConsumerWidget {
       body: syllabusAsync.when(
         data: (syllabusData) {
           final isSyllabusEmpty = syllabusData.isEmpty;
-
-          int totalCompleted = 0, totalTasks = 0;
-          if (!isSyllabusEmpty) {
-            for (final cat in syllabusData) {
-              for (final topicWithTasks in cat.topics) {
-                final topic = topicWithTasks.topic;
-                if (topic.isCounter) {
-                  totalCompleted += topic.currentCount;
-                  totalTasks += topic.maxCount;
-                } else {
-                  totalCompleted += topicWithTasks.tasks.where((t) => t.isCompleted).length;
-                  totalTasks += topicWithTasks.tasks.length;
-                }
-              }
-            }
-          }
-          final overallProgress = totalTasks == 0 ? 0.0 : (totalCompleted / totalTasks) * 100;
+          final stats = ref.watch(completionStatsProvider).value ?? CompletionStats(percentage: 0.0, completed: 0, total: 0);
+          final overallProgress = stats.percentage;
+          final totalCompleted = stats.completed;
+          final totalTasks = stats.total;
 
           return _buildConstrainedBody(CustomScrollView(
             physics: const BouncingScrollPhysics(),

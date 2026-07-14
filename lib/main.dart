@@ -50,6 +50,7 @@ void main() async {
       overrides: [
         appDatabaseProvider.overrideWithValue(appDb),
         packageInfoProvider.overrideWithValue(packageInfo),
+        sharedPreferencesProvider.overrideWithValue(prefs),
       ],
       child: const GateTrackerApp(),
     ),

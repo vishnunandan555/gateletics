@@ -7,7 +7,6 @@ import 'syllabus_provider.dart';
 import 'focus_provider.dart';
 import 'completion_provider.dart';
 import 'rollover_provider.dart';
-import 'sync_provider.dart';
 
 // Stream of historical snapshots
 final dailyHistoryProvider = StreamProvider<List<DailyHistoryData>>((ref) {
@@ -50,35 +49,50 @@ final dailyHistoryManagerProvider = Provider<void>((ref) {
   });
 });
 
-// Personal best streak notifier
-class LongestStreakNotifier extends Notifier<int> {
-  @override
-  int build() {
-    _load();
-    return 0;
-  }
+final longestStreakProvider = Provider<int>((ref) {
+  final historyAsync = ref.watch(dailyHistoryProvider);
+  return historyAsync.when(
+    data: (historyList) {
+      if (historyList.isEmpty) return 0;
+      
+      int longest = 0;
+      int current = 0;
+      DateTime? prevDate;
 
-  Future<void> _load() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      state = prefs.getInt('longest_streak') ?? 0;
-    } catch (_) {}
-  }
+      // Ensure the history list is sorted by dateStr ascending
+      final sortedHistory = List<DailyHistoryData>.from(historyList)
+        ..sort((a, b) => a.dateStr.compareTo(b.dateStr));
 
-  Future<void> updateLongest(int current) async {
-    if (current > state) {
-      state = current;
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('longest_streak', current);
-        ref.read(syncProvider.notifier).triggerAutoSync();
-      } catch (_) {}
-    }
-  }
-}
+      for (final h in sortedHistory) {
+        if (!h.isGoalCompleted) {
+          current = 0;
+          prevDate = null;
+          continue;
+        }
 
-final longestStreakProvider = NotifierProvider<LongestStreakNotifier, int>(() {
-  return LongestStreakNotifier();
+        final date = DateTime.tryParse(h.dateStr);
+        if (date == null) continue;
+        
+        if (prevDate == null) {
+          current = 1;
+        } else {
+          final diff = date.difference(prevDate).inDays;
+          if (diff == 1) {
+            current++;
+          } else if (diff > 1) {
+            current = 1;
+          }
+        }
+        if (current > longest) {
+          longest = current;
+        }
+        prevDate = date;
+      }
+      return longest;
+    },
+    loading: () => 0,
+    error: (e, st) => 0,
+  );
 });
 
 // Current streak dynamically walked back starting from today
@@ -107,21 +121,16 @@ final currentStreakProvider = Provider<int>((ref) {
         
         if (completedDates.contains(checkDateStr)) {
           streak++;
-          checkDate = checkDate.subtract(const Duration(days: 1));
+          checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1);
         } else {
           // If checkDate is today, we check if they finished yesterday instead of breaking immediately
           if (checkDate == today) {
-            checkDate = checkDate.subtract(const Duration(days: 1));
+            checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1);
             continue;
           }
           break;
         }
       }
-
-      // Proactively update longest streak in post-frame/microtask
-      Future.microtask(() {
-        ref.read(longestStreakProvider.notifier).updateLongest(streak);
-      });
 
       return streak;
     },
@@ -129,6 +138,7 @@ final currentStreakProvider = Provider<int>((ref) {
     error: (err, stack) => 0,
   );
 });
+
 
 // Projected syllabus completion date based on rolling daily progress velocity
 final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
@@ -246,11 +256,11 @@ final checkInStreakProvider = Provider<int>((ref) {
         
         if (completedDates.contains(checkDateStr)) {
           streak++;
-          checkDate = checkDate.subtract(const Duration(days: 1));
+          checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1);
         } else {
           // If checkDate is today, we check if they finished yesterday instead of breaking immediately
           if (checkDate == today) {
-            checkDate = checkDate.subtract(const Duration(days: 1));
+            checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1);
             continue;
           }
           break;

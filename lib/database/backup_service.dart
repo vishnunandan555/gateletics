@@ -17,6 +17,7 @@ class BackupService {
       'position': c.position,
       'color': c.color,
       'lastInteractedAt': c.lastInteractedAt?.toIso8601String(),
+      'isDeleted': c.isDeleted,
     }).toList();
 
     final exportedSyllabusTops = syllabusTops.map((t) => {
@@ -28,6 +29,8 @@ class BackupService {
       'currentCount': t.currentCount,
       'maxCount': t.maxCount,
       'resourceUrl': t.resourceUrl,
+      'isDeleted': t.isDeleted,
+      'lastInteractedAt': t.lastInteractedAt?.toIso8601String(),
     }).toList();
 
     final exportedSyllabusTsks = syllabusTsks.map((k) => {
@@ -37,6 +40,8 @@ class BackupService {
       'isCompleted': k.isCompleted,
       'position': k.position,
       'completedAt': k.completedAt?.toIso8601String(),
+      'isDeleted': k.isDeleted,
+      'lastInteractedAt': k.lastInteractedAt?.toIso8601String(),
     }).toList();
 
     final exportedFocusSessions = focusSess.map((fs) => {
@@ -62,6 +67,8 @@ class BackupService {
       'isCompleted': ct.isCompleted,
       'createdAt': ct.createdAt.toIso8601String(),
       'position': ct.position,
+      'isDeleted': ct.isDeleted,
+      'lastInteractedAt': ct.lastInteractedAt?.toIso8601String(),
     }).toList();
 
     return {
@@ -100,8 +107,9 @@ class BackupService {
           final position = ((c['position'] ?? 0) as num).toInt();
           final lastIntStr = c['lastInteractedAt'] as String?;
           final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
+          final isDeleted = c['isDeleted'] as bool? ?? false;
 
-          final newId = await db.addSyllabusCategory(name, color, position: position, lastInteractedAt: lastInteracted);
+          final newId = await db.addSyllabusCategory(name, color, position: position, lastInteractedAt: lastInteracted, isDeleted: isDeleted);
           oldCatIdToNewId[oldId] = newId;
         }
 
@@ -115,6 +123,9 @@ class BackupService {
           final currentCount = ((t['currentCount'] ?? 0) as num).toInt();
           final maxCount = ((t['maxCount'] ?? 0) as num).toInt();
           final resourceUrl = t['resourceUrl'] as String?;
+          final isDeleted = t['isDeleted'] as bool? ?? false;
+          final lastIntStr = t['lastInteractedAt'] as String?;
+          final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
  
           final newCatId = oldCatIdToNewId[oldCatId];
           if (newCatId != null) {
@@ -126,6 +137,8 @@ class BackupService {
               currentCount: currentCount,
               maxCount: maxCount,
               resourceUrl: resourceUrl,
+              isDeleted: isDeleted,
+              lastInteractedAt: lastInteracted,
             );
             oldTopicIdToNewId[oldId] = newId;
           }
@@ -138,11 +151,21 @@ class BackupService {
           final position = ((k['position'] ?? 0) as num).toInt();
           final completedAtStr = k['completedAt'] as String?;
           final completedAt = completedAtStr != null ? DateTime.tryParse(completedAtStr) : null;
-
+          final isDeleted = k['isDeleted'] as bool? ?? false;
+          final lastIntStr = k['lastInteractedAt'] as String?;
+          final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
+ 
           final newTopicId = oldTopicIdToNewId[oldTopicId];
           if (newTopicId != null) {
-            final taskId = await db.addSyllabusTask(newTopicId, name, position: position);
-            await db.updateSyllabusTaskCompletion(taskId, isCompleted, completedAt: completedAt);
+            await db.addSyllabusTask(
+              newTopicId,
+              name,
+              position: position,
+              isCompleted: isCompleted,
+              completedAt: completedAt,
+              isDeleted: isDeleted,
+              lastInteractedAt: lastInteracted,
+            );
           }
         }
       }
@@ -201,13 +224,18 @@ class BackupService {
           final createdAtStr = ct['createdAt'] as String?;
           final createdAt = createdAtStr != null ? DateTime.tryParse(createdAtStr) : null;
           final position = ((ct['position'] ?? 0) as num).toInt();
-
+          final isDeleted = ct['isDeleted'] as bool? ?? false;
+          final lastIntStr = ct['lastInteractedAt'] as String?;
+          final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
+ 
           if (createdAt != null) {
             await db.into(db.customTasks).insert(CustomTasksCompanion.insert(
               content: content,
               isCompleted: Value(isCompleted),
               createdAt: createdAt,
               position: Value(position),
+              isDeleted: Value(isDeleted),
+              lastInteractedAt: Value(lastInteracted ?? DateTime.now()),
             ));
           }
         }

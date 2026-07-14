@@ -67,6 +67,21 @@ class $SyllabusCategoriesTable extends SyllabusCategories
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -74,6 +89,7 @@ class $SyllabusCategoriesTable extends SyllabusCategories
     position,
     color,
     lastInteractedAt,
+    isDeleted,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -123,6 +139,12 @@ class $SyllabusCategoriesTable extends SyllabusCategories
         ),
       );
     }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
     return context;
   }
 
@@ -152,6 +174,10 @@ class $SyllabusCategoriesTable extends SyllabusCategories
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_interacted_at'],
       ),
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
     );
   }
 
@@ -168,12 +194,14 @@ class SyllabusCategory extends DataClass
   final int position;
   final int color;
   final DateTime? lastInteractedAt;
+  final bool isDeleted;
   const SyllabusCategory({
     required this.id,
     required this.name,
     required this.position,
     required this.color,
     this.lastInteractedAt,
+    required this.isDeleted,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -185,6 +213,7 @@ class SyllabusCategory extends DataClass
     if (!nullToAbsent || lastInteractedAt != null) {
       map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
     }
+    map['is_deleted'] = Variable<bool>(isDeleted);
     return map;
   }
 
@@ -197,6 +226,7 @@ class SyllabusCategory extends DataClass
       lastInteractedAt: lastInteractedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastInteractedAt),
+      isDeleted: Value(isDeleted),
     );
   }
 
@@ -213,6 +243,7 @@ class SyllabusCategory extends DataClass
       lastInteractedAt: serializer.fromJson<DateTime?>(
         json['lastInteractedAt'],
       ),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
     );
   }
   @override
@@ -224,6 +255,7 @@ class SyllabusCategory extends DataClass
       'position': serializer.toJson<int>(position),
       'color': serializer.toJson<int>(color),
       'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
     };
   }
 
@@ -233,6 +265,7 @@ class SyllabusCategory extends DataClass
     int? position,
     int? color,
     Value<DateTime?> lastInteractedAt = const Value.absent(),
+    bool? isDeleted,
   }) => SyllabusCategory(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -241,6 +274,7 @@ class SyllabusCategory extends DataClass
     lastInteractedAt: lastInteractedAt.present
         ? lastInteractedAt.value
         : this.lastInteractedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
   );
   SyllabusCategory copyWithCompanion(SyllabusCategoriesCompanion data) {
     return SyllabusCategory(
@@ -251,6 +285,7 @@ class SyllabusCategory extends DataClass
       lastInteractedAt: data.lastInteractedAt.present
           ? data.lastInteractedAt.value
           : this.lastInteractedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
     );
   }
 
@@ -261,13 +296,15 @@ class SyllabusCategory extends DataClass
           ..write('name: $name, ')
           ..write('position: $position, ')
           ..write('color: $color, ')
-          ..write('lastInteractedAt: $lastInteractedAt')
+          ..write('lastInteractedAt: $lastInteractedAt, ')
+          ..write('isDeleted: $isDeleted')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, position, color, lastInteractedAt);
+  int get hashCode =>
+      Object.hash(id, name, position, color, lastInteractedAt, isDeleted);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -276,7 +313,8 @@ class SyllabusCategory extends DataClass
           other.name == this.name &&
           other.position == this.position &&
           other.color == this.color &&
-          other.lastInteractedAt == this.lastInteractedAt);
+          other.lastInteractedAt == this.lastInteractedAt &&
+          other.isDeleted == this.isDeleted);
 }
 
 class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
@@ -285,12 +323,14 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
   final Value<int> position;
   final Value<int> color;
   final Value<DateTime?> lastInteractedAt;
+  final Value<bool> isDeleted;
   const SyllabusCategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.position = const Value.absent(),
     this.color = const Value.absent(),
     this.lastInteractedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
   });
   SyllabusCategoriesCompanion.insert({
     this.id = const Value.absent(),
@@ -298,6 +338,7 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     required int position,
     required int color,
     this.lastInteractedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
   }) : name = Value(name),
        position = Value(position),
        color = Value(color);
@@ -307,6 +348,7 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     Expression<int>? position,
     Expression<int>? color,
     Expression<DateTime>? lastInteractedAt,
+    Expression<bool>? isDeleted,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -314,6 +356,7 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
       if (position != null) 'position': position,
       if (color != null) 'color': color,
       if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
     });
   }
 
@@ -323,6 +366,7 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     Value<int>? position,
     Value<int>? color,
     Value<DateTime?>? lastInteractedAt,
+    Value<bool>? isDeleted,
   }) {
     return SyllabusCategoriesCompanion(
       id: id ?? this.id,
@@ -330,6 +374,7 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
       position: position ?? this.position,
       color: color ?? this.color,
       lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -351,6 +396,9 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
     if (lastInteractedAt.present) {
       map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
     }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
     return map;
   }
 
@@ -361,7 +409,8 @@ class SyllabusCategoriesCompanion extends UpdateCompanion<SyllabusCategory> {
           ..write('name: $name, ')
           ..write('position: $position, ')
           ..write('color: $color, ')
-          ..write('lastInteractedAt: $lastInteractedAt')
+          ..write('lastInteractedAt: $lastInteractedAt, ')
+          ..write('isDeleted: $isDeleted')
           ..write(')'))
         .toString();
   }
@@ -474,6 +523,33 @@ class $SyllabusTopicsTable extends SyllabusTopics
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastInteractedAtMeta = const VerificationMeta(
+    'lastInteractedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastInteractedAt =
+      GeneratedColumn<DateTime>(
+        'last_interacted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -484,6 +560,8 @@ class $SyllabusTopicsTable extends SyllabusTopics
     currentCount,
     maxCount,
     resourceUrl,
+    isDeleted,
+    lastInteractedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -554,6 +632,21 @@ class $SyllabusTopicsTable extends SyllabusTopics
         ),
       );
     }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('last_interacted_at')) {
+      context.handle(
+        _lastInteractedAtMeta,
+        lastInteractedAt.isAcceptableOrUnknown(
+          data['last_interacted_at']!,
+          _lastInteractedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -595,6 +688,14 @@ class $SyllabusTopicsTable extends SyllabusTopics
         DriftSqlType.string,
         data['${effectivePrefix}resource_url'],
       ),
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      lastInteractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interacted_at'],
+      ),
     );
   }
 
@@ -613,6 +714,8 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
   final int currentCount;
   final int maxCount;
   final String? resourceUrl;
+  final bool isDeleted;
+  final DateTime? lastInteractedAt;
   const SyllabusTopic({
     required this.id,
     required this.categoryId,
@@ -622,6 +725,8 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     required this.currentCount,
     required this.maxCount,
     this.resourceUrl,
+    required this.isDeleted,
+    this.lastInteractedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -635,6 +740,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     map['max_count'] = Variable<int>(maxCount);
     if (!nullToAbsent || resourceUrl != null) {
       map['resource_url'] = Variable<String>(resourceUrl);
+    }
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || lastInteractedAt != null) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
     }
     return map;
   }
@@ -651,6 +760,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       resourceUrl: resourceUrl == null && nullToAbsent
           ? const Value.absent()
           : Value(resourceUrl),
+      isDeleted: Value(isDeleted),
+      lastInteractedAt: lastInteractedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractedAt),
     );
   }
 
@@ -668,6 +781,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       currentCount: serializer.fromJson<int>(json['currentCount']),
       maxCount: serializer.fromJson<int>(json['maxCount']),
       resourceUrl: serializer.fromJson<String?>(json['resourceUrl']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      lastInteractedAt: serializer.fromJson<DateTime?>(
+        json['lastInteractedAt'],
+      ),
     );
   }
   @override
@@ -682,6 +799,8 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       'currentCount': serializer.toJson<int>(currentCount),
       'maxCount': serializer.toJson<int>(maxCount),
       'resourceUrl': serializer.toJson<String?>(resourceUrl),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
     };
   }
 
@@ -694,6 +813,8 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     int? currentCount,
     int? maxCount,
     Value<String?> resourceUrl = const Value.absent(),
+    bool? isDeleted,
+    Value<DateTime?> lastInteractedAt = const Value.absent(),
   }) => SyllabusTopic(
     id: id ?? this.id,
     categoryId: categoryId ?? this.categoryId,
@@ -703,6 +824,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     currentCount: currentCount ?? this.currentCount,
     maxCount: maxCount ?? this.maxCount,
     resourceUrl: resourceUrl.present ? resourceUrl.value : this.resourceUrl,
+    isDeleted: isDeleted ?? this.isDeleted,
+    lastInteractedAt: lastInteractedAt.present
+        ? lastInteractedAt.value
+        : this.lastInteractedAt,
   );
   SyllabusTopic copyWithCompanion(SyllabusTopicsCompanion data) {
     return SyllabusTopic(
@@ -720,6 +845,10 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
       resourceUrl: data.resourceUrl.present
           ? data.resourceUrl.value
           : this.resourceUrl,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      lastInteractedAt: data.lastInteractedAt.present
+          ? data.lastInteractedAt.value
+          : this.lastInteractedAt,
     );
   }
 
@@ -733,7 +862,9 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
           ..write('isCounter: $isCounter, ')
           ..write('currentCount: $currentCount, ')
           ..write('maxCount: $maxCount, ')
-          ..write('resourceUrl: $resourceUrl')
+          ..write('resourceUrl: $resourceUrl, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
@@ -748,6 +879,8 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
     currentCount,
     maxCount,
     resourceUrl,
+    isDeleted,
+    lastInteractedAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -760,7 +893,9 @@ class SyllabusTopic extends DataClass implements Insertable<SyllabusTopic> {
           other.isCounter == this.isCounter &&
           other.currentCount == this.currentCount &&
           other.maxCount == this.maxCount &&
-          other.resourceUrl == this.resourceUrl);
+          other.resourceUrl == this.resourceUrl &&
+          other.isDeleted == this.isDeleted &&
+          other.lastInteractedAt == this.lastInteractedAt);
 }
 
 class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
@@ -772,6 +907,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
   final Value<int> currentCount;
   final Value<int> maxCount;
   final Value<String?> resourceUrl;
+  final Value<bool> isDeleted;
+  final Value<DateTime?> lastInteractedAt;
   const SyllabusTopicsCompanion({
     this.id = const Value.absent(),
     this.categoryId = const Value.absent(),
@@ -781,6 +918,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     this.currentCount = const Value.absent(),
     this.maxCount = const Value.absent(),
     this.resourceUrl = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   });
   SyllabusTopicsCompanion.insert({
     this.id = const Value.absent(),
@@ -791,6 +930,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     this.currentCount = const Value.absent(),
     this.maxCount = const Value.absent(),
     this.resourceUrl = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   }) : categoryId = Value(categoryId),
        name = Value(name),
        position = Value(position);
@@ -803,6 +944,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     Expression<int>? currentCount,
     Expression<int>? maxCount,
     Expression<String>? resourceUrl,
+    Expression<bool>? isDeleted,
+    Expression<DateTime>? lastInteractedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -813,6 +956,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
       if (currentCount != null) 'current_count': currentCount,
       if (maxCount != null) 'max_count': maxCount,
       if (resourceUrl != null) 'resource_url': resourceUrl,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
     });
   }
 
@@ -825,6 +970,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     Value<int>? currentCount,
     Value<int>? maxCount,
     Value<String?>? resourceUrl,
+    Value<bool>? isDeleted,
+    Value<DateTime?>? lastInteractedAt,
   }) {
     return SyllabusTopicsCompanion(
       id: id ?? this.id,
@@ -835,6 +982,8 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
       currentCount: currentCount ?? this.currentCount,
       maxCount: maxCount ?? this.maxCount,
       resourceUrl: resourceUrl ?? this.resourceUrl,
+      isDeleted: isDeleted ?? this.isDeleted,
+      lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
     );
   }
 
@@ -865,6 +1014,12 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
     if (resourceUrl.present) {
       map['resource_url'] = Variable<String>(resourceUrl.value);
     }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (lastInteractedAt.present) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
+    }
     return map;
   }
 
@@ -878,7 +1033,9 @@ class SyllabusTopicsCompanion extends UpdateCompanion<SyllabusTopic> {
           ..write('isCounter: $isCounter, ')
           ..write('currentCount: $currentCount, ')
           ..write('maxCount: $maxCount, ')
-          ..write('resourceUrl: $resourceUrl')
+          ..write('resourceUrl: $resourceUrl, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
@@ -967,6 +1124,33 @@ class $SyllabusTasksTable extends SyllabusTasks
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastInteractedAtMeta = const VerificationMeta(
+    'lastInteractedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastInteractedAt =
+      GeneratedColumn<DateTime>(
+        'last_interacted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -975,6 +1159,8 @@ class $SyllabusTasksTable extends SyllabusTasks
     isCompleted,
     position,
     completedAt,
+    isDeleted,
+    lastInteractedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1033,6 +1219,21 @@ class $SyllabusTasksTable extends SyllabusTasks
         ),
       );
     }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('last_interacted_at')) {
+      context.handle(
+        _lastInteractedAtMeta,
+        lastInteractedAt.isAcceptableOrUnknown(
+          data['last_interacted_at']!,
+          _lastInteractedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1066,6 +1267,14 @@ class $SyllabusTasksTable extends SyllabusTasks
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
       ),
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      lastInteractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interacted_at'],
+      ),
     );
   }
 
@@ -1082,6 +1291,8 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
   final bool isCompleted;
   final int position;
   final DateTime? completedAt;
+  final bool isDeleted;
+  final DateTime? lastInteractedAt;
   const SyllabusTask({
     required this.id,
     required this.topicId,
@@ -1089,6 +1300,8 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
     required this.isCompleted,
     required this.position,
     this.completedAt,
+    required this.isDeleted,
+    this.lastInteractedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1100,6 +1313,10 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
     map['position'] = Variable<int>(position);
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
+    }
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || lastInteractedAt != null) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
     }
     return map;
   }
@@ -1114,6 +1331,10 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
+      isDeleted: Value(isDeleted),
+      lastInteractedAt: lastInteractedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractedAt),
     );
   }
 
@@ -1129,6 +1350,10 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       position: serializer.fromJson<int>(json['position']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      lastInteractedAt: serializer.fromJson<DateTime?>(
+        json['lastInteractedAt'],
+      ),
     );
   }
   @override
@@ -1141,6 +1366,8 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'position': serializer.toJson<int>(position),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
     };
   }
 
@@ -1151,6 +1378,8 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
     bool? isCompleted,
     int? position,
     Value<DateTime?> completedAt = const Value.absent(),
+    bool? isDeleted,
+    Value<DateTime?> lastInteractedAt = const Value.absent(),
   }) => SyllabusTask(
     id: id ?? this.id,
     topicId: topicId ?? this.topicId,
@@ -1158,6 +1387,10 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
     isCompleted: isCompleted ?? this.isCompleted,
     position: position ?? this.position,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    isDeleted: isDeleted ?? this.isDeleted,
+    lastInteractedAt: lastInteractedAt.present
+        ? lastInteractedAt.value
+        : this.lastInteractedAt,
   );
   SyllabusTask copyWithCompanion(SyllabusTasksCompanion data) {
     return SyllabusTask(
@@ -1171,6 +1404,10 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      lastInteractedAt: data.lastInteractedAt.present
+          ? data.lastInteractedAt.value
+          : this.lastInteractedAt,
     );
   }
 
@@ -1182,14 +1419,24 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
           ..write('name: $name, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('position: $position, ')
-          ..write('completedAt: $completedAt')
+          ..write('completedAt: $completedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, topicId, name, isCompleted, position, completedAt);
+  int get hashCode => Object.hash(
+    id,
+    topicId,
+    name,
+    isCompleted,
+    position,
+    completedAt,
+    isDeleted,
+    lastInteractedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1199,7 +1446,9 @@ class SyllabusTask extends DataClass implements Insertable<SyllabusTask> {
           other.name == this.name &&
           other.isCompleted == this.isCompleted &&
           other.position == this.position &&
-          other.completedAt == this.completedAt);
+          other.completedAt == this.completedAt &&
+          other.isDeleted == this.isDeleted &&
+          other.lastInteractedAt == this.lastInteractedAt);
 }
 
 class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
@@ -1209,6 +1458,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
   final Value<bool> isCompleted;
   final Value<int> position;
   final Value<DateTime?> completedAt;
+  final Value<bool> isDeleted;
+  final Value<DateTime?> lastInteractedAt;
   const SyllabusTasksCompanion({
     this.id = const Value.absent(),
     this.topicId = const Value.absent(),
@@ -1216,6 +1467,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
     this.isCompleted = const Value.absent(),
     this.position = const Value.absent(),
     this.completedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   });
   SyllabusTasksCompanion.insert({
     this.id = const Value.absent(),
@@ -1224,6 +1477,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
     this.isCompleted = const Value.absent(),
     required int position,
     this.completedAt = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   }) : topicId = Value(topicId),
        name = Value(name),
        position = Value(position);
@@ -1234,6 +1489,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
     Expression<bool>? isCompleted,
     Expression<int>? position,
     Expression<DateTime>? completedAt,
+    Expression<bool>? isDeleted,
+    Expression<DateTime>? lastInteractedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1242,6 +1499,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
       if (isCompleted != null) 'is_completed': isCompleted,
       if (position != null) 'position': position,
       if (completedAt != null) 'completed_at': completedAt,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
     });
   }
 
@@ -1252,6 +1511,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
     Value<bool>? isCompleted,
     Value<int>? position,
     Value<DateTime?>? completedAt,
+    Value<bool>? isDeleted,
+    Value<DateTime?>? lastInteractedAt,
   }) {
     return SyllabusTasksCompanion(
       id: id ?? this.id,
@@ -1260,6 +1521,8 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
       isCompleted: isCompleted ?? this.isCompleted,
       position: position ?? this.position,
       completedAt: completedAt ?? this.completedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+      lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
     );
   }
 
@@ -1284,6 +1547,12 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (lastInteractedAt.present) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
+    }
     return map;
   }
 
@@ -1295,7 +1564,9 @@ class SyllabusTasksCompanion extends UpdateCompanion<SyllabusTask> {
           ..write('name: $name, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('position: $position, ')
-          ..write('completedAt: $completedAt')
+          ..write('completedAt: $completedAt, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
@@ -2195,6 +2466,33 @@ class $CustomTasksTable extends CustomTasks
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastInteractedAtMeta = const VerificationMeta(
+    'lastInteractedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastInteractedAt =
+      GeneratedColumn<DateTime>(
+        'last_interacted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2202,6 +2500,8 @@ class $CustomTasksTable extends CustomTasks
     isCompleted,
     createdAt,
     position,
+    isDeleted,
+    lastInteractedAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2249,6 +2549,21 @@ class $CustomTasksTable extends CustomTasks
         position.isAcceptableOrUnknown(data['position']!, _positionMeta),
       );
     }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('last_interacted_at')) {
+      context.handle(
+        _lastInteractedAtMeta,
+        lastInteractedAt.isAcceptableOrUnknown(
+          data['last_interacted_at']!,
+          _lastInteractedAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2278,6 +2593,14 @@ class $CustomTasksTable extends CustomTasks
         DriftSqlType.int,
         data['${effectivePrefix}position'],
       )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      lastInteractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interacted_at'],
+      ),
     );
   }
 
@@ -2293,12 +2616,16 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
   final bool isCompleted;
   final DateTime createdAt;
   final int position;
+  final bool isDeleted;
+  final DateTime? lastInteractedAt;
   const CustomTask({
     required this.id,
     required this.content,
     required this.isCompleted,
     required this.createdAt,
     required this.position,
+    required this.isDeleted,
+    this.lastInteractedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2308,6 +2635,10 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
     map['is_completed'] = Variable<bool>(isCompleted);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['position'] = Variable<int>(position);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || lastInteractedAt != null) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
+    }
     return map;
   }
 
@@ -2318,6 +2649,10 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
       isCompleted: Value(isCompleted),
       createdAt: Value(createdAt),
       position: Value(position),
+      isDeleted: Value(isDeleted),
+      lastInteractedAt: lastInteractedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractedAt),
     );
   }
 
@@ -2332,6 +2667,10 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       position: serializer.fromJson<int>(json['position']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      lastInteractedAt: serializer.fromJson<DateTime?>(
+        json['lastInteractedAt'],
+      ),
     );
   }
   @override
@@ -2343,6 +2682,8 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'position': serializer.toJson<int>(position),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
     };
   }
 
@@ -2352,12 +2693,18 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
     bool? isCompleted,
     DateTime? createdAt,
     int? position,
+    bool? isDeleted,
+    Value<DateTime?> lastInteractedAt = const Value.absent(),
   }) => CustomTask(
     id: id ?? this.id,
     content: content ?? this.content,
     isCompleted: isCompleted ?? this.isCompleted,
     createdAt: createdAt ?? this.createdAt,
     position: position ?? this.position,
+    isDeleted: isDeleted ?? this.isDeleted,
+    lastInteractedAt: lastInteractedAt.present
+        ? lastInteractedAt.value
+        : this.lastInteractedAt,
   );
   CustomTask copyWithCompanion(CustomTasksCompanion data) {
     return CustomTask(
@@ -2368,6 +2715,10 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
           : this.isCompleted,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       position: data.position.present ? data.position.value : this.position,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      lastInteractedAt: data.lastInteractedAt.present
+          ? data.lastInteractedAt.value
+          : this.lastInteractedAt,
     );
   }
 
@@ -2378,14 +2729,23 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
           ..write('content: $content, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('createdAt: $createdAt, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, content, isCompleted, createdAt, position);
+  int get hashCode => Object.hash(
+    id,
+    content,
+    isCompleted,
+    createdAt,
+    position,
+    isDeleted,
+    lastInteractedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2394,7 +2754,9 @@ class CustomTask extends DataClass implements Insertable<CustomTask> {
           other.content == this.content &&
           other.isCompleted == this.isCompleted &&
           other.createdAt == this.createdAt &&
-          other.position == this.position);
+          other.position == this.position &&
+          other.isDeleted == this.isDeleted &&
+          other.lastInteractedAt == this.lastInteractedAt);
 }
 
 class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
@@ -2403,12 +2765,16 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
   final Value<bool> isCompleted;
   final Value<DateTime> createdAt;
   final Value<int> position;
+  final Value<bool> isDeleted;
+  final Value<DateTime?> lastInteractedAt;
   const CustomTasksCompanion({
     this.id = const Value.absent(),
     this.content = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.position = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   });
   CustomTasksCompanion.insert({
     this.id = const Value.absent(),
@@ -2416,6 +2782,8 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
     this.isCompleted = const Value.absent(),
     required DateTime createdAt,
     this.position = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
   }) : content = Value(content),
        createdAt = Value(createdAt);
   static Insertable<CustomTask> custom({
@@ -2424,6 +2792,8 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
     Expression<bool>? isCompleted,
     Expression<DateTime>? createdAt,
     Expression<int>? position,
+    Expression<bool>? isDeleted,
+    Expression<DateTime>? lastInteractedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2431,6 +2801,8 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
       if (isCompleted != null) 'is_completed': isCompleted,
       if (createdAt != null) 'created_at': createdAt,
       if (position != null) 'position': position,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
     });
   }
 
@@ -2440,6 +2812,8 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
     Value<bool>? isCompleted,
     Value<DateTime>? createdAt,
     Value<int>? position,
+    Value<bool>? isDeleted,
+    Value<DateTime?>? lastInteractedAt,
   }) {
     return CustomTasksCompanion(
       id: id ?? this.id,
@@ -2447,6 +2821,8 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
       position: position ?? this.position,
+      isDeleted: isDeleted ?? this.isDeleted,
+      lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
     );
   }
 
@@ -2468,6 +2844,12 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
     if (position.present) {
       map['position'] = Variable<int>(position.value);
     }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (lastInteractedAt.present) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
+    }
     return map;
   }
 
@@ -2478,7 +2860,9 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
           ..write('content: $content, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('createdAt: $createdAt, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
           ..write(')'))
         .toString();
   }
@@ -2532,6 +2916,7 @@ typedef $$SyllabusCategoriesTableCreateCompanionBuilder =
       required int position,
       required int color,
       Value<DateTime?> lastInteractedAt,
+      Value<bool> isDeleted,
     });
 typedef $$SyllabusCategoriesTableUpdateCompanionBuilder =
     SyllabusCategoriesCompanion Function({
@@ -2540,6 +2925,7 @@ typedef $$SyllabusCategoriesTableUpdateCompanionBuilder =
       Value<int> position,
       Value<int> color,
       Value<DateTime?> lastInteractedAt,
+      Value<bool> isDeleted,
     });
 
 final class $$SyllabusCategoriesTableReferences
@@ -2611,6 +2997,11 @@ class $$SyllabusCategoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> syllabusTopicsRefs(
     Expression<bool> Function($$SyllabusTopicsTableFilterComposer f) f,
   ) {
@@ -2670,6 +3061,11 @@ class $$SyllabusCategoriesTableOrderingComposer
     column: $table.lastInteractedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SyllabusCategoriesTableAnnotationComposer
@@ -2697,6 +3093,9 @@ class $$SyllabusCategoriesTableAnnotationComposer
     column: $table.lastInteractedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
 
   Expression<T> syllabusTopicsRefs<T extends Object>(
     Expression<T> Function($$SyllabusTopicsTableAnnotationComposer a) f,
@@ -2762,12 +3161,14 @@ class $$SyllabusCategoriesTableTableManager
                 Value<int> position = const Value.absent(),
                 Value<int> color = const Value.absent(),
                 Value<DateTime?> lastInteractedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
               }) => SyllabusCategoriesCompanion(
                 id: id,
                 name: name,
                 position: position,
                 color: color,
                 lastInteractedAt: lastInteractedAt,
+                isDeleted: isDeleted,
               ),
           createCompanionCallback:
               ({
@@ -2776,12 +3177,14 @@ class $$SyllabusCategoriesTableTableManager
                 required int position,
                 required int color,
                 Value<DateTime?> lastInteractedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
               }) => SyllabusCategoriesCompanion.insert(
                 id: id,
                 name: name,
                 position: position,
                 color: color,
                 lastInteractedAt: lastInteractedAt,
+                isDeleted: isDeleted,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2851,6 +3254,8 @@ typedef $$SyllabusTopicsTableCreateCompanionBuilder =
       Value<int> currentCount,
       Value<int> maxCount,
       Value<String?> resourceUrl,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
     });
 typedef $$SyllabusTopicsTableUpdateCompanionBuilder =
     SyllabusTopicsCompanion Function({
@@ -2862,6 +3267,8 @@ typedef $$SyllabusTopicsTableUpdateCompanionBuilder =
       Value<int> currentCount,
       Value<int> maxCount,
       Value<String?> resourceUrl,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
     });
 
 final class $$SyllabusTopicsTableReferences
@@ -2960,6 +3367,16 @@ class $$SyllabusTopicsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SyllabusCategoriesTableFilterComposer get categoryId {
     final $$SyllabusCategoriesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -3053,6 +3470,16 @@ class $$SyllabusTopicsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SyllabusCategoriesTableOrderingComposer get categoryId {
     final $$SyllabusCategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3108,6 +3535,14 @@ class $$SyllabusTopicsTableAnnotationComposer
 
   GeneratedColumn<String> get resourceUrl => $composableBuilder(
     column: $table.resourceUrl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
     builder: (column) => column,
   );
 
@@ -3199,6 +3634,8 @@ class $$SyllabusTopicsTableTableManager
                 Value<int> currentCount = const Value.absent(),
                 Value<int> maxCount = const Value.absent(),
                 Value<String?> resourceUrl = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => SyllabusTopicsCompanion(
                 id: id,
                 categoryId: categoryId,
@@ -3208,6 +3645,8 @@ class $$SyllabusTopicsTableTableManager
                 currentCount: currentCount,
                 maxCount: maxCount,
                 resourceUrl: resourceUrl,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
               ),
           createCompanionCallback:
               ({
@@ -3219,6 +3658,8 @@ class $$SyllabusTopicsTableTableManager
                 Value<int> currentCount = const Value.absent(),
                 Value<int> maxCount = const Value.absent(),
                 Value<String?> resourceUrl = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => SyllabusTopicsCompanion.insert(
                 id: id,
                 categoryId: categoryId,
@@ -3228,6 +3669,8 @@ class $$SyllabusTopicsTableTableManager
                 currentCount: currentCount,
                 maxCount: maxCount,
                 resourceUrl: resourceUrl,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3331,6 +3774,8 @@ typedef $$SyllabusTasksTableCreateCompanionBuilder =
       Value<bool> isCompleted,
       required int position,
       Value<DateTime?> completedAt,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
     });
 typedef $$SyllabusTasksTableUpdateCompanionBuilder =
     SyllabusTasksCompanion Function({
@@ -3340,6 +3785,8 @@ typedef $$SyllabusTasksTableUpdateCompanionBuilder =
       Value<bool> isCompleted,
       Value<int> position,
       Value<DateTime?> completedAt,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
     });
 
 final class $$SyllabusTasksTableReferences
@@ -3404,6 +3851,16 @@ class $$SyllabusTasksTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SyllabusTopicsTableFilterComposer get topicId {
     final $$SyllabusTopicsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -3462,6 +3919,16 @@ class $$SyllabusTasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SyllabusTopicsTableOrderingComposer get topicId {
     final $$SyllabusTopicsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3511,6 +3978,14 @@ class $$SyllabusTasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
     builder: (column) => column,
   );
 
@@ -3572,6 +4047,8 @@ class $$SyllabusTasksTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => SyllabusTasksCompanion(
                 id: id,
                 topicId: topicId,
@@ -3579,6 +4056,8 @@ class $$SyllabusTasksTableTableManager
                 isCompleted: isCompleted,
                 position: position,
                 completedAt: completedAt,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
               ),
           createCompanionCallback:
               ({
@@ -3588,6 +4067,8 @@ class $$SyllabusTasksTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 required int position,
                 Value<DateTime?> completedAt = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => SyllabusTasksCompanion.insert(
                 id: id,
                 topicId: topicId,
@@ -3595,6 +4076,8 @@ class $$SyllabusTasksTableTableManager
                 isCompleted: isCompleted,
                 position: position,
                 completedAt: completedAt,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4097,6 +4580,8 @@ typedef $$CustomTasksTableCreateCompanionBuilder =
       Value<bool> isCompleted,
       required DateTime createdAt,
       Value<int> position,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
     });
 typedef $$CustomTasksTableUpdateCompanionBuilder =
     CustomTasksCompanion Function({
@@ -4105,6 +4590,8 @@ typedef $$CustomTasksTableUpdateCompanionBuilder =
       Value<bool> isCompleted,
       Value<DateTime> createdAt,
       Value<int> position,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
     });
 
 class $$CustomTasksTableFilterComposer
@@ -4138,6 +4625,16 @@ class $$CustomTasksTableFilterComposer
 
   ColumnFilters<int> get position => $composableBuilder(
     column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4175,6 +4672,16 @@ class $$CustomTasksTableOrderingComposer
     column: $table.position,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CustomTasksTableAnnotationComposer
@@ -4202,6 +4709,14 @@ class $$CustomTasksTableAnnotationComposer
 
   GeneratedColumn<int> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => column,
+  );
 }
 
 class $$CustomTasksTableTableManager
@@ -4240,12 +4755,16 @@ class $$CustomTasksTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> position = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => CustomTasksCompanion(
                 id: id,
                 content: content,
                 isCompleted: isCompleted,
                 createdAt: createdAt,
                 position: position,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
               ),
           createCompanionCallback:
               ({
@@ -4254,12 +4773,16 @@ class $$CustomTasksTableTableManager
                 Value<bool> isCompleted = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> position = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
               }) => CustomTasksCompanion.insert(
                 id: id,
                 content: content,
                 isCompleted: isCompleted,
                 createdAt: createdAt,
                 position: position,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/colors.dart';
+import 'syllabus_provider.dart';
 
 // Progress Color Provider using standard Notifier
 final overallProgressColorProvider = NotifierProvider<OverallProgressColorNotifier, Color>(() {
@@ -18,12 +18,7 @@ class OverallProgressColorNotifier extends Notifier<Color> {
 
   @override
   Color build() {
-    _load();
-    return AppColors.neonCycle[math.Random().nextInt(AppColors.neonCycle.length)];
-  }
-
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     _mode = prefs.getString('accent_color_mode') ?? 'auto';
     final colorHex = prefs.getString('frozen_accent_color');
     if (colorHex != null) {
@@ -33,12 +28,13 @@ class OverallProgressColorNotifier extends Notifier<Color> {
       }
     }
     if (_mode == 'frozen' && _frozenColor != null) {
-      state = _frozenColor!;
+      return _frozenColor!;
     }
+    return AppColors.neonCycle[math.Random().nextInt(AppColors.neonCycle.length)];
   }
 
   Future<void> setAutoMode() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('accent_color_mode', 'auto');
     await prefs.remove('frozen_accent_color');
     _mode = 'auto';
@@ -47,7 +43,7 @@ class OverallProgressColorNotifier extends Notifier<Color> {
   }
 
   Future<void> setFrozenColor(Color color) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = ref.read(sharedPreferencesProvider);
     await prefs.setString('accent_color_mode', 'frozen');
     await prefs.setString('frozen_accent_color', color.toARGB32().toRadixString(16));
     _mode = 'frozen';

@@ -55,7 +55,7 @@ class CustomTasksNotifier extends Notifier<void> {
   }
 
   void _triggerSync() {
-    ref.read(syncProvider.notifier).autoSync();
+    ref.read(syncProvider.notifier).triggerAutoSync();
   }
 }
 

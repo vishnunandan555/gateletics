@@ -49,9 +49,9 @@ void main() {
     });
 
     test('syllabusProvider partitions pinned categories to the top stably', () async {
-      final mathsCat = SyllabusCategory(id: 1, name: 'Maths', color: 0xFF0000FF, position: 0, lastInteractedAt: null);
-      final aptitudeCat = SyllabusCategory(id: 2, name: 'Aptitude', color: 0xFFFF0000, position: 1, lastInteractedAt: null);
-      final csCat = SyllabusCategory(id: 3, name: 'CS', color: 0xFF00FF00, position: 2, lastInteractedAt: null);
+      final mathsCat = SyllabusCategory(id: 1, name: 'Maths', color: 0xFF0000FF, position: 0, lastInteractedAt: null, isDeleted: false);
+      final aptitudeCat = SyllabusCategory(id: 2, name: 'Aptitude', color: 0xFFFF0000, position: 1, lastInteractedAt: null, isDeleted: false);
+      final csCat = SyllabusCategory(id: 3, name: 'CS', color: 0xFF00FF00, position: 2, lastInteractedAt: null, isDeleted: false);
 
       final container = ProviderContainer(
         overrides: [

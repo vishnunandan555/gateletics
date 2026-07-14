@@ -1,7 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'syllabus_provider.dart';
 
-final completionPercentageProvider = Provider<AsyncValue<double>>((ref) {
+class CompletionStats {
+  final double percentage;
+  final int completed;
+  final int total;
+
+  CompletionStats({
+    required this.percentage,
+    required this.completed,
+    required this.total,
+  });
+}
+
+final completionStatsProvider = Provider<AsyncValue<CompletionStats>>((ref) {
   final syllabusAsync = ref.watch(syllabusProvider);
   return syllabusAsync.when(
     data: (syllabusData) {
@@ -18,8 +30,22 @@ final completionPercentageProvider = Provider<AsyncValue<double>>((ref) {
           }
         }
       }
-      return AsyncValue.data(totalTasks == 0 ? 0.0 : (totalCompleted / totalTasks) * 100);
+      final pct = totalTasks == 0 ? 0.0 : (totalCompleted / totalTasks) * 100;
+      return AsyncValue.data(CompletionStats(
+        percentage: pct,
+        completed: totalCompleted,
+        total: totalTasks,
+      ));
     },
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+  );
+});
+
+final completionPercentageProvider = Provider<AsyncValue<double>>((ref) {
+  final statsAsync = ref.watch(completionStatsProvider);
+  return statsAsync.when(
+    data: (stats) => AsyncValue.data(stats.percentage),
     loading: () => const AsyncValue.loading(),
     error: (e, st) => AsyncValue.error(e, st),
   );
