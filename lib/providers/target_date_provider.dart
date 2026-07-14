@@ -5,7 +5,8 @@ class TargetDateNotifier extends Notifier<DateTime> {
   @override
   DateTime build() {
     _loadDate();
-    return DateTime(2027, 2, 1);
+    final now = DateTime.now();
+    return now.month >= 2 ? DateTime(now.year + 1, 2, 1) : DateTime(now.year, 2, 1);
   }
 
   Future<void> _loadDate() async {

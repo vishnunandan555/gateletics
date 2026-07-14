@@ -232,6 +232,36 @@ class DangerZoneSettingsSection extends ConsumerWidget {
     }
   }
 
+  Future<void> _performRedoOnboarding(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Redo Onboarding Setup?'),
+        content: const Text(
+          'This will take you back to the initial configuration wizard to re-set your profile, daily goals, branch, and syllabus tracker.\n\nNote: Initializing a new syllabus branch will overwrite your current categories and tracking progress.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.cyanAccent, foregroundColor: Colors.black),
+            child: const Text('Redo'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    await ref.read(setupCompletedProvider.notifier).resetSetup();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resetDataContent = Theme(
@@ -290,6 +320,15 @@ class DangerZoneSettingsSection extends ConsumerWidget {
             style: subtitleStyle,
           ),
           onTap: () => _importData(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.restart_alt_rounded, color: Color(0xFFFFD54F)),
+          title: Text('Redo Onboarding Setup', style: titleStyle),
+          subtitle: Text(
+            'Reconfigure profile, daily goals, branch, and syllabus presets',
+            style: subtitleStyle,
+          ),
+          onTap: () => _performRedoOnboarding(context, ref),
         ),
         resetDataContent,
       ],

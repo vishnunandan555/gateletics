@@ -119,7 +119,7 @@ The Syllabus is divided into 3 levels
 
 ---
 
-## 3. COA
+## 3. Computer Organization and Architecture
 
 ### Machine Instructions & Addressing Modes
 
@@ -246,7 +246,7 @@ The Syllabus is divided into 3 levels
 
 ---
 
-## 7. TOC
+## 7. Theory of Computaion
 
 ### Regular Languages & Finite Automata
 

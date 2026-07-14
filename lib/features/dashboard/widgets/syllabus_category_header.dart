@@ -110,11 +110,11 @@ class SyllabusCategoryHeader extends ConsumerWidget {
                       ],
                       if (isWeak) ...[
                         Icon(
-                          Icons.warning_amber_rounded,
-                          size: iconSize * 0.75,
+                          Icons.warning_rounded,
+                          size: baseStyle.fontSize ?? categoryFontSize,
                           color: Colors.amberAccent,
                         ),
-                        SizedBox(width: context.s(4)),
+                        SizedBox(width: context.s(6)),
                       ],
                       Flexible(
                         child: TweenAnimationBuilder<double>(

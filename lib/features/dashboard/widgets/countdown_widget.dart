@@ -4,12 +4,16 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../providers/subject_provider.dart';
 import '../../../providers/target_date_provider.dart';
 import '../../../providers/progress_font_provider.dart';
+import '../../../providers/disable_countdown_provider.dart';
 
 class CountdownWidget extends ConsumerWidget {
   const CountdownWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final disableCountdown = ref.watch(disableCountdownProvider);
+    if (disableCountdown) return const SizedBox.shrink();
+
     final targetDate = ref.watch(targetDateProvider);
     final progressColor = ref.watch(overallProgressColorProvider);
     final selectedFont = ref.watch(progressFontProvider);

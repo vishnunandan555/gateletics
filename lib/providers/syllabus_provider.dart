@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../database/app_database.dart';
+import '../database/syllabus_preset.dart';
 import 'category_autosort_provider.dart';
 import 'sync_provider.dart';
 
@@ -306,9 +307,9 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     _triggerSync();
   }
 
-  Future<void> applyPreset() async {
+  Future<void> applyPreset([List<PresetCategory>? preset]) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _db.seedSyllabus());
+    state = await AsyncValue.guard(() => _db.seedSyllabus(preset));
     _triggerSync();
   }
 

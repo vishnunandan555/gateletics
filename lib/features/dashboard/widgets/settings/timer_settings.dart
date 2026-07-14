@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:drift/drift.dart' hide Column;
 
 import '../../../../providers/focus_provider.dart';
 import '../../../../providers/daily_history_provider.dart';
@@ -97,138 +95,6 @@ class TimerSettingsSection extends ConsumerWidget {
     );
   }
 
-  void _showDevInjectDialog(BuildContext context, WidgetRef ref, Color accentColor) {
-    DateTime selectedDate = DateTime.now();
-    final durationController = TextEditingController(text: "60");
-    final goalController = TextEditingController(text: "120");
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: const Color(0xFF18181B),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text(
-                "Dev: Inject Study Session",
-                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          "Date: ${selectedDate.year}-${selectedDate.month}-${selectedDate.day}",
-                          style: GoogleFonts.outfit(color: Colors.white70),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: Icon(Icons.calendar_today, color: accentColor),
-                          onPressed: () async {
-                            final d = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                            );
-                            if (d != null) {
-                              setState(() {
-                                selectedDate = d;
-                              });
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: durationController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Duration (Minutes)",
-                        labelStyle: GoogleFonts.outfit(color: Colors.white60),
-                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
-                      ),
-                      style: GoogleFonts.outfit(color: Colors.white),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: goalController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Daily Goal (Minutes)",
-                        labelStyle: GoogleFonts.outfit(color: Colors.white60),
-                        enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: accentColor)),
-                      ),
-                      style: GoogleFonts.outfit(color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: Text("Cancel", style: TextStyle(color: accentColor)),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final durationMin = int.tryParse(durationController.text) ?? 60;
-                    final goalMin = int.tryParse(goalController.text) ?? 120;
-
-                    final db = ref.read(appDatabaseProvider);
-                    final rollover = ref.read(studyDayRolloverProvider);
-
-                    final startTime = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 12, 0);
-
-                    await db.into(db.focusSessions).insert(FocusSessionsCompanion.insert(
-                      method: "Freestyle",
-                      startTime: startTime,
-                      durationSeconds: durationMin * 60,
-                      accomplishments: const Value("Developer Mode injected study session"),
-                    ));
-
-                    final studyDayStart = getStudyDayStart(startTime, rollover: rollover);
-                    final studyDayEnd = studyDayStart.add(const Duration(hours: 24));
-                    final sessions = await (db.select(db.focusSessions)
-                          ..where((t) => t.startTime.isBiggerOrEqualValue(studyDayStart) & t.startTime.isSmallerThanValue(studyDayEnd)))
-                        .get();
-                    final totalSeconds = sessions.fold(0, (sum, s) => sum + s.durationSeconds);
-
-                    final studyDay = studyDayFor(startTime, rollover);
-                    final dateStr = "${studyDay.year}-${studyDay.month.toString().padLeft(2, '0')}-${studyDay.day.toString().padLeft(2, '0')}";
-
-                    await db.upsertDailyHistory(
-                      dateStr: dateStr,
-                      totalFocusSeconds: totalSeconds,
-                      targetGoalSeconds: goalMin * 60,
-                      isGoalCompleted: totalSeconds >= (goalMin * 60),
-                      syllabusProgressPct: 50.0,
-                    );
-
-                    if (ctx.mounted) {
-                      Navigator.of(ctx).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("✓ Study session injected successfully!"),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  },
-                  child: Text("Inject", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -359,18 +225,7 @@ class TimerSettingsSection extends ConsumerWidget {
             }
           },
         ),
-        if (kDebugMode) ...[
-          const Divider(color: Colors.white10, height: 1),
-          ListTile(
-            leading: Icon(Icons.developer_mode_rounded, color: accentColor),
-            title: Text('Inject Mock Session', style: titleStyle),
-            subtitle: Text(
-              'Generate fake study sessions for testing statistics and charts',
-              style: subtitleStyle,
-            ),
-            onTap: () => _showDevInjectDialog(context, ref, accentColor),
-          ),
-        ]
+
       ],
     );
   }

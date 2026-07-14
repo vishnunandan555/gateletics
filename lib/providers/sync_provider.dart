@@ -502,7 +502,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       // 4. Check if there are custom syllabus categories or missing default syllabus categories
       final sylCategories = await _db.select(_db.syllabusCategories).get();
-      final defaultSylCatNames = defaultSyllabusPreset.map((e) => e.name).toSet();
+      final prefs = await SharedPreferences.getInstance();
+      final selectedBranch = prefs.getString('selected_branch') ?? 'CS';
+      final activePreset = branchPresets[selectedBranch.toUpperCase()] ?? defaultSyllabusPreset;
+      final defaultSylCatNames = activePreset.map((e) => e.name).toSet();
       final currentSylCatNames = sylCategories.map((c) => c.name).toSet();
       if (currentSylCatNames.length != defaultSylCatNames.length || !currentSylCatNames.containsAll(defaultSylCatNames)) {
         return true;

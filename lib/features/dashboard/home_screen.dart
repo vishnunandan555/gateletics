@@ -15,6 +15,7 @@ import '../../providers/glow_strength_provider.dart';
 import '../../providers/focus_animation_provider.dart';
 import '../../providers/rollover_provider.dart';
 import '../../providers/disable_home_screen_widget_provider.dart';
+import '../../providers/disable_countdown_provider.dart';
 import '../../database/app_database.dart';
 import '../../providers/notice_board_provider.dart';
 
@@ -262,9 +263,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                                     SizedBox(height: context.s(20)),
 
-                                    // Big Countdown Timer (DAYS : HRS : MINS : SECS)
-                                    const _TickingCountdownTimer(),
-                                    SizedBox(height: context.s(16)),
+                                     // Big Countdown Timer (DAYS : HRS : MINS : SECS)
+                                     if (!ref.watch(disableCountdownProvider)) ...[
+                                       const _TickingCountdownTimer(),
+                                       SizedBox(height: context.s(16)),
+                                     ],
 
                                     // Static Launch Quote
                                     Center(

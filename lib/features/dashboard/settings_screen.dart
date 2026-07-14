@@ -15,6 +15,7 @@ import 'widgets/settings/sync_settings.dart';
 import 'widgets/settings/danger_zone_settings.dart';
 import 'widgets/settings/customization_settings.dart';
 import 'widgets/settings/timer_settings.dart';
+import 'widgets/settings/advanced_beta_settings.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -133,8 +134,27 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
 
-    final systemOptionsHeader = buildHeader('SYSTEM INFO');
-    final systemOptionsContent = buildSettingsGroup(aboutAppContent);
+    final systemOptionsHeader = buildHeader('ADVANCED');
+    final systemOptionsContent = buildSettingsGroup(
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          aboutAppContent,
+          const Divider(color: Colors.white10, height: 1),
+          AdvancedSettingsSection(
+            titleStyle: titleStyle,
+            subtitleStyle: subtitleStyle,
+            accentColor: accentColor,
+          ),
+          const Divider(color: Colors.white10, height: 1),
+          BetaSettingsSection(
+            titleStyle: titleStyle,
+            subtitleStyle: subtitleStyle,
+            accentColor: accentColor,
+          ),
+        ],
+      ),
+    );
 
     final versionText = Center(
       child: Text(

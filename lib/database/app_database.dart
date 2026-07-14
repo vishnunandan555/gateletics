@@ -219,14 +219,15 @@ class AppDatabase extends _$AppDatabase {
   // Syllabus Seeding
   // ----------------------------------------------------
 
-  Future<void> seedSyllabus() async {
+  Future<void> seedSyllabus([List<PresetCategory>? preset]) async {
     await transaction(() async {
       await delete(syllabusTasks).go();
       await delete(syllabusTopics).go();
       await delete(syllabusCategories).go();
 
-      for (int i = 0; i < defaultSyllabusPreset.length; i++) {
-        final presetCat = defaultSyllabusPreset[i];
+      final activePreset = preset ?? defaultSyllabusPreset;
+      for (int i = 0; i < activePreset.length; i++) {
+        final presetCat = activePreset[i];
         final catId = await into(syllabusCategories).insert(
           SyllabusCategoriesCompanion.insert(
             name: presetCat.name,
