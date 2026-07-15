@@ -139,40 +139,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             ),
                                           ],
                                         ),
-                                        Consumer(
-                                          builder: (context, ref, _) {
-                                            final tasks = ref.watch(customTasksProvider).value ?? [];
-                                            Widget iconWidget;
-                                            if (isNoticeBoard) {
-                                              iconWidget = const Icon(
-                                                Icons.close_rounded,
-                                                color: Colors.white60,
-                                                size: 24,
-                                              );
-                                            } else if (tasks.isNotEmpty) {
-                                              iconWidget = Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.assignment_outlined, color: accentColor, size: 32),
-                                                  const SizedBox(width: 4),
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: accentColor,
-                                                      borderRadius: BorderRadius.circular(5),
-                                                    ),
-                                                    child: Text(
-                                                      "${tasks.length}",
-                                                      style: GoogleFonts.orbitron(
-                                                        color: Colors.black,
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              );
-                                            } else {
+                                         Consumer(
+                                           builder: (context, ref, _) {
+                                             final tasks = ref.watch(customTasksProvider).value ?? [];
+                                             final activeTasks = tasks.where((t) => !t.isCompleted).toList();
+                                             Widget iconWidget;
+                                             if (isNoticeBoard) {
+                                               iconWidget = const Icon(
+                                                 Icons.close_rounded,
+                                                 color: Colors.white60,
+                                                 size: 24,
+                                               );
+                                             } else if (activeTasks.isNotEmpty) {
+                                               iconWidget = Row(
+                                                 mainAxisSize: MainAxisSize.min,
+                                                 children: [
+                                                   Icon(Icons.assignment_outlined, color: accentColor, size: 32),
+                                                   const SizedBox(width: 4),
+                                                   Container(
+                                                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                     decoration: BoxDecoration(
+                                                       color: accentColor,
+                                                       borderRadius: BorderRadius.circular(5),
+                                                     ),
+                                                     child: Text(
+                                                       "${activeTasks.length}",
+                                                       style: GoogleFonts.orbitron(
+                                                         color: Colors.black,
+                                                         fontSize: 10,
+                                                         fontWeight: FontWeight.bold,
+                                                       ),
+                                                     ),
+                                                   ),
+                                                 ],
+                                               );
+                                             } else {
                                               iconWidget = Icon(
                                                 Icons.assignment_outlined,
                                                 color: accentColor,

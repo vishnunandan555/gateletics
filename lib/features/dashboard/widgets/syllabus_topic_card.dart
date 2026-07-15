@@ -34,6 +34,21 @@ class SyllabusTopicCard extends ConsumerWidget {
     final isExpanded = expandedSet.contains(topic.id);
     final isWeak = ref.watch(weakTopicsProvider).contains(topic.id);
 
+    final rawUrl = topic.resourceUrl ?? '';
+    String url = '';
+    String label = 'Open Resource';
+    String note = '';
+    if (rawUrl.trim().isNotEmpty) {
+      final parts = rawUrl.trim().split('|');
+      url = parts[0];
+      if (parts.length > 1 && parts[1].trim().isNotEmpty) {
+        label = parts[1].trim();
+      }
+      if (parts.length > 2) {
+        note = parts[2].trim();
+      }
+    }
+
     final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
     final topicScaleFactor = ref.watch(topicFontSizeProvider).scaleFactor;
     final taskScaleFactor = ref.watch(taskFontSizeProvider).scaleFactor;
@@ -130,6 +145,17 @@ class SyllabusTopicCard extends ConsumerWidget {
                           showTicks: false,
                           tickCount: 10,
                         ),
+                        if (note.isNotEmpty) ...[
+                          SizedBox(height: context.s(6) * overallScale),
+                          Text(
+                            note,
+                            style: GoogleFonts.outfit(
+                              color: categoryColor,
+                              fontSize: taskFontSize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -262,70 +288,97 @@ class SyllabusTopicCard extends ConsumerWidget {
 
           if (topic.isCounter && isExpanded) ...[
             const Divider(color: Colors.white10, height: 1),
-            () {
-              String url = '';
-              String label = 'Open Resource';
-              if (topic.resourceUrl != null && topic.resourceUrl!.trim().isNotEmpty) {
-                final rawUrl = topic.resourceUrl!.trim();
-                if (rawUrl.contains('|')) {
-                  final parts = rawUrl.split('|');
-                  url = parts[0];
-                  if (parts.length > 1 && parts[1].trim().isNotEmpty) {
-                    label = parts[1].trim();
-                  }
-                } else {
-                  url = rawUrl;
-                }
-              }
-
-              return Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: context.s(14) * overallScale,
-                  vertical: context.s(10) * overallScale,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Resource Link Button
-                    if (url.isNotEmpty)
-                      FilledButton.icon(
-                        onPressed: () async {
-                          String urlToLaunch = url;
-                          if (!RegExp(r'^[a-zA-Z]+:').hasMatch(urlToLaunch)) {
-                            urlToLaunch = 'https://$urlToLaunch';
-                          }
-                          final uri = Uri.parse(urlToLaunch);
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.s(14) * overallScale,
+                vertical: context.s(10) * overallScale,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Resource Link Button
+                  if (url.isNotEmpty)
+                    FilledButton.icon(
+                      onPressed: () async {
+                        String urlToLaunch = url;
+                        if (!RegExp(r'^[a-zA-Z]+:').hasMatch(urlToLaunch)) {
+                          urlToLaunch = 'https://$urlToLaunch';
+                        }
+                        final uri = Uri.parse(urlToLaunch);
+                        try {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        } catch (e) {
                           try {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          } catch (e) {
-                            try {
-                              await launchUrl(uri);
-                            } catch (_) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Could not open link: $url'),
-                                    backgroundColor: Colors.redAccent,
-                                  ),
-                                );
-                              }
+                            await launchUrl(uri);
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Could not open link: $url'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
                             }
                           }
-                        },
+                        }
+                      },
+                      icon: Icon(
+                        Icons.open_in_new_rounded,
+                        size: context.s(13) * overallScale,
+                      ),
+                      label: Text(
+                        label,
+                        style: GoogleFonts.outfit(
+                          fontSize: context.s(12) * overallScale,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: categoryColor.withAlpha(45),
+                        foregroundColor: categoryColor,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: context.s(12) * overallScale,
+                          vertical: context.s(8) * overallScale,
+                        ),
+                        minimumSize: Size(0, context.s(34) * overallScale),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(context.s(8)),
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+
+                  // Counter controls
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: topic.currentCount > 0
+                            ? () {
+                                ref.read(syllabusControllerProvider.notifier).updateCounterValue(
+                                      topic.id,
+                                      topic.currentCount - 1,
+                                    );
+                              }
+                            : null,
                         icon: Icon(
-                          Icons.open_in_new_rounded,
-                          size: context.s(13) * overallScale,
+                          Icons.remove_rounded,
+                          size: context.s(14) * overallScale,
                         ),
                         label: Text(
-                          label,
+                          "DEC",
                           style: GoogleFonts.outfit(
-                            fontSize: context.s(12) * overallScale,
-                            fontWeight: FontWeight.bold,
+                            fontSize: context.s(11) * overallScale,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
                           ),
                         ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: categoryColor.withAlpha(45),
-                          foregroundColor: categoryColor,
+                          backgroundColor: const Color(0xFF27272A),
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFF18181B),
+                          disabledForegroundColor: Colors.white24,
                           padding: EdgeInsets.symmetric(
                             horizontal: context.s(12) * overallScale,
                             vertical: context.s(8) * overallScale,
@@ -335,93 +388,49 @@ class SyllabusTopicCard extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(context.s(8)),
                           ),
                         ),
-                      )
-                    else
-                      const SizedBox.shrink(),
-
-                    // Counter controls
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: topic.currentCount > 0
-                              ? () {
-                                  ref.read(syllabusControllerProvider.notifier).updateCounterValue(
-                                        topic.id,
-                                        topic.currentCount - 1,
-                                      );
-                                }
-                              : null,
-                          icon: Icon(
-                            Icons.remove_rounded,
-                            size: context.s(14) * overallScale,
-                          ),
-                          label: Text(
-                            "DEC",
-                            style: GoogleFonts.outfit(
-                              fontSize: context.s(11) * overallScale,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF27272A),
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: const Color(0xFF18181B),
-                            disabledForegroundColor: Colors.white24,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: context.s(12) * overallScale,
-                              vertical: context.s(8) * overallScale,
-                            ),
-                            minimumSize: Size(0, context.s(34) * overallScale),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(context.s(8)),
-                            ),
+                      ),
+                      SizedBox(width: context.s(8) * overallScale),
+                      FilledButton.icon(
+                        onPressed: topic.currentCount < topic.maxCount
+                            ? () {
+                                ref.read(syllabusControllerProvider.notifier).updateCounterValue(
+                                      topic.id,
+                                      topic.currentCount + 1,
+                                    );
+                              }
+                            : null,
+                        icon: Icon(
+                          Icons.add_rounded,
+                          size: context.s(14) * overallScale,
+                        ),
+                        label: Text(
+                          "INC",
+                          style: GoogleFonts.outfit(
+                            fontSize: context.s(11) * overallScale,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        SizedBox(width: context.s(8) * overallScale),
-                        FilledButton.icon(
-                          onPressed: topic.currentCount < topic.maxCount
-                              ? () {
-                                  ref.read(syllabusControllerProvider.notifier).updateCounterValue(
-                                        topic.id,
-                                        topic.currentCount + 1,
-                                      );
-                                }
-                              : null,
-                          icon: Icon(
-                            Icons.add_rounded,
-                            size: context.s(14) * overallScale,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: categoryColor,
+                          foregroundColor: Colors.black,
+                          disabledBackgroundColor: const Color(0xFF18181B),
+                          disabledForegroundColor: Colors.white24,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.s(12) * overallScale,
+                            vertical: context.s(8) * overallScale,
                           ),
-                          label: Text(
-                            "INC",
-                            style: GoogleFonts.outfit(
-                              fontSize: context.s(11) * overallScale,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: categoryColor,
-                            foregroundColor: Colors.black,
-                            disabledBackgroundColor: const Color(0xFF18181B),
-                            disabledForegroundColor: Colors.white24,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: context.s(12) * overallScale,
-                              vertical: context.s(8) * overallScale,
-                            ),
-                            minimumSize: Size(0, context.s(34) * overallScale),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(context.s(8)),
-                            ),
+                          minimumSize: Size(0, context.s(34) * overallScale),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(context.s(8)),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }(),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),
@@ -432,6 +441,18 @@ class SyllabusTopicCard extends ConsumerWidget {
       BuildContext context, TapDownDetails details, SyllabusTopic topic, List<SyllabusTask> tasks, WidgetRef ref, Color categoryColor) {
     final position = details.globalPosition;
     final isWeak = ref.read(weakTopicsProvider).contains(topic.id);
+
+    final rawUrl = topic.resourceUrl ?? '';
+    String note = '';
+    if (rawUrl.trim().isNotEmpty) {
+      final parts = rawUrl.trim().split('|');
+      if (parts.length > 2) {
+        note = parts[2].trim();
+      }
+    }
+    final noteLabel = note.isEmpty ? 'Add Note' : 'Edit Note';
+    final noteIcon = note.isEmpty ? Icons.note_add_rounded : Icons.edit_note_rounded;
+
     showMenu(
       context: context,
       position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx, position.dy),
@@ -447,6 +468,17 @@ class SyllabusTopicCard extends ConsumerWidget {
                     Icon(Icons.edit_rounded, color: categoryColor, size: 18),
                     const SizedBox(width: 10),
                     const Text('Edit Card', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'edit_note',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(noteIcon, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    Text(noteLabel, style: const TextStyle(color: Colors.white70)),
                   ],
                 ),
               ),
@@ -504,6 +536,17 @@ class SyllabusTopicCard extends ConsumerWidget {
                     Icon(Icons.edit_rounded, color: categoryColor, size: 18),
                     const SizedBox(width: 10),
                     const Text('Rename Topic', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'edit_note',
+                height: 36,
+                child: Row(
+                  children: [
+                    Icon(noteIcon, color: categoryColor, size: 18),
+                    const SizedBox(width: 10),
+                    Text(noteLabel, style: const TextStyle(color: Colors.white70)),
                   ],
                 ),
               ),
@@ -591,6 +634,8 @@ class SyllabusTopicCard extends ConsumerWidget {
         showRenameSyllabusTopicDialog(context, topic, categoryColor, ref);
       } else if (val == 'edit_counter') {
         showEditCounterCardDialog(context, topic, categoryColor, ref);
+      } else if (val == 'edit_note') {
+        showEditTopicNoteDialog(context, topic, categoryColor, ref);
       } else if (val == 'convert_counter') {
         showConvertToCounterCardDialog(context, topic, categoryColor, ref);
       } else if (val == 'add_task') {

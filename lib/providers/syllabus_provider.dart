@@ -218,6 +218,14 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     _triggerSync();
   }
 
+  Future<void> updateTopicResourceUrl(int id, String? resourceUrl) async {
+    await _db.transaction(() async {
+      await _db.updateTopicResourceUrl(id, resourceUrl);
+      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    });
+    _triggerSync();
+  }
+
   Future<void> convertToCounterCard(int id, String name, int maxCount, String? resourceLink) async {
     await _db.transaction(() async {
       await _db.convertToCounterCard(id, name, maxCount, resourceLink);

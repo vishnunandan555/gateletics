@@ -423,6 +423,7 @@ class _NoticeBoardHeaderButton extends ConsumerWidget {
     final isNoticeBoard = ref.watch(noticeBoardModeProvider);
     final accentColor = ref.watch(overallProgressColorProvider);
     final tasks = ref.watch(customTasksProvider).value ?? [];
+    final activeTasks = tasks.where((t) => !t.isCompleted).toList();
 
     Widget iconWidget;
     if (isNoticeBoard) {
@@ -431,7 +432,7 @@ class _NoticeBoardHeaderButton extends ConsumerWidget {
         color: Colors.white60,
         size: 24,
       );
-    } else if (tasks.isNotEmpty) {
+    } else if (activeTasks.isNotEmpty) {
       iconWidget = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -444,7 +445,7 @@ class _NoticeBoardHeaderButton extends ConsumerWidget {
               borderRadius: BorderRadius.circular(5),
             ),
             child: Text(
-              "${tasks.length}",
+              "${activeTasks.length}",
               style: GoogleFonts.orbitron(
                 color: Colors.black,
                 fontSize: 10,

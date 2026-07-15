@@ -1354,3 +1354,160 @@ void showEditCounterCardDialog(BuildContext context, SyllabusTopic topic, Color 
     ),
   );
 }
+
+// Edit Topic Note Dialog with Notice Board integration
+void showEditTopicNoteDialog(BuildContext context, SyllabusTopic topic, Color accentColor, WidgetRef ref) {
+  final rawUrl = topic.resourceUrl ?? '';
+  String url = '';
+  String label = 'Open Resource';
+  String initialNote = '';
+  int? linkedTaskId;
+
+  if (rawUrl.trim().isNotEmpty) {
+    final parts = rawUrl.trim().split('|');
+    url = parts[0];
+    if (parts.length > 1 && parts[1].trim().isNotEmpty) {
+      label = parts[1].trim();
+    }
+    if (parts.length > 2) {
+      initialNote = parts[2].trim();
+    }
+    if (parts.length > 3) {
+      linkedTaskId = int.tryParse(parts[3].trim());
+    }
+  }
+
+  final noteController = TextEditingController(text: initialNote);
+  final formKey = GlobalKey<FormState>();
+  bool linkToNoticeBoard = linkedTaskId != null;
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          initialNote.isEmpty ? 'ADD NOTE' : 'EDIT NOTE',
+          style: GoogleFonts.jersey15(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: accentColor,
+            letterSpacing: 0.8,
+          ),
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: noteController,
+                maxLines: 3,
+                maxLength: 200,
+                style: GoogleFonts.outfit(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Note Content',
+                  labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                  filled: true,
+                  fillColor: const Color(0xFF27272A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                    ),
+                  ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'Note content cannot be empty';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              CheckboxListTile(
+                title: Text(
+                  'Link to Notice Board',
+                  style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                ),
+                subtitle: Text(
+                  'Appear as a notice board task',
+                  style: GoogleFonts.outfit(color: Colors.white30, fontSize: 11),
+                ),
+                value: linkToNoticeBoard,
+                activeColor: accentColor,
+                checkColor: Colors.black,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) {
+                  setState(() {
+                    linkToNoticeBoard = val ?? false;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          if (initialNote.isNotEmpty)
+            TextButton(
+              onPressed: () async {
+                final db = ref.read(appDatabaseProvider);
+                if (linkedTaskId != null) {
+                  await db.deleteCustomTask(linkedTaskId);
+                }
+                final finalLink = url.isEmpty
+                    ? null
+                    : (label == 'Open Resource' ? url : '$url|$label');
+                await ref.read(syllabusControllerProvider.notifier).updateTopicResourceUrl(topic.id, finalLink);
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: Text('DELETE', style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('CANCEL', style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState?.validate() ?? false) {
+                final noteText = noteController.text.trim();
+                final db = ref.read(appDatabaseProvider);
+                int? newTaskId = linkedTaskId;
+
+                if (linkToNoticeBoard) {
+                  final taskContent = '${topic.name}: $noteText';
+                  if (linkedTaskId != null) {
+                    await db.updateCustomTaskContent(linkedTaskId, taskContent);
+                  } else {
+                    newTaskId = await db.addCustomTask(taskContent);
+                  }
+                } else {
+                  if (linkedTaskId != null) {
+                    await db.deleteCustomTask(linkedTaskId);
+                    newTaskId = null;
+                  }
+                }
+
+                // Serialize url|label|note|taskId
+                String finalLink = '';
+                if (newTaskId != null) {
+                  finalLink = '$url|$label|$noteText|$newTaskId';
+                } else {
+                  finalLink = '$url|$label|$noteText';
+                }
+
+                await ref.read(syllabusControllerProvider.notifier).updateTopicResourceUrl(topic.id, finalLink);
+                if (context.mounted) Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: Text('SAVE', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    ),
+  );
+}

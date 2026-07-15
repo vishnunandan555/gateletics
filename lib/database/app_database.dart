@@ -373,6 +373,15 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> updateTopicResourceUrl(int id, String? resourceUrl) async {
+    await (update(syllabusTopics)..where((t) => t.id.equals(id))).write(
+      SyllabusTopicsCompanion(
+        resourceUrl: Value(resourceUrl),
+        lastInteractedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> deleteSyllabusTopic(int id) async {
     await transaction(() async {
       final now = DateTime.now();
