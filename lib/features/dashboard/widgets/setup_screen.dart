@@ -72,6 +72,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final authState = ref.read(authProvider).value;
     if (authState?.user == null) return;
 
+    final prefs = ref.read(sharedPreferencesProvider);
+    final forceOnboarding = prefs.getBool('force_onboarding') ?? false;
+
     setState(() => _isLoading = true);
     try {
       final needsAction = await ref.read(syncProvider.notifier).initializeSync();
@@ -81,7 +84,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         }
       } else {
         final hasData = await _checkIfLocalDataExists();
-        if (hasData) {
+        if (hasData && !forceOnboarding) {
           await ref.read(setupCompletedProvider.notifier).completeSetup();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

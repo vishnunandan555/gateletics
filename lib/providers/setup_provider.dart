@@ -12,13 +12,15 @@ class SetupNotifier extends AsyncNotifier<bool> {
     state = const AsyncValue.loading();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_completed_setup', true);
+    await prefs.setBool('force_onboarding', false);
     state = const AsyncValue.data(true);
   }
 
-  Future<void> resetSetup() async {
+  Future<void> resetSetup({bool forceOnboarding = false}) async {
     state = const AsyncValue.loading();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_completed_setup', false);
+    await prefs.setBool('force_onboarding', forceOnboarding);
     state = const AsyncValue.data(false);
   }
 }
