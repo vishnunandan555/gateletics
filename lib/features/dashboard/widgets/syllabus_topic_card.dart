@@ -262,122 +262,166 @@ class SyllabusTopicCard extends ConsumerWidget {
 
           if (topic.isCounter && isExpanded) ...[
             const Divider(color: Colors.white10, height: 1),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: context.s(12) * overallScale,
-                vertical: context.s(6) * overallScale,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Resource Link Button (filled book button)
-                  if (topic.resourceUrl != null && topic.resourceUrl!.trim().isNotEmpty)
-                    IconButton.filled(
-                      onPressed: () async {
-                        final rawUrl = topic.resourceUrl!.trim();
-                        String urlToLaunch = rawUrl;
-                        // If the URL has no scheme, default to https://
-                        if (!RegExp(r'^[a-zA-Z]+:').hasMatch(urlToLaunch)) {
-                          urlToLaunch = 'https://$urlToLaunch';
-                        }
-                        final uri = Uri.parse(urlToLaunch);
-                        try {
-                          await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        } catch (e) {
+            () {
+              String url = '';
+              String label = 'Open Resource';
+              if (topic.resourceUrl != null && topic.resourceUrl!.trim().isNotEmpty) {
+                final rawUrl = topic.resourceUrl!.trim();
+                if (rawUrl.contains('|')) {
+                  final parts = rawUrl.split('|');
+                  url = parts[0];
+                  if (parts.length > 1 && parts[1].trim().isNotEmpty) {
+                    label = parts[1].trim();
+                  }
+                } else {
+                  url = rawUrl;
+                }
+              }
+
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.s(14) * overallScale,
+                  vertical: context.s(10) * overallScale,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Resource Link Button
+                    if (url.isNotEmpty)
+                      FilledButton.icon(
+                        onPressed: () async {
+                          String urlToLaunch = url;
+                          if (!RegExp(r'^[a-zA-Z]+:').hasMatch(urlToLaunch)) {
+                            urlToLaunch = 'https://$urlToLaunch';
+                          }
+                          final uri = Uri.parse(urlToLaunch);
                           try {
-                            await launchUrl(uri);
-                          } catch (_) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Could not open link: $rawUrl'),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          } catch (e) {
+                            try {
+                              await launchUrl(uri);
+                            } catch (_) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Could not open link: $url'),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              }
                             }
                           }
-                        }
-                      },
-                      icon: Icon(
-                        Icons.book_rounded,
-                        size: context.s(14) * overallScale,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: categoryColor.withAlpha(200),
-                        foregroundColor: Colors.black,
-                        minimumSize: Size(context.s(28) * overallScale, context.s(28) * overallScale),
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(context.s(6)),
-                        ),
-                      ),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  
-                  // Counter increment/decrement buttons
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton.filled(
-                        onPressed: topic.currentCount > 0
-                            ? () {
-                                ref.read(syllabusControllerProvider.notifier).updateCounterValue(
-                                      topic.id,
-                                      topic.currentCount - 1,
-                                    );
-                              }
-                            : null,
+                        },
                         icon: Icon(
-                          Icons.remove_rounded,
-                          size: context.s(14) * overallScale,
+                          Icons.open_in_new_rounded,
+                          size: context.s(13) * overallScale,
                         ),
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFF27272A),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: const Color(0xFF18181B),
-                          disabledForegroundColor: Colors.white24,
-                          minimumSize: Size(context.s(28) * overallScale, context.s(28) * overallScale),
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(context.s(6)),
+                        label: Text(
+                          label,
+                          style: GoogleFonts.outfit(
+                            fontSize: context.s(12) * overallScale,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                      SizedBox(width: context.s(8) * overallScale),
-                      IconButton.filled(
-                        onPressed: topic.currentCount < topic.maxCount
-                            ? () {
-                                ref.read(syllabusControllerProvider.notifier).updateCounterValue(
-                                      topic.id,
-                                      topic.currentCount + 1,
-                                    );
-                              }
-                            : null,
-                        icon: Icon(
-                          Icons.add_rounded,
-                          size: context.s(14) * overallScale,
-                        ),
-                        style: IconButton.styleFrom(
-                          backgroundColor: categoryColor,
-                          foregroundColor: Colors.black,
-                          disabledBackgroundColor: const Color(0xFF18181B),
-                          disabledForegroundColor: Colors.white24,
-                          minimumSize: Size(context.s(28) * overallScale, context.s(28) * overallScale),
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: categoryColor.withAlpha(45),
+                          foregroundColor: categoryColor,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: context.s(12) * overallScale,
+                            vertical: context.s(8) * overallScale,
+                          ),
+                          minimumSize: Size(0, context.s(34) * overallScale),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(context.s(6)),
+                            borderRadius: BorderRadius.circular(context.s(8)),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+
+                    // Counter controls
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: topic.currentCount > 0
+                              ? () {
+                                  ref.read(syllabusControllerProvider.notifier).updateCounterValue(
+                                        topic.id,
+                                        topic.currentCount - 1,
+                                      );
+                                }
+                              : null,
+                          icon: Icon(
+                            Icons.remove_rounded,
+                            size: context.s(14) * overallScale,
+                          ),
+                          label: Text(
+                            "DEC",
+                            style: GoogleFonts.outfit(
+                              fontSize: context.s(11) * overallScale,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF27272A),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFF18181B),
+                            disabledForegroundColor: Colors.white24,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.s(12) * overallScale,
+                              vertical: context.s(8) * overallScale,
+                            ),
+                            minimumSize: Size(0, context.s(34) * overallScale),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(context.s(8)),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: context.s(8) * overallScale),
+                        FilledButton.icon(
+                          onPressed: topic.currentCount < topic.maxCount
+                              ? () {
+                                  ref.read(syllabusControllerProvider.notifier).updateCounterValue(
+                                        topic.id,
+                                        topic.currentCount + 1,
+                                      );
+                                }
+                              : null,
+                          icon: Icon(
+                            Icons.add_rounded,
+                            size: context.s(14) * overallScale,
+                          ),
+                          label: Text(
+                            "INC",
+                            style: GoogleFonts.outfit(
+                              fontSize: context.s(11) * overallScale,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: categoryColor,
+                            foregroundColor: Colors.black,
+                            disabledBackgroundColor: const Color(0xFF18181B),
+                            disabledForegroundColor: Colors.white24,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: context.s(12) * overallScale,
+                              vertical: context.s(8) * overallScale,
+                            ),
+                            minimumSize: Size(0, context.s(34) * overallScale),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(context.s(8)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }(),
           ],
         ],
       ),

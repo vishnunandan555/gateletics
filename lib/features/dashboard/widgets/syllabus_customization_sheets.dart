@@ -1025,6 +1025,7 @@ void showConvertToCounterCardDialog(BuildContext context, SyllabusTopic topic, C
   final nameController = TextEditingController(text: topic.name);
   final maxCountController = TextEditingController(text: '100');
   final linkController = TextEditingController();
+  final labelController = TextEditingController(text: 'Open Resource');
   final formKey = GlobalKey<FormState>();
 
   showDialog(
@@ -1114,6 +1115,21 @@ void showConvertToCounterCardDialog(BuildContext context, SyllabusTopic topic, C
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: labelController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Resource Label (Default: Open Resource)',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1128,8 +1144,12 @@ void showConvertToCounterCardDialog(BuildContext context, SyllabusTopic topic, C
               if (formKey.currentState?.validate() ?? false) {
                 final name = nameController.text.trim();
                 final maxCount = int.parse(maxCountController.text.trim());
-                final link = linkController.text.trim().isEmpty ? null : linkController.text.trim();
-                ref.read(syllabusControllerProvider.notifier).convertToCounterCard(topic.id, name, maxCount, link);
+                final link = linkController.text.trim();
+                final label = labelController.text.trim();
+                final finalLink = link.isEmpty
+                    ? null
+                    : (label.isEmpty || label == 'Open Resource' ? link : '$link|$label');
+                ref.read(syllabusControllerProvider.notifier).convertToCounterCard(topic.id, name, maxCount, finalLink);
                 Navigator.pop(context);
               }
             },
@@ -1151,7 +1171,24 @@ void showEditCounterCardDialog(BuildContext context, SyllabusTopic topic, Color 
   final nameController = TextEditingController(text: topic.name);
   final currentCountController = TextEditingController(text: topic.currentCount.toString());
   final maxCountController = TextEditingController(text: topic.maxCount.toString());
-  final linkController = TextEditingController(text: topic.resourceUrl ?? '');
+
+  String initialUrl = '';
+  String initialLabel = 'Open Resource';
+  if (topic.resourceUrl != null && topic.resourceUrl!.trim().isNotEmpty) {
+    final rawUrl = topic.resourceUrl!.trim();
+    if (rawUrl.contains('|')) {
+      final parts = rawUrl.split('|');
+      initialUrl = parts[0];
+      if (parts.length > 1 && parts[1].trim().isNotEmpty) {
+        initialLabel = parts[1].trim();
+      }
+    } else {
+      initialUrl = rawUrl;
+    }
+  }
+
+  final linkController = TextEditingController(text: initialUrl);
+  final labelController = TextEditingController(text: initialLabel);
   final formKey = GlobalKey<FormState>();
 
   showDialog(
@@ -1266,6 +1303,21 @@ void showEditCounterCardDialog(BuildContext context, SyllabusTopic topic, Color 
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: labelController,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Resource Label (Default: Open Resource)',
+                    labelStyle: GoogleFonts.outfit(color: Colors.white60),
+                    filled: true,
+                    fillColor: const Color(0xFF27272A),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1281,8 +1333,12 @@ void showEditCounterCardDialog(BuildContext context, SyllabusTopic topic, Color 
                 final name = nameController.text.trim();
                 final currentCount = int.parse(currentCountController.text.trim());
                 final maxCount = int.parse(maxCountController.text.trim());
-                final link = linkController.text.trim().isEmpty ? null : linkController.text.trim();
-                ref.read(syllabusControllerProvider.notifier).updateCounterCard(topic.id, name, currentCount, maxCount, link);
+                final link = linkController.text.trim();
+                final label = labelController.text.trim();
+                final finalLink = link.isEmpty
+                    ? null
+                    : (label.isEmpty || label == 'Open Resource' ? link : '$link|$label');
+                ref.read(syllabusControllerProvider.notifier).updateCounterCard(topic.id, name, currentCount, maxCount, finalLink);
                 Navigator.pop(context);
               }
             },
