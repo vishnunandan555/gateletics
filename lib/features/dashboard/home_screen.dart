@@ -58,7 +58,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final profileImage = ref.watch(displayProfileImageProvider);
     final profileState = ref.watch(profileProvider);
     final launchQuote = ref.watch(launchQuoteProvider);
-    final glowStrength = ref.watch(glowStrengthProvider);
+    final glowStrength = ref.watch(homeGlowStrengthProvider);
     final disableWidget = ref.watch(disableHomeScreenWidgetProvider);
 
     final focusState = ref.watch(focusProvider);

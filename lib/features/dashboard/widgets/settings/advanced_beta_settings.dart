@@ -27,7 +27,8 @@ class AdvancedSettingsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final glowStrength = ref.watch(glowStrengthProvider);
+    final homeGlowStrength = ref.watch(homeGlowStrengthProvider);
+    final focusGlowStrength = ref.watch(focusGlowStrengthProvider);
     final profilePhotoSize = ref.watch(profileProvider).profilePhotoSize;
     final disableCountdown = ref.watch(disableCountdownProvider);
     final disableWidgets = ref.watch(disableHomeScreenWidgetProvider);
@@ -50,24 +51,25 @@ class AdvancedSettingsSection extends ConsumerWidget {
         ),
         children: [
           const Divider(color: Colors.white10, height: 1),
-          // Timer Glow Intensity
+          // Home Screen Glow Intensity
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               children: [
-                Icon(Icons.flare_rounded, color: accentColor, size: 20),
+                Icon(Icons.dashboard_customize_rounded, color: accentColor, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Timer Glow Intensity', style: titleStyle),
-                      Text('Controls the radial glow on home & focus screens', style: subtitleStyle),
+                      Text('Home Screen Glow Intensity', style: titleStyle),
+                      Text('Controls the pulsing radial background glow on the home dashboard', style: subtitleStyle),
                     ],
                   ),
                 ),
+                const SizedBox(width: 16),
                 Text(
-                  '${(glowStrength * 50).round()}%',
+                  '${(homeGlowStrength * 50).round()}%',
                   style: GoogleFonts.outfit(color: accentColor, fontSize: 11),
                 ),
               ],
@@ -85,12 +87,61 @@ class AdvancedSettingsSection extends ConsumerWidget {
                 thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
               ),
               child: Slider(
-                value: glowStrength.clamp(0.0, 4.0),
+                value: homeGlowStrength.clamp(0.0, 4.0),
                 min: 0.0,
                 max: 4.0,
                 divisions: 8,
                 onChanged: (val) {
-                  ref.read(glowStrengthProvider.notifier).setStrength(val);
+                  ref.read(homeGlowStrengthProvider.notifier).setStrength(val);
+                },
+              ),
+            ),
+          ),
+
+          const Divider(color: Colors.white10, height: 1),
+
+          // Focusing Screen Glow Intensity
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.blur_on_rounded, color: accentColor, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Focusing Screen Glow Intensity', style: titleStyle),
+                      Text('Controls the active background glow animation during focus sessions', style: subtitleStyle),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '${(focusGlowStrength * 50).round()}%',
+                  style: GoogleFonts.outfit(color: accentColor, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: accentColor,
+                thumbColor: accentColor,
+                inactiveTrackColor: Colors.white12,
+                overlayColor: accentColor.withValues(alpha: 0.15),
+                trackHeight: 2,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              ),
+              child: Slider(
+                value: focusGlowStrength.clamp(0.0, 4.0),
+                min: 0.0,
+                max: 4.0,
+                divisions: 8,
+                onChanged: (val) {
+                  ref.read(focusGlowStrengthProvider.notifier).setStrength(val);
                 },
               ),
             ),
@@ -114,6 +165,7 @@ class AdvancedSettingsSection extends ConsumerWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 16),
                 Text(
                   '${profilePhotoSize.round()}px',
                   style: GoogleFonts.outfit(color: accentColor, fontSize: 11),

@@ -728,7 +728,7 @@ class _FocusAmbientGlowState extends ConsumerState<FocusAmbientGlow> with Single
 
   @override
   Widget build(BuildContext context) {
-    final glowStrength = ref.watch(glowStrengthProvider);
+    final glowStrength = ref.watch(focusGlowStrengthProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final glowSize = context.s(_currentSize);
 
