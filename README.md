@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.12-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.13-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
