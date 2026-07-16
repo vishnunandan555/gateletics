@@ -127,11 +127,12 @@ class AppDatabase extends _$AppDatabase {
           await seedSyllabus();
         },
         onUpgrade: (m, from, to) async {
+          bool shouldSeed = false;
           if (from < 2) {
             await m.createTable(syllabusCategories);
             await m.createTable(syllabusTopics);
             await m.createTable(syllabusTasks);
-            await seedSyllabus();
+            shouldSeed = true;
           }
           if (from < 3) {
             try {
@@ -185,6 +186,11 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(syllabusTasks, syllabusTasks.lastInteractedAt);
               await m.addColumn(customTasks, customTasks.isDeleted);
               await m.addColumn(customTasks, customTasks.lastInteractedAt);
+            } catch (_) {}
+          }
+          if (shouldSeed) {
+            try {
+              await seedSyllabus();
             } catch (_) {}
           }
         },

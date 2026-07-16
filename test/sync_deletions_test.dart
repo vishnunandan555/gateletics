@@ -190,4 +190,97 @@ void main() {
     final mergedCats2 = merged2['syllabusCategories'] as List<dynamic>;
     expect(mergedCats2.first['isDeleted'], isFalse);
   });
+
+  test('areDataEqual detects deletion/modification differences in categories and topics', () async {
+    final container = ProviderContainer(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final syncNotifier = container.read(syncProvider.notifier);
+
+    // Initial state: identical categories and topics
+    final baseData = {
+      'hideDownloadBanner': false,
+      'customTasks': [],
+      'focusSessions': [],
+      'dailyHistory': [],
+      'syllabusCategories': [
+        {'id': 1, 'name': 'Math', 'color': 0xFF0000FF, 'position': 0, 'lastInteractedAt': null, 'isDeleted': false}
+      ],
+      'syllabusTopics': [
+        {
+          'id': 1,
+          'categoryId': 1,
+          'name': 'Algebra',
+          'position': 0,
+          'isCounter': false,
+          'currentCount': 0,
+          'maxCount': 0,
+          'resourceUrl': null,
+          'isDeleted': false,
+          'lastInteractedAt': null
+        }
+      ],
+      'syllabusTasks': [
+        {'id': 1, 'topicId': 1, 'name': 'Task 1', 'isCompleted': false, 'position': 0, 'isDeleted': false, 'lastInteractedAt': null}
+      ]
+    };
+
+    // 1. Fully identical copies should return true
+    final data1 = Map<String, dynamic>.from(baseData);
+    final data2 = Map<String, dynamic>.from(baseData);
+    expect(syncNotifier.areDataEqual(data1, data2), isTrue);
+
+    // 2. Mismatch in category isDeleted state should return false
+    final dataCategoryDeleted = {
+      ...baseData,
+      'syllabusCategories': [
+        {'id': 1, 'name': 'Math', 'color': 0xFF0000FF, 'position': 0, 'lastInteractedAt': null, 'isDeleted': true}
+      ]
+    };
+    expect(syncNotifier.areDataEqual(data1, dataCategoryDeleted), isFalse);
+
+    // 3. Mismatch in topic isDeleted state should return false
+    final dataTopicDeleted = {
+      ...baseData,
+      'syllabusTopics': [
+        {
+          'id': 1,
+          'categoryId': 1,
+          'name': 'Algebra',
+          'position': 0,
+          'isCounter': false,
+          'currentCount': 0,
+          'maxCount': 0,
+          'resourceUrl': null,
+          'isDeleted': true,
+          'lastInteractedAt': null
+        }
+      ]
+    };
+    expect(syncNotifier.areDataEqual(data1, dataTopicDeleted), isFalse);
+
+    // 4. Mismatch in topic isCounter (counter card conversion) should return false
+    final dataTopicCounter = {
+      ...baseData,
+      'syllabusTopics': [
+        {
+          'id': 1,
+          'categoryId': 1,
+          'name': 'Algebra',
+          'position': 0,
+          'isCounter': true,
+          'currentCount': 0,
+          'maxCount': 10,
+          'resourceUrl': null,
+          'isDeleted': false,
+          'lastInteractedAt': null
+        }
+      ]
+    };
+    expect(syncNotifier.areDataEqual(data1, dataTopicCounter), isFalse);
+  });
 }

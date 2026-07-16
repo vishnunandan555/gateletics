@@ -13,6 +13,8 @@ import '../../../providers/focus_provider.dart';
 import '../../../providers/target_date_provider.dart';
 import '../../../utils/ui_scaling.dart';
 import '../../../database/syllabus_preset.dart';
+import '../../../database/app_database.dart';
+import '../../../providers/rollover_provider.dart';
 
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
@@ -31,6 +33,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   late DateTime _targetDate;
   String _selectedBranch = "CS";
   bool _usePreset = true;
+  StudyDayRollover _studyDayRollover = StudyDayRollover.overnight;
 
   late TextEditingController _nameController;
 
@@ -308,6 +311,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       // 4. Save Selected Branch
       await ref.read(selectedBranchProvider.notifier).setSelectedBranch(_selectedBranch);
 
+      // Save Day Rollover
+      await ref.read(studyDayRolloverProvider.notifier).setRollover(_studyDayRollover);
+
       // 5. Seed Syllabus or Reset
       if (_usePreset) {
         final presetList = branchPresets[_selectedBranch.toUpperCase()];
@@ -399,8 +405,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       case 4:
         return _buildStepBranchSelection(accentColor);
       case 5:
-        return _buildStepTrackingOption(accentColor);
+        return _buildStepRollover(accentColor);
       case 6:
+        return _buildStepTrackingOption(accentColor);
+      case 7:
         return _buildStepReview(accentColor);
       default:
         return _buildStepProfile(accentColor);
@@ -759,13 +767,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   // --- Step 4: Branch Selection ---
   Widget _buildStepBranchSelection(Color accentColor) {
     final branches = [
-      {"id": "CS", "name": "Computer Science & IT", "icon": Icons.computer_rounded},
-      {"id": "DA", "name": "Data Science & AI", "icon": Icons.analytics_rounded},
-      {"id": "EC", "name": "Electronics & Comm.", "icon": Icons.settings_input_antenna_rounded},
-      {"id": "EE", "name": "Electrical Eng.", "icon": Icons.bolt_rounded},
+      {"id": "CS", "name": "Computer Science & Information Technology", "icon": Icons.computer_rounded},
+      {"id": "DA", "name": "Data Science & Artificial Intelligence", "icon": Icons.analytics_rounded},
+      {"id": "EC", "name": "Electronics & Communication Engineering", "icon": Icons.settings_input_antenna_rounded},
+      {"id": "EE", "name": "Electrical Engineering", "icon": Icons.bolt_rounded},
       {"id": "CE", "name": "Civil Engineering", "icon": Icons.architecture_rounded},
-      {"id": "ME", "name": "Mechanical Eng.", "icon": Icons.build_rounded},
-      {"id": "CH", "name": "Chemical Eng.", "icon": Icons.science_rounded},
+      {"id": "ME", "name": "Mechanical Engineering", "icon": Icons.build_rounded},
+      {"id": "CH", "name": "Chemical Engineering", "icon": Icons.science_rounded},
+      {"id": "CUSTOM", "name": "Empty slate. Create custom subjects & trackers.", "icon": Icons.dashboard_customize_rounded},
     ];
 
     return Column(
@@ -797,7 +806,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 1.45,
+            childAspectRatio: 1.65,
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
           ),
@@ -810,9 +819,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             final isSelected = _selectedBranch == id;
 
             return GestureDetector(
-              onTap: () => setState(() => _selectedBranch = id),
+              onTap: () => setState(() {
+                _selectedBranch = id;
+                _usePreset = id != "CUSTOM";
+              }),
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected ? accentColor.withValues(alpha: 0.08) : const Color(0xFF131316),
                   borderRadius: BorderRadius.circular(16),
@@ -823,38 +835,43 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: isSelected ? accentColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, color: isSelected ? accentColor : Colors.white60, size: 20),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(
-                          id,
-                          style: GoogleFonts.orbitron(
-                            color: isSelected ? accentColor : Colors.white70,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: isSelected ? accentColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                          child: Icon(icon, color: isSelected ? accentColor : Colors.white60, size: 26),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          name,
-                          style: GoogleFonts.outfit(
-                            color: Colors.white38,
-                            fontSize: 9.5,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            id,
+                            style: GoogleFonts.orbitron(
+                              color: isSelected ? accentColor : Colors.white70,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: GoogleFonts.outfit(
+                          color: Colors.white38,
+                          fontSize: 9.5,
+                          height: 1.15,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -866,16 +883,141 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         _buildNavigationRow(
           accentColor: accentColor,
           onBack: () => setState(() => _currentStep = 3),
-          onNext: () => setState(() => _currentStep = 5),
+          onNext: () {
+            setState(() {
+              _currentStep = 5;
+            });
+          },
         ),
       ],
     );
   }
 
-  // --- Step 5: Tracking Slate Preset vs Scratch ---
-  Widget _buildStepTrackingOption(Color accentColor) {
+  // --- Step 5: Day Rollover Hour ---
+  Widget _buildStepRollover(Color accentColor) {
     return Column(
       key: const ValueKey(5),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          "STUDY DAY ROLLOVER",
+          style: GoogleFonts.jersey15(
+            fontSize: context.s(24),
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Select when your daily study tracking transitions to the next day to match your biological clock.",
+          style: GoogleFonts.outfit(
+            fontSize: context.s(13),
+            color: Colors.white38,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        _buildRolloverOptionCard(
+          title: "Late Night (04:00 AM) - Default",
+          description: "Ideal for night owls. If you study past midnight (up to 4 AM), your progress continues to count towards the current day's streak.",
+          icon: Icons.nights_stay_rounded,
+          accentColor: accentColor,
+          isSelected: _studyDayRollover == StudyDayRollover.overnight,
+          onTap: () => setState(() => _studyDayRollover = StudyDayRollover.overnight),
+        ),
+        const SizedBox(height: 16),
+        _buildRolloverOptionCard(
+          title: "Midnight (12:00 AM)",
+          description: "Ideal for early birds. Your study day resets strictly at midnight. Early morning study counts immediately towards the new day.",
+          icon: Icons.wb_sunny_rounded,
+          accentColor: accentColor,
+          isSelected: _studyDayRollover == StudyDayRollover.midnight,
+          onTap: () => setState(() => _studyDayRollover = StudyDayRollover.midnight),
+        ),
+        const SizedBox(height: 48),
+        _buildNavigationRow(
+          accentColor: accentColor,
+          onBack: () => setState(() => _currentStep = 4),
+          onNext: () {
+            if (_selectedBranch == "CUSTOM") {
+              setState(() => _currentStep = 7);
+            } else {
+              setState(() => _currentStep = 6);
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRolloverOptionCard({
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color accentColor,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: isSelected ? accentColor.withValues(alpha: 0.08) : const Color(0xFF131316),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? accentColor : Colors.white10,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected ? accentColor.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.03),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: isSelected ? accentColor : Colors.white60, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white38,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Step 6: Tracking Slate Preset vs Scratch ---
+  Widget _buildStepTrackingOption(Color accentColor) {
+    return Column(
+      key: const ValueKey(6),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
@@ -1006,21 +1148,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         const SizedBox(height: 32),
         _buildNavigationRow(
           accentColor: accentColor,
-          onBack: () => setState(() => _currentStep = 4),
-          onNext: () => setState(() => _currentStep = 6),
+          onBack: () => setState(() => _currentStep = 5),
+          onNext: () => setState(() => _currentStep = 7),
         ),
       ],
     );
   }
 
-  // --- Step 6: Review & Finalize Summary ---
+  // --- Step 7: Review & Finalize Summary ---
   Widget _buildStepReview(Color accentColor) {
     final remainingDays = _targetDate.difference(DateTime.now()).inDays;
     final displayDays = remainingDays > 0 ? remainingDays : 0;
     final formattedDate = "${_getMonthName(_targetDate.month)} ${_targetDate.day}, ${_targetDate.year}";
 
     return Column(
-      key: const ValueKey(6),
+      key: const ValueKey(7),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
@@ -1055,13 +1197,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             children: [
               _buildSummaryItem("Profile Name", _displayName, Icons.person_rounded, accentColor),
               const Divider(color: Colors.white10, height: 24),
-              _buildSummaryItem("GATE Branch", _selectedBranch, Icons.school_rounded, accentColor),
+              _buildSummaryItem("GATE Branch", _selectedBranch == "CUSTOM" ? "Custom / None" : _selectedBranch, Icons.school_rounded, accentColor),
               const Divider(color: Colors.white10, height: 24),
               _buildSummaryItem("Daily Goal", "${(_dailyGoalMins / 60).toStringAsFixed(_dailyGoalMins % 60 == 0 ? 0 : 1)} Hours", Icons.timer_rounded, accentColor),
               const Divider(color: Colors.white10, height: 24),
               _buildSummaryItem("Exam Date", "$formattedDate ($displayDays days left)", Icons.calendar_month_rounded, accentColor),
               const Divider(color: Colors.white10, height: 24),
-              _buildSummaryItem("Tracking Mode", _usePreset ? "curated presets loaded" : "empty track list", Icons.auto_awesome_rounded, accentColor),
+              _buildSummaryItem("Day Rollover", _studyDayRollover == StudyDayRollover.overnight ? "Late Night (04:00 AM)" : "Midnight (12:00 AM)", Icons.alarm_rounded, accentColor),
+              const Divider(color: Colors.white10, height: 24),
+              _buildSummaryItem("Syllabus Setup", _usePreset ? "$_selectedBranch Preset Loaded" : "Empty (Custom)", Icons.auto_awesome_rounded, accentColor),
             ],
           ),
         ),
@@ -1077,7 +1221,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text(
-            "LAUNCH TRACKER",
+            "FINALIZE AND LOAD",
             style: GoogleFonts.orbitron(
               fontWeight: FontWeight.w900,
               fontSize: 14,
@@ -1087,7 +1231,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         ),
         const SizedBox(height: 16),
         TextButton(
-          onPressed: () => setState(() => _currentStep = 5),
+          onPressed: () => setState(() => _currentStep = _selectedBranch == "CUSTOM" ? 5 : 6),
           child: Text(
             "GO BACK",
             style: GoogleFonts.outfit(

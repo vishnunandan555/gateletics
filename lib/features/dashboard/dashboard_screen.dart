@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../database/app_database.dart';
 import '../../providers/subject_provider.dart';
 import '../../widgets/pill_progress_widget.dart';
 import '../../providers/syllabus_provider.dart';
@@ -23,8 +25,52 @@ final completionIsScrolledProvider = NotifierProvider<CompletionIsScrolledNotifi
   return CompletionIsScrolledNotifier();
 });
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  late final ScrollController _scrollController;
+  late final FocusNode _focusNode;
+  late final TextEditingController _searchController;
+  Timer? _autoHideTimer;
+
+  bool searchBarVisible = false;
+  String searchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _focusNode = FocusNode();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _focusNode.dispose();
+    _searchController.dispose();
+    _autoHideTimer?.cancel();
+    super.dispose();
+  }
+
+  void _resetAutoHideTimer() {
+    _autoHideTimer?.cancel();
+    if (searchQuery.isEmpty) {
+      _autoHideTimer = Timer(const Duration(seconds: 8), () {
+        if (mounted && searchQuery.isEmpty) {
+          setState(() {
+            searchBarVisible = false;
+          });
+          _focusNode.unfocus();
+        }
+      });
+    }
+  }
 
   Widget _buildConstrainedBody(Widget child) {
     return Center(
@@ -35,17 +81,91 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  double _calculateScore(SyllabusTopicWithTasks topicWithTasks, String query, String categoryName) {
+    final topic = topicWithTasks.topic;
+    final name = topic.name.toLowerCase();
+    final catName = categoryName.toLowerCase();
+    
+    // Extract note
+    final rawUrl = topic.resourceUrl ?? '';
+    String note = '';
+    if (rawUrl.trim().isNotEmpty) {
+      final parts = rawUrl.trim().split('|');
+      if (parts.length > 2) {
+        note = parts[2].trim().toLowerCase();
+      }
+    }
+
+    double score = 0;
+    
+    // Category Name Match (highest weight)
+    if (catName == query) {
+      score += 150;
+    } else if (catName.contains(query)) {
+      score += 80 + (1.0 / (catName.indexOf(query) + 1));
+    }
+    
+    // Topic Name Match
+    if (name == query) {
+      score += 100;
+    } else if (name.contains(query)) {
+      score += 50 + (1.0 / (name.indexOf(query) + 1));
+    }
+    
+    if (note.isNotEmpty) {
+      if (note == query) {
+        score += 40;
+      } else if (note.contains(query)) {
+        score += 20;
+      }
+    }
+    
+    for (final task in topicWithTasks.tasks) {
+      final taskName = task.name.toLowerCase();
+      if (taskName == query) {
+        score += 30;
+      } else if (taskName.contains(query)) {
+        score += 15;
+      }
+    }
+    return score;
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final syllabusAsync = ref.watch(syllabusProvider);
+
     return Scaffold(
       body: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
+          // Track overall scrolled state for app bar transparency
           final isScrolled = notification.metrics.pixels > 10.0;
           if (ref.read(completionIsScrolledProvider) != isScrolled) {
             Future.microtask(() {
               ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
             });
+          }
+
+          // Track overscroll to show Search Bar
+          if (notification is ScrollUpdateNotification) {
+            final double pixels = notification.metrics.pixels;
+            if (pixels < 0) {
+              final double overscroll = -pixels;
+              if (overscroll > 15.0) {
+                if (!searchBarVisible) {
+                  setState(() {
+                    searchBarVisible = true;
+                  });
+                  _resetAutoHideTimer();
+                }
+              }
+              if (overscroll >= 65.0) {
+                if (!_focusNode.hasFocus) {
+                  _focusNode.requestFocus();
+                  _resetAutoHideTimer();
+                }
+              }
+            }
           }
           return false;
         },
@@ -58,16 +178,116 @@ class DashboardScreen extends ConsumerWidget {
             final totalCompleted = stats.completed;
             final totalTasks = stats.total;
 
+            // Search processing logic
+            final query = searchQuery.trim().toLowerCase();
+            List<SyllabusCategoryWithTopics> filteredSyllabus = [];
+            SyllabusTopicWithTasks? bestMatchTopic;
+            SyllabusCategory? bestMatchCategory;
+            double maxScore = 0;
+
+            if (query.isNotEmpty) {
+              for (final catWithTopics in syllabusData) {
+                List<SyllabusTopicWithTasks> matchedTopics = [];
+                for (final topicWithTasks in catWithTopics.topics) {
+                  double score = _calculateScore(topicWithTasks, query, catWithTopics.category.name);
+                  if (score > 0) {
+                    matchedTopics.add(topicWithTasks);
+                    if (score > maxScore) {
+                      maxScore = score;
+                      bestMatchTopic = topicWithTasks;
+                      bestMatchCategory = catWithTopics.category;
+                    }
+                  }
+                }
+                
+                if (matchedTopics.isNotEmpty) {
+                  filteredSyllabus.add(SyllabusCategoryWithTopics(
+                    category: catWithTopics.category,
+                    topics: matchedTopics,
+                  ));
+                }
+              }
+              
+              if (bestMatchTopic != null && bestMatchCategory != null) {
+                filteredSyllabus = filteredSyllabus.map((catWithTopics) {
+                  if (catWithTopics.category.id == bestMatchCategory!.id) {
+                    return SyllabusCategoryWithTopics(
+                      category: catWithTopics.category,
+                      topics: catWithTopics.topics.where((t) => t.topic.id != bestMatchTopic!.topic.id).toList(),
+                    );
+                  }
+                  return catWithTopics;
+                }).where((catWithTopics) => catWithTopics.topics.isNotEmpty).toList();
+              }
+            } else {
+              filteredSyllabus = syllabusData;
+            }
 
             return _buildConstrainedBody(CustomScrollView(
+              controller: _scrollController,
               physics: const BouncingScrollPhysics(),
               slivers: [
+                // Top Header spacing
                 SliverToBoxAdapter(
                   child: SizedBox(height: context.s(72) + MediaQuery.of(context).padding.top),
                 ),
+
+                // Animated Search Bar
+                SliverToBoxAdapter(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.fastOutSlowIn,
+                    height: searchBarVisible ? context.s(64) : 0.0,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: searchBarVisible ? 1.0 : 0.0,
+                      child: SingleChildScrollView(
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _focusNode,
+                            style: GoogleFonts.outfit(color: Colors.white, fontSize: context.s(14)),
+                            decoration: InputDecoration(
+                              hintText: 'Search syllabus topics, notes, or tasks...',
+                              hintStyle: GoogleFonts.outfit(color: Colors.white30, fontSize: context.s(13)),
+                              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white60, size: 20),
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.clear_rounded, color: Colors.white60, size: 18),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    searchQuery = "";
+                                    searchBarVisible = false;
+                                  });
+                                  _focusNode.unfocus();
+                                },
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFF27272A),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(context.s(12)),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: EdgeInsets.symmetric(vertical: context.s(10)),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                searchQuery = val;
+                              });
+                              _resetAutoHideTimer();
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(context.s(20), context.s(24), context.s(20), context.s(20)),
+                    padding: EdgeInsets.fromLTRB(context.s(20), context.s(12), context.s(20), context.s(20)),
                     child: PillProgressWidget(
                       percentage: overallProgress,
                       totalCompleted: totalCompleted,
@@ -75,6 +295,7 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+
                 if (isSyllabusEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -84,7 +305,45 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   )
                 else ...[
-                  ...syllabusData.asMap().entries.map((entry) {
+                  // 1. BEST MATCH IF APPLICABLE
+                  if (query.isNotEmpty && bestMatchTopic != null && bestMatchCategory != null) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(context.s(16), context.s(12), context.s(16), context.s(4)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.star_rounded, color: Color(bestMatchCategory.color), size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'BEST MATCH (FROM ${bestMatchCategory.name.toUpperCase()})',
+                              style: GoogleFonts.jersey15(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(bestMatchCategory.color),
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SyllabusTopicCard(
+                        topicWithTasks: bestMatchTopic,
+                        categoryColor: Color(bestMatchCategory.color),
+                        forceExpanded: true,
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: context.s(16)),
+                        child: const Divider(color: Colors.white10, height: 16),
+                      ),
+                    ),
+                  ],
+
+                  // 2. NORMAL / FILTERED LIST
+                  ...filteredSyllabus.asMap().entries.map((entry) {
                     final index = entry.key;
                     final catWithTopics = entry.value;
                     final category = catWithTopics.category;
@@ -109,7 +368,7 @@ class DashboardScreen extends ConsumerWidget {
                     final isCollapsed = isCompleted && !manuallyExpanded.contains(category.id);
                     final isPrevCollapsed = () {
                       if (index <= 0) return false;
-                      final prevCat = syllabusData[index - 1];
+                      final prevCat = filteredSyllabus[index - 1];
                       int prevCompleted = 0, prevTotal = 0;
                       for (final topicWithTasks in prevCat.topics) {
                         final topic = topicWithTasks.topic;
@@ -148,11 +407,12 @@ class DashboardScreen extends ConsumerWidget {
                         if (!isCollapsed)
                           SliverList(
                             delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final topicWithTasks = topics[index];
+                              (context, idx) {
+                                final topicWithTasks = topics[idx];
                                 return SyllabusTopicCard(
                                   topicWithTasks: topicWithTasks,
                                   categoryColor: Color(category.color),
+                                  forceExpanded: query.isNotEmpty,
                                 );
                               },
                               childCount: topics.length,
@@ -242,4 +502,3 @@ class WelcomeWidget extends ConsumerWidget {
     );
   }
 }
-

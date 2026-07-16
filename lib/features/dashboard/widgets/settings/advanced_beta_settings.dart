@@ -12,6 +12,7 @@ import '../../../../providers/disable_graph_glow_provider.dart';
 import '../../../../providers/show_projected_completion_provider.dart';
 import '../../../../providers/rollover_provider.dart';
 import '../../../../providers/syllabus_provider.dart';
+import '../../../../providers/swap_chart_lines_provider.dart';
 
 class AdvancedSettingsSection extends ConsumerWidget {
   final TextStyle titleStyle;
@@ -33,6 +34,7 @@ class AdvancedSettingsSection extends ConsumerWidget {
     final disableCountdown = ref.watch(disableCountdownProvider);
     final disableWidgets = ref.watch(disableHomeScreenWidgetProvider);
     final disableChartGlow = ref.watch(disableGraphGlowProvider);
+    final swapChartLines = ref.watch(swapChartLinesProvider);
 
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -235,6 +237,20 @@ class AdvancedSettingsSection extends ConsumerWidget {
             activeThumbColor: accentColor,
             onChanged: (val) {
               ref.read(disableGraphGlowProvider.notifier).setEnabled(val);
+            },
+          ),
+
+          const Divider(color: Colors.white10, height: 1),
+
+          // Swap Chart Lines
+          SwitchListTile(
+            secondary: Icon(Icons.swap_calls_rounded, color: swapChartLines ? accentColor : Colors.white30, size: 20),
+            title: Text('Prioritize Progress in Chart', style: titleStyle),
+            subtitle: Text('Show daily syllabus completion progress as the solid primary line and study hours as dashed line', style: subtitleStyle),
+            value: swapChartLines,
+            activeThumbColor: accentColor,
+            onChanged: (val) {
+              ref.read(swapChartLinesProvider.notifier).setEnabled(val);
             },
           ),
           const SizedBox(height: 4),

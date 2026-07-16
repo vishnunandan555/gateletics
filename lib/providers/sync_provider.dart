@@ -557,7 +557,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       if (hasLocalData) {
         final localData = await exportLocalData();
         localData['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
-        if (_areDataEqual(localData, cloudData)) {
+        if (areDataEqual(localData, cloudData)) {
           await _updateSyncState(status: SyncStatus.success, lastSyncedAt: cloudLastSynced);
           return false;
         }
@@ -673,7 +673,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         final merged = await mergeData(localData, dataToMerge);
         
         // Restore local DB with merged data if it actually changed
-        if (!_areDataEqual(localData, merged)) {
+        if (!areDataEqual(localData, merged)) {
           await _restoreLocalData(merged);
         }
 
@@ -724,7 +724,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       final cloudData = doc.data()!['data'] as Map<String, dynamic>;
 
-      if (_areDataEqual(localData, cloudData)) {
+      if (areDataEqual(localData, cloudData)) {
         // Already matching, just update local timestamp if cloud is newer, otherwise do nothing
         DateTime? cloudLastSynced;
         final ts = doc.data()?['lastSyncedAt'];
@@ -735,7 +735,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
 
       // Conflict/Difference: Auto-merge!
       final merged = await mergeData(localData, cloudData);
-      if (!_areDataEqual(localData, merged)) {
+      if (!areDataEqual(localData, merged)) {
         await _restoreLocalData(merged);
       }
 
@@ -756,9 +756,17 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     }
   }
 
-  bool _areDataEqual(Map<String, dynamic> local, Map<String, dynamic> cloud) {
+  bool areDataEqual(Map<String, dynamic> local, Map<String, dynamic> cloud) {
     try {
-      // Compare custom tasks
+      // 1. Compare hideDownloadBanner (default to false)
+      final localHideBanner = local['hideDownloadBanner'] ?? false;
+      final cloudHideBanner = cloud['hideDownloadBanner'] ?? false;
+      if (localHideBanner != cloudHideBanner) {
+        debugPrint("Sync diff: hideDownloadBanner ($localHideBanner vs $cloudHideBanner)");
+        return false;
+      }
+
+      // 2. Compare custom tasks
       final localCustom = local['customTasks'] as List? ?? [];
       final cloudCustom = cloud['customTasks'] as List? ?? [];
       if (localCustom.length != cloudCustom.length) {
@@ -777,29 +785,15 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           debugPrint("Sync diff: cloud custom task not found in local ($key)");
           return false;
         }
-        if (lt['isCompleted'] != ct['isCompleted'] || lt['position'] != ct['position']) {
-          debugPrint("Sync diff: custom task mismatch ($key) completion: ${lt['isCompleted']} vs ${ct['isCompleted']}, position: ${lt['position']} vs ${ct['position']}");
+        if (lt['isCompleted'] != ct['isCompleted'] ||
+            lt['position'] != ct['position'] ||
+            (lt['isDeleted'] ?? false) != (ct['isDeleted'] ?? false)) {
+          debugPrint("Sync diff: custom task mismatch ($key) completion: ${lt['isCompleted']} vs ${ct['isCompleted']}, position: ${lt['position']} vs ${ct['position']}, isDeleted: ${lt['isDeleted']} vs ${ct['isDeleted']}");
           return false;
         }
       }
 
-      // Compare hideDownloadBanner (default to false)
-      final localHideBanner = local['hideDownloadBanner'] ?? false;
-      final cloudHideBanner = cloud['hideDownloadBanner'] ?? false;
-      if (localHideBanner != cloudHideBanner) {
-        debugPrint("Sync diff: hideDownloadBanner ($localHideBanner vs $cloudHideBanner)");
-        return false;
-      }
-
-      // Compare syllabus tasks progress
-      final localTasks = local['syllabusTasks'] as List? ?? [];
-      final cloudTasks = cloud['syllabusTasks'] as List? ?? [];
-      if (localTasks.length != cloudTasks.length) {
-        debugPrint("Sync diff: syllabus tasks count (${localTasks.length} vs ${cloudTasks.length})");
-        return false;
-      }
-
-      // Compare focus sessions
+      // 3. Compare focus sessions
       final localFocus = local['focusSessions'] as List? ?? [];
       final cloudFocus = cloud['focusSessions'] as List? ?? [];
       if (localFocus.length != cloudFocus.length) {
@@ -814,7 +808,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         return false;
       }
 
-      // Compare daily history
+      // 4. Compare daily history
       final localHist = local['dailyHistory'] as List? ?? [];
       final cloudHist = cloud['dailyHistory'] as List? ?? [];
       if (localHist.length != cloudHist.length) {
@@ -829,45 +823,108 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         return false;
       }
 
+      // 5. Compare syllabus categories
       final localSylCats = local['syllabusCategories'] as List? ?? [];
-      final localSylTops = local['syllabusTopics'] as List? ?? [];
       final cloudSylCats = cloud['syllabusCategories'] as List? ?? [];
+      if (localSylCats.length != cloudSylCats.length) {
+        debugPrint("Sync diff: syllabus categories count (${localSylCats.length} vs ${cloudSylCats.length})");
+        return false;
+      }
+
+      final localCatsMap = <String, Map<String, dynamic>>{
+        for (var c in localSylCats) c['name'] as String: Map<String, dynamic>.from(c)
+      };
+
+      for (final cc in cloudSylCats) {
+        final catName = cc['name'] as String;
+        final lc = localCatsMap[catName];
+        if (lc == null) {
+          debugPrint("Sync diff: cloud syllabus category not found in local ($catName)");
+          return false;
+        }
+        if ((lc['isDeleted'] ?? false) != (cc['isDeleted'] ?? false) ||
+            lc['color'] != cc['color'] ||
+            lc['position'] != cc['position']) {
+          debugPrint("Sync diff: syllabus category mismatch ($catName) isDeleted: ${lc['isDeleted']} vs ${cc['isDeleted']}, color: ${lc['color']} vs ${cc['color']}, position: ${lc['position']} vs ${cc['position']}");
+          return false;
+        }
+      }
+
+      // 6. Compare syllabus topics
+      final localSylTops = local['syllabusTopics'] as List? ?? [];
       final cloudSylTops = cloud['syllabusTopics'] as List? ?? [];
+      if (localSylTops.length != cloudSylTops.length) {
+        debugPrint("Sync diff: syllabus topics count (${localSylTops.length} vs ${cloudSylTops.length})");
+        return false;
+      }
 
-      // Helper to build a lookup map of id -> name for categories
-      final localCatMap = {for (var c in localSylCats) c['id']: c['name']};
-      final cloudCatMap = {for (var c in cloudSylCats) c['id']: c['name']};
+      final localCatIdToNameMap = {for (var c in localSylCats) c['id']: c['name'] as String};
+      final cloudCatIdToNameMap = {for (var c in cloudSylCats) c['id']: c['name'] as String};
 
-      // Helper to build a lookup map of topicId -> "categoryName/topicName"
-      final localTopicMap = <dynamic, String>{};
+      final localTopicMap = <String, Map<String, dynamic>>{};
       for (var t in localSylTops) {
-        final catName = localCatMap[t['categoryId']] ?? 'Unknown';
-        localTopicMap[t['id']] = "$catName/${t['name']}";
-      }
-      final cloudTopicMap = <dynamic, String>{};
-      for (var t in cloudSylTops) {
-        final catName = cloudCatMap[t['categoryId']] ?? 'Unknown';
-        cloudTopicMap[t['id']] = "$catName/${t['name']}";
+        final catName = localCatIdToNameMap[t['categoryId']] ?? 'Unknown';
+        final key = "$catName/${t['name']}";
+        localTopicMap[key] = Map<String, dynamic>.from(t);
       }
 
-      // Map local syllabus tasks by stable path key: "categoryName/topicName/taskName"
+      for (final ct in cloudSylTops) {
+        final catName = cloudCatIdToNameMap[ct['categoryId']] ?? 'Unknown';
+        final key = "$catName/${ct['name']}";
+        final lt = localTopicMap[key];
+        if (lt == null) {
+          debugPrint("Sync diff: cloud syllabus topic not found in local ($key)");
+          return false;
+        }
+        if ((lt['isDeleted'] ?? false) != (ct['isDeleted'] ?? false) ||
+            (lt['isCounter'] ?? false) != (ct['isCounter'] ?? false) ||
+            (lt['currentCount'] ?? 0) != (ct['currentCount'] ?? 0) ||
+            (lt['maxCount'] ?? 0) != (ct['maxCount'] ?? 0) ||
+            lt['resourceUrl'] != ct['resourceUrl'] ||
+            lt['position'] != ct['position']) {
+          debugPrint("Sync diff: syllabus topic mismatch ($key) isDeleted: ${lt['isDeleted']} vs ${ct['isDeleted']}, isCounter: ${lt['isCounter']} vs ${ct['isCounter']}, currentCount: ${lt['currentCount']} vs ${ct['currentCount']}, maxCount: ${lt['maxCount']} vs ${ct['maxCount']}, resourceUrl: ${lt['resourceUrl']} vs ${ct['resourceUrl']}, position: ${lt['position']} vs ${ct['position']}");
+          return false;
+        }
+      }
+
+      // 7. Compare syllabus tasks
+      final localTasks = local['syllabusTasks'] as List? ?? [];
+      final cloudTasks = cloud['syllabusTasks'] as List? ?? [];
+      if (localTasks.length != cloudTasks.length) {
+        debugPrint("Sync diff: syllabus tasks count (${localTasks.length} vs ${cloudTasks.length})");
+        return false;
+      }
+
+      final localTopicIdToNameMap = <dynamic, String>{};
+      for (var t in localSylTops) {
+        final catName = localCatIdToNameMap[t['categoryId']] ?? 'Unknown';
+        localTopicIdToNameMap[t['id']] = "$catName/${t['name']}";
+      }
+      final cloudTopicIdToNameMap = <dynamic, String>{};
+      for (var t in cloudSylTops) {
+        final catName = cloudCatIdToNameMap[t['categoryId']] ?? 'Unknown';
+        cloudTopicIdToNameMap[t['id']] = "$catName/${t['name']}";
+      }
+
       final localTaskMap = <String, Map<String, dynamic>>{};
       for (var t in localTasks) {
-        final topicPath = localTopicMap[t['topicId']] ?? 'Unknown/Unknown';
+        final topicPath = localTopicIdToNameMap[t['topicId']] ?? 'Unknown/Unknown';
         final key = "$topicPath/${t['name'] ?? ''}";
         localTaskMap[key] = Map<String, dynamic>.from(t);
       }
 
       for (final ct in cloudTasks) {
-        final topicPath = cloudTopicMap[ct['topicId']] ?? 'Unknown/Unknown';
+        final topicPath = cloudTopicIdToNameMap[ct['topicId']] ?? 'Unknown/Unknown';
         final key = "$topicPath/${ct['name'] ?? ''}";
         final lt = localTaskMap[key];
         if (lt == null) {
           debugPrint("Sync diff: cloud syllabus task not found in local ($key)");
           return false;
         }
-        if (lt['isCompleted'] != ct['isCompleted']) {
-          debugPrint("Sync diff: task completion ($key) local: ${lt['isCompleted']}, cloud: ${ct['isCompleted']}");
+        if (lt['isCompleted'] != ct['isCompleted'] ||
+            (lt['isDeleted'] ?? false) != (ct['isDeleted'] ?? false) ||
+            lt['position'] != ct['position']) {
+          debugPrint("Sync diff: task mismatch ($key) completion: ${lt['isCompleted']} vs ${ct['isCompleted']}, isDeleted: ${lt['isDeleted']} vs ${ct['isDeleted']}, position: ${lt['position']} vs ${ct['position']}");
           return false;
         }
       }

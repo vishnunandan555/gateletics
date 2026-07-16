@@ -26,7 +26,7 @@ QueryExecutor connect({required int schemaVersion}) {
         final currentVersion = result.isNotEmpty ? result.first.values.first as int : 0;
         shouldDelete = currentVersion > schemaVersion;
       } finally {
-        database.dispose();
+        database.close();
       }
 
       if (shouldDelete) {

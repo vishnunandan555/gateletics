@@ -20,6 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/router/route_resolver.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -34,8 +35,11 @@ void main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+      if (!kIsWeb && defaultTargetPlatform != TargetPlatform.windows) {
+        await GoogleSignIn.instance.initialize();
+      }
     } catch (e) {
-      debugPrint("Firebase initialization failed: $e");
+      debugPrint("Firebase/GoogleSignIn initialization failed: $e");
     }
   }
 

@@ -211,11 +211,11 @@ class TimerSettingsSection extends ConsumerWidget {
                 children: [
                   SimpleDialogOption(
                     onPressed: () => Navigator.pop(ctx, StudyDayRollover.midnight),
-                    child: Text('00:00 (12:00 AM - default)', style: TextStyle(color: rollover == StudyDayRollover.midnight ? accentColor : Colors.white)),
+                    child: Text('00:00 (12:00 AM)', style: TextStyle(color: rollover == StudyDayRollover.midnight ? accentColor : Colors.white)),
                   ),
                   SimpleDialogOption(
                     onPressed: () => Navigator.pop(ctx, StudyDayRollover.overnight),
-                    child: Text('04:00 AM', style: TextStyle(color: rollover == StudyDayRollover.overnight ? accentColor : Colors.white)),
+                    child: Text('04:00 AM (default)', style: TextStyle(color: rollover == StudyDayRollover.overnight ? accentColor : Colors.white)),
                   ),
                 ],
               ),

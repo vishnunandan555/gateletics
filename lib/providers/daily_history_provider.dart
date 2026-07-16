@@ -146,38 +146,70 @@ final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
 
   return historyAsync.when(
     data: (history) {
-      final withProgress = history.where((h) => h.syllabusProgressPct > 0).toList();
-      if (withProgress.length < 3) return null;
+      if (history.isEmpty) return null;
 
-      final currentProgress = withProgress.last.syllabusProgressPct;
+      final sortedHistory = List<DailyHistoryData>.from(history)
+        ..sort((a, b) => a.dateStr.compareTo(b.dateStr));
+
+      final currentProgress = sortedHistory.last.syllabusProgressPct;
       if (currentProgress >= 100.0) {
         return {'completed': true, 'currentProgress': currentProgress};
       }
 
-      // Use at most the last 14 data points for velocity
-      final recent = withProgress.length > 14
-          ? withProgress.sublist(withProgress.length - 14)
-          : withProgress;
+      final firstRecord = sortedHistory.first;
+      final earliestDate = DateTime.tryParse(firstRecord.dateStr);
+      if (earliestDate == null) return null;
 
-      // Only count positive daily deltas (days where progress actually moved)
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final daysSinceStart = today.difference(earliestDate).inDays + 1;
+      final n = daysSinceStart < 1 ? 1 : (daysSinceStart > 7 ? 7 : daysSinceStart);
+
+      // Create a map of dateStr -> progress for fast lookup
+      final progressMap = <String, double>{};
+      for (final h in sortedHistory) {
+        progressMap[h.dateStr] = h.syllabusProgressPct;
+      }
+
+      // Helper to retrieve progress for a given calendar day
+      double getProgressForDate(DateTime date) {
+        final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+        if (progressMap.containsKey(dateStr)) {
+          return progressMap[dateStr]!;
+        }
+        double lastProgress = 0.0;
+        for (final h in sortedHistory) {
+          final recDate = DateTime.tryParse(h.dateStr);
+          if (recDate != null && recDate.isBefore(date)) {
+            lastProgress = h.syllabusProgressPct;
+          }
+        }
+        return lastProgress;
+      }
+
+      // Calculate daily deltas for the last N calendar days
       final deltas = <double>[];
-      for (int i = 1; i < recent.length; i++) {
-        final delta = recent[i].syllabusProgressPct - recent[i - 1].syllabusProgressPct;
-        if (delta > 0) deltas.add(delta);
+      for (int i = 0; i < n; i++) {
+        final day = today.subtract(Duration(days: n - 1 - i));
+        final progressThisDay = getProgressForDate(day);
+        final progressPrevDay = getProgressForDate(day.subtract(const Duration(days: 1)));
+        double delta = progressThisDay - progressPrevDay;
+        if (delta < 0) delta = 0.0; // clamp resets/drops
+        deltas.add(delta);
       }
 
       if (deltas.isEmpty) return null;
 
-      final avgDailyGain = deltas.reduce((a, b) => a + b) / deltas.length;
+      final avgDailyGain = deltas.reduce((a, b) => a + b) / n;
       if (avgDailyGain <= 0) return null;
 
       final daysRemaining = ((100.0 - currentProgress) / avgDailyGain).ceil();
-      final projectedDate = DateTime.now().add(Duration(days: daysRemaining));
+      final projectedDate = today.add(Duration(days: daysRemaining));
 
       final String confidence;
-      if (withProgress.length >= 14) {
+      if (n >= 7) {
         confidence = 'high';
-      } else if (withProgress.length >= 7) {
+      } else if (n >= 3) {
         confidence = 'medium';
       } else {
         confidence = 'low';

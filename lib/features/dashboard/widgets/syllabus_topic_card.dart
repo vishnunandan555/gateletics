@@ -14,11 +14,13 @@ import '../../../utils/ui_scaling.dart';
 class SyllabusTopicCard extends ConsumerWidget {
   final SyllabusTopicWithTasks topicWithTasks;
   final Color categoryColor;
+  final bool forceExpanded;
 
   const SyllabusTopicCard({
     super.key,
     required this.topicWithTasks,
     required this.categoryColor,
+    this.forceExpanded = false,
   });
 
   @override
@@ -31,7 +33,7 @@ class SyllabusTopicCard extends ConsumerWidget {
     final percentage = totalCount == 0 ? 0.0 : (completedCount / totalCount) * 100;
 
     final expandedSet = ref.watch(expandedTopicsProvider);
-    final isExpanded = expandedSet.contains(topic.id);
+    final isExpanded = forceExpanded || expandedSet.contains(topic.id);
     final isWeak = ref.watch(weakTopicsProvider).contains(topic.id);
 
     final rawUrl = topic.resourceUrl ?? '';
