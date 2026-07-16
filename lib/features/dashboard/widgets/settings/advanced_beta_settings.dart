@@ -13,6 +13,7 @@ import '../../../../providers/show_projected_completion_provider.dart';
 import '../../../../providers/rollover_provider.dart';
 import '../../../../providers/syllabus_provider.dart';
 import '../../../../providers/swap_chart_lines_provider.dart';
+import '../../../../providers/enable_share_progress_card_provider.dart';
 
 class AdvancedSettingsSection extends ConsumerWidget {
   final TextStyle titleStyle;
@@ -451,6 +452,20 @@ class BetaSettingsSection extends ConsumerWidget {
             activeThumbColor: accentColor,
             onChanged: (val) {
               ref.read(showProjectedCompletionProvider.notifier).setEnabled(val);
+            },
+          ),
+
+          const Divider(color: Colors.white10, height: 1),
+
+          // Enable Share Progress Card toggle
+          SwitchListTile(
+            secondary: Icon(Icons.share_rounded, color: ref.watch(enableShareProgressCardProvider) ? accentColor : Colors.white30, size: 20),
+            title: Text('Share Progress Card', style: titleStyle),
+            subtitle: Text('Enable daily progress sharing widget on home screen', style: subtitleStyle),
+            value: ref.watch(enableShareProgressCardProvider),
+            activeThumbColor: accentColor,
+            onChanged: (val) {
+              ref.read(enableShareProgressCardProvider.notifier).setEnabled(val);
             },
           ),
 

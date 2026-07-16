@@ -344,61 +344,82 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
   Future<void> checkAccomplishments() async {
     if (state.status == FocusStatus.idle) return;
 
-    final accomplishments = <String>[];
     final syllabusAsync = ref.read(syllabusProvider);
     if (!syllabusAsync.hasValue) return;
 
     final syllabusData = syllabusAsync.value!;
-    final newCompletedTasksByTopic = <int, List<String>>{};
-    final newCompletedCountersByTopic = <int, String>{};
-    final topicMap = <int, SyllabusTopic>{};
-    final categoryMap = <int, String>{};
+    final totalItems = syllabusData.fold<int>(0, (sum, cat) {
+      return sum + cat.topics.fold<int>(0, (topicSum, topicWithTasks) {
+        return topicSum + (topicWithTasks.topic.isCounter ? topicWithTasks.topic.maxCount : topicWithTasks.tasks.length);
+      });
+    });
+
+    final categoryList = <Map<String, dynamic>>[];
 
     for (final catWithTopics in syllabusData) {
       final cat = catWithTopics.category;
-      categoryMap[cat.id] = cat.name;
+      final topicList = <Map<String, dynamic>>[];
+      double categoryDelta = 0.0;
+
       for (final topicWithTasks in catWithTopics.topics) {
         final topic = topicWithTasks.topic;
-        topicMap[topic.id] = topic;
+        double topicDelta = 0.0;
+
         if (topic.isCounter) {
           final initialVal = state.initialSubjectCompletedVideos[topic.id] ?? 0;
           if (topic.currentCount > initialVal) {
-            newCompletedCountersByTopic[topic.id] =
-                "count increased from $initialVal to ${topic.currentCount} (Max ${topic.maxCount})";
+            final delta = topic.currentCount - initialVal;
+            if (totalItems > 0) {
+              topicDelta = (delta / totalItems) * 100.0;
+            }
+            categoryDelta += topicDelta;
+
+            topicList.add({
+              'topicName': topic.name,
+              'topicDelta': topicDelta,
+              'isCounter': true,
+              'currentCount': topic.currentCount,
+              'initialCount': initialVal,
+              'maxCount': topic.maxCount,
+            });
           }
         } else {
+          final completedTasks = <String>[];
           for (final task in topicWithTasks.tasks) {
             if (task.isCompleted && !state.initialCompletedTaskIds.contains(task.id)) {
-              newCompletedTasksByTopic.putIfAbsent(topic.id, () => []).add(task.name);
+              completedTasks.add(task.name);
             }
           }
-        }
-      }
-    }
+          if (completedTasks.isNotEmpty) {
+            if (totalItems > 0) {
+              topicDelta = (completedTasks.length / totalItems) * 100.0;
+            }
+            categoryDelta += topicDelta;
 
-    if (newCompletedTasksByTopic.isNotEmpty || newCompletedCountersByTopic.isNotEmpty) {
-      accomplishments.add("Completed:");
-      for (final topicId in newCompletedTasksByTopic.keys) {
-        final topic = topicMap[topicId];
-        if (topic != null) {
-          final catName = categoryMap[topic.categoryId] ?? "Syllabus";
-          accomplishments.add("  $catName > ${topic.name}:");
-          for (final taskName in newCompletedTasksByTopic[topicId]!) {
-            accomplishments.add("    - $taskName");
+            topicList.add({
+              'topicName': topic.name,
+              'topicDelta': topicDelta,
+              'isCounter': false,
+              'tasks': completedTasks,
+            });
           }
         }
       }
-      for (final topicId in newCompletedCountersByTopic.keys) {
-        final topic = topicMap[topicId];
-        if (topic != null) {
-          final catName = categoryMap[topic.categoryId] ?? "Syllabus";
-          accomplishments.add("  $catName > ${topic.name}:");
-          accomplishments.add("    - ${newCompletedCountersByTopic[topicId]}");
-        }
+
+      if (topicList.isNotEmpty) {
+        categoryList.add({
+          'categoryName': cat.name,
+          'categoryDelta': categoryDelta,
+          'topics': topicList,
+        });
       }
     }
 
-    state = state.copyWith(sessionAccomplishments: accomplishments);
+    if (categoryList.isNotEmpty) {
+      state = state.copyWith(sessionAccomplishments: [jsonEncode(categoryList)]);
+    } else {
+      state = state.copyWith(sessionAccomplishments: []);
+    }
   }
 
   Future<FocusSession> stopSession() async {
@@ -652,7 +673,30 @@ final formattedQuoteProvider = Provider.family<String, String?>((ref, rawUserNam
       final remainingMin = max(0, ((targetSecs - sessionState.elapsedSeconds) / 60).ceil());
 
       // Accomplishment summary
-      final tasksCount = sessionState.sessionAccomplishments.where((line) => line.startsWith("    -")).length;
+      int tasksCount = 0;
+      if (sessionState.sessionAccomplishments.isNotEmpty) {
+        final first = sessionState.sessionAccomplishments.first;
+        if (first.startsWith('[')) {
+          try {
+            final list = jsonDecode(first) as List<dynamic>;
+            for (final cat in list) {
+              final topics = cat['topics'] as List<dynamic>? ?? [];
+              for (final topic in topics) {
+                if (topic['isCounter'] == true) {
+                  final current = topic['currentCount'] as int? ?? 0;
+                  final initial = topic['initialCount'] as int? ?? 0;
+                  tasksCount += max(0, current - initial);
+                } else {
+                  final tasks = topic['tasks'] as List<dynamic>? ?? [];
+                  tasksCount += tasks.length;
+                }
+              }
+            }
+          } catch (_) {}
+        } else {
+          tasksCount = sessionState.sessionAccomplishments.where((line) => line.startsWith("    -")).length;
+        }
+      }
 
       final userName = rawUserName ?? "Champ";
 

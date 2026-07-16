@@ -7,6 +7,9 @@ import '../../../../utils/string_utils.dart';
 import 'focus_dialogs.dart';
 import 'timer_painters.dart';
 import '../../../../utils/ui_scaling.dart';
+import 'focus_accomplishments_widget.dart';
+import '../../../../providers/enable_share_progress_card_provider.dart';
+import '../share_progress_card.dart';
 
 class FocusIdleView extends ConsumerStatefulWidget {
   final Color accentColor;
@@ -205,14 +208,47 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
               ),
               SizedBox(height: context.s(32)),
 
-              // Today's History Header
-              Text(
-                "Today’s History:",
-                style: GoogleFonts.outfit(
-                  fontSize: context.s(24),
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              // Today's History Header Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Today’s History:",
+                    style: GoogleFonts.outfit(
+                      fontSize: context.s(24),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (ref.watch(enableShareProgressCardProvider))
+                    IconButton(
+                      icon: Container(
+                        padding: EdgeInsets.all(context.s(6)),
+                        decoration: BoxDecoration(
+                          color: accentColor.withAlpha(20),
+                          borderRadius: BorderRadius.circular(context.s(8)),
+                          border: Border.all(color: accentColor.withAlpha(80), width: 1),
+                        ),
+                        child: Icon(
+                          Icons.share_rounded,
+                          color: accentColor,
+                          size: context.s(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.black.withAlpha(200),
+                          builder: (context) => ShareProgressCard(accentColor: accentColor),
+                        );
+                      },
+                      tooltip: 'Share Progress Card',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      splashRadius: 20,
+                    ),
+                ],
               ),
               SizedBox(height: context.s(16)),
 
@@ -539,13 +575,10 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                     SizedBox(height: context.s(8)),
                     const Divider(color: Colors.white10),
                     SizedBox(height: context.s(4)),
-                    Text(
-                      accomplishments,
-                      style: GoogleFonts.outfit(
-                        color: Colors.white70,
-                        fontSize: context.s(12),
-                        height: 1.4,
-                      ),
+                    FocusAccomplishmentsWidget(
+                      accomplishments: accomplishments,
+                      accentColor: accentColor,
+                      maxWidgetHeight: 120,
                     ),
                   ],
                 ],

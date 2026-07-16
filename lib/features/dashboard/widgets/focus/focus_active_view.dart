@@ -8,6 +8,7 @@ import '../../../../providers/quotes_provider.dart';
 import 'timer_painters.dart';
 import '../../../../utils/ui_scaling.dart';
 import '../../../../providers/glow_strength_provider.dart';
+import 'focus_accomplishments_widget.dart';
 
 class FocusActiveView extends ConsumerStatefulWidget {
   final Color accentColor;
@@ -239,24 +240,10 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
                             ),
                           ),
                           SizedBox(height: context.s(6)),
-                          Container(
-                            padding: EdgeInsets.all(context.s(12)),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF131316),
-                              borderRadius: BorderRadius.circular(context.s(12)),
-                              border: Border.all(color: accentColor.withAlpha(60)),
-                            ),
-                            constraints: BoxConstraints(maxHeight: context.s(90)),
-                            child: SingleChildScrollView(
-                              child: Text(
-                                sessionState.sessionAccomplishments.join('\n'),
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white.withAlpha(220),
-                                  fontSize: context.s(12),
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
+                          FocusAccomplishmentsWidget(
+                            accomplishments: sessionState.sessionAccomplishments.join('\n'),
+                            accentColor: accentColor,
+                            maxWidgetHeight: 90,
                           ),
                           SizedBox(height: context.s(12)),
                         ],
@@ -628,19 +615,10 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
                     style: GoogleFonts.outfit(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 120),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withAlpha(5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: SingleChildScrollView(
-                      child: Text(
-                        session.accomplishments!,
-                        style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12, height: 1.4),
-                      ),
-                    ),
+                  FocusAccomplishmentsWidget(
+                    accomplishments: session.accomplishments,
+                    accentColor: accentColor,
+                    maxWidgetHeight: 120,
                   ),
                 ],
 
