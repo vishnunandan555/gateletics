@@ -433,6 +433,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         final cloudFocus = (dh['totalFocusSeconds'] as num).toInt();
         final localProg = (localEntry['syllabusProgressPct'] as num).toDouble();
         final cloudProg = (dh['syllabusProgressPct'] as num).toDouble();
+        final localTasks = (localEntry['tasksCompletedTotal'] as num? ?? 0).toInt();
+        final cloudTasks = (dh['tasksCompletedTotal'] as num? ?? 0).toInt();
 
         mergedDailyHist[dateStr] = {
           'dateStr': dateStr,
@@ -440,6 +442,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           'targetGoalSeconds': localEntry['targetGoalSeconds'] ?? dh['targetGoalSeconds'],
           'isGoalCompleted': localEntry['isGoalCompleted'] == true || dh['isGoalCompleted'] == true,
           'syllabusProgressPct': max(localProg, cloudProg),
+          'tasksCompletedTotal': max(localTasks, cloudTasks),
         };
       }
     }

@@ -458,6 +458,7 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
           targetGoalSeconds: 0,
           isGoalCompleted: false,
           syllabusProgressPct: -1.0,
+          tasksCompletedTotal: 0,
         ),
       );
       if (match.syllabusProgressPct >= 0.0) {

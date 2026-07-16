@@ -2068,6 +2068,17 @@ class $DailyHistoryTable extends DailyHistory
         requiredDuringInsert: false,
         defaultValue: const Constant(0.0),
       );
+  static const VerificationMeta _tasksCompletedTotalMeta =
+      const VerificationMeta('tasksCompletedTotal');
+  @override
+  late final GeneratedColumn<int> tasksCompletedTotal = GeneratedColumn<int>(
+    'tasks_completed_total',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     dateStr,
@@ -2075,6 +2086,7 @@ class $DailyHistoryTable extends DailyHistory
     targetGoalSeconds,
     isGoalCompleted,
     syllabusProgressPct,
+    tasksCompletedTotal,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2132,6 +2144,15 @@ class $DailyHistoryTable extends DailyHistory
         ),
       );
     }
+    if (data.containsKey('tasks_completed_total')) {
+      context.handle(
+        _tasksCompletedTotalMeta,
+        tasksCompletedTotal.isAcceptableOrUnknown(
+          data['tasks_completed_total']!,
+          _tasksCompletedTotalMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2161,6 +2182,10 @@ class $DailyHistoryTable extends DailyHistory
         DriftSqlType.double,
         data['${effectivePrefix}syllabus_progress_pct'],
       )!,
+      tasksCompletedTotal: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tasks_completed_total'],
+      )!,
     );
   }
 
@@ -2177,12 +2202,14 @@ class DailyHistoryData extends DataClass
   final int targetGoalSeconds;
   final bool isGoalCompleted;
   final double syllabusProgressPct;
+  final int tasksCompletedTotal;
   const DailyHistoryData({
     required this.dateStr,
     required this.totalFocusSeconds,
     required this.targetGoalSeconds,
     required this.isGoalCompleted,
     required this.syllabusProgressPct,
+    required this.tasksCompletedTotal,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2192,6 +2219,7 @@ class DailyHistoryData extends DataClass
     map['target_goal_seconds'] = Variable<int>(targetGoalSeconds);
     map['is_goal_completed'] = Variable<bool>(isGoalCompleted);
     map['syllabus_progress_pct'] = Variable<double>(syllabusProgressPct);
+    map['tasks_completed_total'] = Variable<int>(tasksCompletedTotal);
     return map;
   }
 
@@ -2202,6 +2230,7 @@ class DailyHistoryData extends DataClass
       targetGoalSeconds: Value(targetGoalSeconds),
       isGoalCompleted: Value(isGoalCompleted),
       syllabusProgressPct: Value(syllabusProgressPct),
+      tasksCompletedTotal: Value(tasksCompletedTotal),
     );
   }
 
@@ -2218,6 +2247,9 @@ class DailyHistoryData extends DataClass
       syllabusProgressPct: serializer.fromJson<double>(
         json['syllabusProgressPct'],
       ),
+      tasksCompletedTotal: serializer.fromJson<int>(
+        json['tasksCompletedTotal'],
+      ),
     );
   }
   @override
@@ -2229,6 +2261,7 @@ class DailyHistoryData extends DataClass
       'targetGoalSeconds': serializer.toJson<int>(targetGoalSeconds),
       'isGoalCompleted': serializer.toJson<bool>(isGoalCompleted),
       'syllabusProgressPct': serializer.toJson<double>(syllabusProgressPct),
+      'tasksCompletedTotal': serializer.toJson<int>(tasksCompletedTotal),
     };
   }
 
@@ -2238,12 +2271,14 @@ class DailyHistoryData extends DataClass
     int? targetGoalSeconds,
     bool? isGoalCompleted,
     double? syllabusProgressPct,
+    int? tasksCompletedTotal,
   }) => DailyHistoryData(
     dateStr: dateStr ?? this.dateStr,
     totalFocusSeconds: totalFocusSeconds ?? this.totalFocusSeconds,
     targetGoalSeconds: targetGoalSeconds ?? this.targetGoalSeconds,
     isGoalCompleted: isGoalCompleted ?? this.isGoalCompleted,
     syllabusProgressPct: syllabusProgressPct ?? this.syllabusProgressPct,
+    tasksCompletedTotal: tasksCompletedTotal ?? this.tasksCompletedTotal,
   );
   DailyHistoryData copyWithCompanion(DailyHistoryCompanion data) {
     return DailyHistoryData(
@@ -2260,6 +2295,9 @@ class DailyHistoryData extends DataClass
       syllabusProgressPct: data.syllabusProgressPct.present
           ? data.syllabusProgressPct.value
           : this.syllabusProgressPct,
+      tasksCompletedTotal: data.tasksCompletedTotal.present
+          ? data.tasksCompletedTotal.value
+          : this.tasksCompletedTotal,
     );
   }
 
@@ -2270,7 +2308,8 @@ class DailyHistoryData extends DataClass
           ..write('totalFocusSeconds: $totalFocusSeconds, ')
           ..write('targetGoalSeconds: $targetGoalSeconds, ')
           ..write('isGoalCompleted: $isGoalCompleted, ')
-          ..write('syllabusProgressPct: $syllabusProgressPct')
+          ..write('syllabusProgressPct: $syllabusProgressPct, ')
+          ..write('tasksCompletedTotal: $tasksCompletedTotal')
           ..write(')'))
         .toString();
   }
@@ -2282,6 +2321,7 @@ class DailyHistoryData extends DataClass
     targetGoalSeconds,
     isGoalCompleted,
     syllabusProgressPct,
+    tasksCompletedTotal,
   );
   @override
   bool operator ==(Object other) =>
@@ -2291,7 +2331,8 @@ class DailyHistoryData extends DataClass
           other.totalFocusSeconds == this.totalFocusSeconds &&
           other.targetGoalSeconds == this.targetGoalSeconds &&
           other.isGoalCompleted == this.isGoalCompleted &&
-          other.syllabusProgressPct == this.syllabusProgressPct);
+          other.syllabusProgressPct == this.syllabusProgressPct &&
+          other.tasksCompletedTotal == this.tasksCompletedTotal);
 }
 
 class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
@@ -2300,6 +2341,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
   final Value<int> targetGoalSeconds;
   final Value<bool> isGoalCompleted;
   final Value<double> syllabusProgressPct;
+  final Value<int> tasksCompletedTotal;
   final Value<int> rowid;
   const DailyHistoryCompanion({
     this.dateStr = const Value.absent(),
@@ -2307,6 +2349,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
     this.targetGoalSeconds = const Value.absent(),
     this.isGoalCompleted = const Value.absent(),
     this.syllabusProgressPct = const Value.absent(),
+    this.tasksCompletedTotal = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DailyHistoryCompanion.insert({
@@ -2315,6 +2358,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
     this.targetGoalSeconds = const Value.absent(),
     this.isGoalCompleted = const Value.absent(),
     this.syllabusProgressPct = const Value.absent(),
+    this.tasksCompletedTotal = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : dateStr = Value(dateStr);
   static Insertable<DailyHistoryData> custom({
@@ -2323,6 +2367,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
     Expression<int>? targetGoalSeconds,
     Expression<bool>? isGoalCompleted,
     Expression<double>? syllabusProgressPct,
+    Expression<int>? tasksCompletedTotal,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2332,6 +2377,8 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
       if (isGoalCompleted != null) 'is_goal_completed': isGoalCompleted,
       if (syllabusProgressPct != null)
         'syllabus_progress_pct': syllabusProgressPct,
+      if (tasksCompletedTotal != null)
+        'tasks_completed_total': tasksCompletedTotal,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2342,6 +2389,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
     Value<int>? targetGoalSeconds,
     Value<bool>? isGoalCompleted,
     Value<double>? syllabusProgressPct,
+    Value<int>? tasksCompletedTotal,
     Value<int>? rowid,
   }) {
     return DailyHistoryCompanion(
@@ -2350,6 +2398,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
       targetGoalSeconds: targetGoalSeconds ?? this.targetGoalSeconds,
       isGoalCompleted: isGoalCompleted ?? this.isGoalCompleted,
       syllabusProgressPct: syllabusProgressPct ?? this.syllabusProgressPct,
+      tasksCompletedTotal: tasksCompletedTotal ?? this.tasksCompletedTotal,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2374,6 +2423,9 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
         syllabusProgressPct.value,
       );
     }
+    if (tasksCompletedTotal.present) {
+      map['tasks_completed_total'] = Variable<int>(tasksCompletedTotal.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2388,6 +2440,7 @@ class DailyHistoryCompanion extends UpdateCompanion<DailyHistoryData> {
           ..write('targetGoalSeconds: $targetGoalSeconds, ')
           ..write('isGoalCompleted: $isGoalCompleted, ')
           ..write('syllabusProgressPct: $syllabusProgressPct, ')
+          ..write('tasksCompletedTotal: $tasksCompletedTotal, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2944,10 +2997,7 @@ final class $$SyllabusCategoriesTableReferences
   static MultiTypedResultKey<$SyllabusTopicsTable, List<SyllabusTopic>>
   _syllabusTopicsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.syllabusTopics,
-    aliasName: $_aliasNameGenerator(
-      db.syllabusCategories.id,
-      db.syllabusTopics.categoryId,
-    ),
+    aliasName: 'syllabus_categories__id__syllabus_topics__category_id',
   );
 
   $$SyllabusTopicsTableProcessedTableManager get syllabusTopicsRefs {
@@ -3279,13 +3329,9 @@ final class $$SyllabusTopicsTableReferences
     super.$_typedResult,
   );
 
-  static $SyllabusCategoriesTable _categoryIdTable(_$AppDatabase db) =>
-      db.syllabusCategories.createAlias(
-        $_aliasNameGenerator(
-          db.syllabusTopics.categoryId,
-          db.syllabusCategories.id,
-        ),
-      );
+  static $SyllabusCategoriesTable _categoryIdTable(_$AppDatabase db) => db
+      .syllabusCategories
+      .createAlias('syllabus_topics__category_id__syllabus_categories__id');
 
   $$SyllabusCategoriesTableProcessedTableManager get categoryId {
     final $_column = $_itemColumn<int>('category_id')!;
@@ -3304,10 +3350,7 @@ final class $$SyllabusTopicsTableReferences
   static MultiTypedResultKey<$SyllabusTasksTable, List<SyllabusTask>>
   _syllabusTasksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.syllabusTasks,
-    aliasName: $_aliasNameGenerator(
-      db.syllabusTopics.id,
-      db.syllabusTasks.topicId,
-    ),
+    aliasName: 'syllabus_topics__id__syllabus_tasks__topic_id',
   );
 
   $$SyllabusTasksTableProcessedTableManager get syllabusTasksRefs {
@@ -3797,10 +3840,9 @@ final class $$SyllabusTasksTableReferences
     super.$_typedResult,
   );
 
-  static $SyllabusTopicsTable _topicIdTable(_$AppDatabase db) =>
-      db.syllabusTopics.createAlias(
-        $_aliasNameGenerator(db.syllabusTasks.topicId, db.syllabusTopics.id),
-      );
+  static $SyllabusTopicsTable _topicIdTable(_$AppDatabase db) => db
+      .syllabusTopics
+      .createAlias('syllabus_tasks__topic_id__syllabus_topics__id');
 
   $$SyllabusTopicsTableProcessedTableManager get topicId {
     final $_column = $_itemColumn<int>('topic_id')!;
@@ -4372,6 +4414,7 @@ typedef $$DailyHistoryTableCreateCompanionBuilder =
       Value<int> targetGoalSeconds,
       Value<bool> isGoalCompleted,
       Value<double> syllabusProgressPct,
+      Value<int> tasksCompletedTotal,
       Value<int> rowid,
     });
 typedef $$DailyHistoryTableUpdateCompanionBuilder =
@@ -4381,6 +4424,7 @@ typedef $$DailyHistoryTableUpdateCompanionBuilder =
       Value<int> targetGoalSeconds,
       Value<bool> isGoalCompleted,
       Value<double> syllabusProgressPct,
+      Value<int> tasksCompletedTotal,
       Value<int> rowid,
     });
 
@@ -4415,6 +4459,11 @@ class $$DailyHistoryTableFilterComposer
 
   ColumnFilters<double> get syllabusProgressPct => $composableBuilder(
     column: $table.syllabusProgressPct,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tasksCompletedTotal => $composableBuilder(
+    column: $table.tasksCompletedTotal,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4452,6 +4501,11 @@ class $$DailyHistoryTableOrderingComposer
     column: $table.syllabusProgressPct,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get tasksCompletedTotal => $composableBuilder(
+    column: $table.tasksCompletedTotal,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DailyHistoryTableAnnotationComposer
@@ -4483,6 +4537,11 @@ class $$DailyHistoryTableAnnotationComposer
 
   GeneratedColumn<double> get syllabusProgressPct => $composableBuilder(
     column: $table.syllabusProgressPct,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get tasksCompletedTotal => $composableBuilder(
+    column: $table.tasksCompletedTotal,
     builder: (column) => column,
   );
 }
@@ -4523,6 +4582,7 @@ class $$DailyHistoryTableTableManager
                 Value<int> targetGoalSeconds = const Value.absent(),
                 Value<bool> isGoalCompleted = const Value.absent(),
                 Value<double> syllabusProgressPct = const Value.absent(),
+                Value<int> tasksCompletedTotal = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyHistoryCompanion(
                 dateStr: dateStr,
@@ -4530,6 +4590,7 @@ class $$DailyHistoryTableTableManager
                 targetGoalSeconds: targetGoalSeconds,
                 isGoalCompleted: isGoalCompleted,
                 syllabusProgressPct: syllabusProgressPct,
+                tasksCompletedTotal: tasksCompletedTotal,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4539,6 +4600,7 @@ class $$DailyHistoryTableTableManager
                 Value<int> targetGoalSeconds = const Value.absent(),
                 Value<bool> isGoalCompleted = const Value.absent(),
                 Value<double> syllabusProgressPct = const Value.absent(),
+                Value<int> tasksCompletedTotal = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DailyHistoryCompanion.insert(
                 dateStr: dateStr,
@@ -4546,6 +4608,7 @@ class $$DailyHistoryTableTableManager
                 targetGoalSeconds: targetGoalSeconds,
                 isGoalCompleted: isGoalCompleted,
                 syllabusProgressPct: syllabusProgressPct,
+                tasksCompletedTotal: tasksCompletedTotal,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

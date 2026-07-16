@@ -391,6 +391,7 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
           targetGoalSeconds: 0,
           isGoalCompleted: false,
           syllabusProgressPct: -1.0,
+          tasksCompletedTotal: 0,
         ),
       );
       if (match.syllabusProgressPct >= 0.0) {
@@ -440,12 +441,12 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
       for (int i = 0; i < 7; i++) {
         final dCurr = startOfWeek.add(Duration(days: i));
         final dateStrCurr = "${dCurr.year}-${dCurr.month.toString().padLeft(2, '0')}-${dCurr.day.toString().padLeft(2, '0')}";
-        final recordCurr = widget.history.firstWhere((h) => h.dateStr == dateStrCurr, orElse: () => DailyHistoryData(dateStr: dateStrCurr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0));
+        final recordCurr = widget.history.firstWhere((h) => h.dateStr == dateStrCurr, orElse: () => DailyHistoryData(dateStr: dateStrCurr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0, tasksCompletedTotal: 0));
         currentSum += recordCurr.totalFocusSeconds;
 
         final dPrev = prevStartOfWeek.add(Duration(days: i));
         final dateStrPrev = "${dPrev.year}-${dPrev.month.toString().padLeft(2, '0')}-${dPrev.day.toString().padLeft(2, '0')}";
-        final recordPrev = widget.history.firstWhere((h) => h.dateStr == dateStrPrev, orElse: () => DailyHistoryData(dateStr: dateStrPrev, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0));
+        final recordPrev = widget.history.firstWhere((h) => h.dateStr == dateStrPrev, orElse: () => DailyHistoryData(dateStr: dateStrPrev, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0, tasksCompletedTotal: 0));
         previousSum += recordPrev.totalFocusSeconds;
       }
 
@@ -460,7 +461,7 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
       for (int i = 0; i < 7; i++) {
         final d = startOfWeek.add(Duration(days: i));
         final dateStr = "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
-        final record = widget.history.firstWhere((h) => h.dateStr == dateStr, orElse: () => DailyHistoryData(dateStr: dateStr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0));
+        final record = widget.history.firstWhere((h) => h.dateStr == dateStr, orElse: () => DailyHistoryData(dateStr: dateStr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0, tasksCompletedTotal: 0));
         final hrs = record.totalFocusSeconds / 3600.0;
         dataPointsHours.add(hrs);
         totalHours += hrs;
@@ -499,7 +500,7 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
       for (int d = 1; d <= daysInMonth; d++) {
         final cellDate = DateTime(widget.selectedMonth.year, widget.selectedMonth.month, d);
         final dateStr = "${widget.selectedMonth.year}-${widget.selectedMonth.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}";
-        final record = widget.history.firstWhere((h) => h.dateStr == dateStr, orElse: () => DailyHistoryData(dateStr: dateStr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0));
+        final record = widget.history.firstWhere((h) => h.dateStr == dateStr, orElse: () => DailyHistoryData(dateStr: dateStr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0, tasksCompletedTotal: 0));
         final hrs = record.totalFocusSeconds / 3600.0;
         dataPointsHours.add(hrs);
         totalHours += hrs;

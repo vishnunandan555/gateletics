@@ -55,6 +55,9 @@ class DailyHistory extends Table {
   IntColumn get targetGoalSeconds => integer().withDefault(const Constant(7200))();
   BoolColumn get isGoalCompleted => boolean().withDefault(const Constant(false))();
   RealColumn get syllabusProgressPct => real().withDefault(const Constant(0.0))();
+  // Raw completed task count snapshot (tasks + counter progress) — used for
+  // task-count-velocity projected completion (schema v13+)
+  IntColumn get tasksCompletedTotal => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {dateStr};
@@ -186,6 +189,11 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(syllabusTasks, syllabusTasks.lastInteractedAt);
               await m.addColumn(customTasks, customTasks.isDeleted);
               await m.addColumn(customTasks, customTasks.lastInteractedAt);
+            } catch (_) {}
+          }
+          if (from < 13) {
+            try {
+              await m.addColumn(dailyHistory, dailyHistory.tasksCompletedTotal);
             } catch (_) {}
           }
           if (shouldSeed) {
@@ -748,6 +756,7 @@ class AppDatabase extends _$AppDatabase {
     required int targetGoalSeconds,
     required bool isGoalCompleted,
     required double syllabusProgressPct,
+    int tasksCompletedTotal = 0,
   }) async {
     await into(dailyHistory).insertOnConflictUpdate(
       DailyHistoryCompanion(
@@ -756,6 +765,7 @@ class AppDatabase extends _$AppDatabase {
         targetGoalSeconds: Value(targetGoalSeconds),
         isGoalCompleted: Value(isGoalCompleted),
         syllabusProgressPct: Value(syllabusProgressPct),
+        tasksCompletedTotal: Value(tasksCompletedTotal),
       ),
     );
   }

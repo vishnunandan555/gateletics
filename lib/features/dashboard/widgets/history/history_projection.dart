@@ -212,7 +212,7 @@ class _HistoryProjectionState extends State<HistoryProjection> with SingleTicker
                 SizedBox(width: context.s(20)),
                 _projStat(context, '${animatedProgress.toStringAsFixed(1)}%', 'done now', Colors.white70),
                 SizedBox(width: context.s(20)),
-                _projStat(context, '+${animatedAvgDailyGain.toStringAsFixed(2)}%', 'per day avg', Colors.white70),
+                _projStat(context, '+${animatedAvgDailyGain.toStringAsFixed(1)}', 'tasks/day avg', Colors.white70),
               ],
             ),
           ],

@@ -59,6 +59,7 @@ class BackupService {
       'targetGoalSeconds': dh.targetGoalSeconds,
       'isGoalCompleted': dh.isGoalCompleted,
       'syllabusProgressPct': dh.syllabusProgressPct,
+      'tasksCompletedTotal': dh.tasksCompletedTotal,
     }).toList();
 
     final exportedCustomTasks = customTsks.map((ct) => {
@@ -210,6 +211,7 @@ class BackupService {
               targetGoalSeconds: targetGoalSeconds,
               isGoalCompleted: isGoalCompleted,
               syllabusProgressPct: syllabusProgressPct,
+              tasksCompletedTotal: ((dh['tasksCompletedTotal'] ?? 0) as num).toInt(),
             );
           }
         }

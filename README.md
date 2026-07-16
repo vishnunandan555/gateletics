@@ -48,7 +48,8 @@ GATEletics is fully offline-first, requiring no network connection to operate. A
 - **Relational Structure:** Subjects are dynamically assigned to parent Categories (Syllabus Areas) with progress rolling up automatically.
 - **Customizable Subjects:** Tap-to-edit video syllabus counts, customized source channels, and direct course/playlist URLs.
 - **Pre-configured Presets:** Instantly bootstrap your tracking with complete syllabus presets for every GATE branch.
-- **Study Focus Mode (Pomodoro & Ultradian):** A dedicated productivity workspace with configurable focus timers and daily goal tracking. Sessions are permanently saved to the local database.
+- **Study Focus Mode (Pomodoro & Ultradian):** A dedicated productivity workspace with configurable focus timers, daily goal tracking, and structured accomplishments. Sessions are permanently saved to the local database.
+- **Shareable Daily Progress Card (BETA):** Generate a high-resolution, story-format progress card containing study time, streak, and daily syllabus completion delta. Features dynamic customization toggles (toggle tasks checklist, profile photo, and name visibility with privacy protection), and native system sharing integration to post progress directly to messaging and social media apps.
 - **JSON Import/Export:** Secure backup utility that lets you export or import your progress as a relational JSON schema, facilitating backup portability.
 - **Firebase Authentication & Cloud Sync:** Sign in with Google to enable automatic, offline-first progress backups with intelligent merge conflict resolution and soft-delete support.
 - **Premium Customization System:**

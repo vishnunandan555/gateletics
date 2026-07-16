@@ -21,6 +21,7 @@ final dailyHistoryManagerProvider = Provider<void>((ref) {
   // Watch inputs
   final todayDurationAsync = ref.watch(todayFocusDurationProvider);
   final completionAsync = ref.watch(completionPercentageProvider);
+  final completionStatsAsync = ref.watch(completionStatsProvider);
   final dailyGoalMins = ref.watch(dailyFocusGoalProvider);
   final rollover = ref.watch(studyDayRolloverProvider);
 
@@ -29,6 +30,13 @@ final dailyHistoryManagerProvider = Provider<void>((ref) {
       final now = DateTime.now();
       final date = studyDayFor(now, rollover);
       final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+      // Resolve raw task completion count (0 if stats not yet loaded)
+      final tasksCompleted = completionStatsAsync.when(
+        data: (stats) => stats.completed,
+        loading: () => 0,
+        error: (_, _) => 0,
+      );
 
       // Run asynchronously outside provider evaluation
       Future.microtask(() async {
@@ -39,6 +47,7 @@ final dailyHistoryManagerProvider = Provider<void>((ref) {
             targetGoalSeconds: dailyGoalMins * 60,
             isGoalCompleted: totalFocusSeconds >= (dailyGoalMins * 60),
             syllabusProgressPct: completionPct,
+            tasksCompletedTotal: tasksCompleted,
           );
           await db.deleteOldFocusSessions(rollover: rollover);
         } catch (e) {
@@ -140,89 +149,102 @@ final currentStreakProvider = Provider<int>((ref) {
 });
 
 
-// Projected syllabus completion date based on rolling daily progress velocity
+// Projected syllabus completion date based on rolling task-count velocity.
+// Uses daily delta of tasksCompletedTotal (raw task count snapshots) over
+// last 7 active days, and projects against LIVE remaining task count so that
+// adding/deleting cards instantly adjusts the projection.
 final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
   final historyAsync = ref.watch(dailyHistoryProvider);
+  final statsAsync = ref.watch(completionStatsProvider);
 
+  // Need both history and live stats
   return historyAsync.when(
     data: (history) {
-      if (history.isEmpty) return null;
+      return statsAsync.when(
+        data: (liveStats) {
+          if (history.isEmpty) return null;
 
-      final sortedHistory = List<DailyHistoryData>.from(history)
-        ..sort((a, b) => a.dateStr.compareTo(b.dateStr));
+          // Live remaining tasks (always current — immune to card deletions)
+          final remainingTasks = liveStats.total - liveStats.completed;
+          final currentProgress = liveStats.percentage;
 
-      final currentProgress = sortedHistory.last.syllabusProgressPct;
-      if (currentProgress >= 100.0) {
-        return {'completed': true, 'currentProgress': currentProgress};
-      }
-
-      final firstRecord = sortedHistory.first;
-      final earliestDate = DateTime.tryParse(firstRecord.dateStr);
-      if (earliestDate == null) return null;
-
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
-      final daysSinceStart = today.difference(earliestDate).inDays + 1;
-      final n = daysSinceStart < 1 ? 1 : (daysSinceStart > 7 ? 7 : daysSinceStart);
-
-      // Create a map of dateStr -> progress for fast lookup
-      final progressMap = <String, double>{};
-      for (final h in sortedHistory) {
-        progressMap[h.dateStr] = h.syllabusProgressPct;
-      }
-
-      // Helper to retrieve progress for a given calendar day
-      double getProgressForDate(DateTime date) {
-        final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-        if (progressMap.containsKey(dateStr)) {
-          return progressMap[dateStr]!;
-        }
-        double lastProgress = 0.0;
-        for (final h in sortedHistory) {
-          final recDate = DateTime.tryParse(h.dateStr);
-          if (recDate != null && recDate.isBefore(date)) {
-            lastProgress = h.syllabusProgressPct;
+          if (currentProgress >= 100.0 || remainingTasks <= 0) {
+            return {'completed': true, 'currentProgress': currentProgress};
           }
-        }
-        return lastProgress;
-      }
 
-      // Calculate daily deltas for the last N calendar days
-      final deltas = <double>[];
-      for (int i = 0; i < n; i++) {
-        final day = today.subtract(Duration(days: n - 1 - i));
-        final progressThisDay = getProgressForDate(day);
-        final progressPrevDay = getProgressForDate(day.subtract(const Duration(days: 1)));
-        double delta = progressThisDay - progressPrevDay;
-        if (delta < 0) delta = 0.0; // clamp resets/drops
-        deltas.add(delta);
-      }
+          final sortedHistory = List<DailyHistoryData>.from(history)
+            ..sort((a, b) => a.dateStr.compareTo(b.dateStr));
 
-      if (deltas.isEmpty) return null;
+          // Build date -> tasksCompletedTotal map
+          final taskMap = <String, int>{};
+          for (final h in sortedHistory) {
+            taskMap[h.dateStr] = h.tasksCompletedTotal;
+          }
 
-      final avgDailyGain = deltas.reduce((a, b) => a + b) / n;
-      if (avgDailyGain <= 0) return null;
+          // Helper: get the best known tasksCompletedTotal for a given date
+          // Falls back to the most recent prior day's snapshot.
+          int getTasksForDate(DateTime date) {
+            final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+            if (taskMap.containsKey(dateStr)) return taskMap[dateStr]!;
+            // Walk backwards to find nearest prior snapshot
+            int last = 0;
+            for (final h in sortedHistory) {
+              final recDate = DateTime.tryParse(h.dateStr);
+              if (recDate != null && !recDate.isAfter(date)) {
+                last = h.tasksCompletedTotal;
+              }
+            }
+            return last;
+          }
 
-      final daysRemaining = ((100.0 - currentProgress) / avgDailyGain).ceil();
-      final projectedDate = today.add(Duration(days: daysRemaining));
+          final today = DateTime.now();
+          final todayMidnight = DateTime(today.year, today.month, today.day);
 
-      final String confidence;
-      if (n >= 7) {
-        confidence = 'high';
-      } else if (n >= 3) {
-        confidence = 'medium';
-      } else {
-        confidence = 'low';
-      }
+          // Calculate daily deltas for up to last 14 calendar days,
+          // keeping only the last 7 that had non-zero progress (active days).
+          final activeDeltas = <double>[];
+          for (int i = 0; i < 14 && activeDeltas.length < 7; i++) {
+            final day = todayMidnight.subtract(Duration(days: i));
+            final prevDay = day.subtract(const Duration(days: 1));
+            final tasksToday = getTasksForDate(day);
+            final tasksPrev = getTasksForDate(prevDay);
+            double delta = (tasksToday - tasksPrev).toDouble();
+            if (delta < 0) delta = 0.0; // clamp — handles deleted completed tasks
+            if (delta > 0) activeDeltas.add(delta); // only active days
+          }
 
-      return {
-        'completed': false,
-        'currentProgress': currentProgress,
-        'daysRemaining': daysRemaining,
-        'projectedDate': projectedDate,
-        'avgDailyGain': avgDailyGain,
-        'confidence': confidence,
-      };
+          if (activeDeltas.isEmpty) return null;
+
+          final avgTasksPerDay = activeDeltas.reduce((a, b) => a + b) / activeDeltas.length;
+          if (avgTasksPerDay <= 0) return null;
+
+          final daysRemaining = (remainingTasks / avgTasksPerDay).ceil();
+          final projectedDate = todayMidnight.add(Duration(days: daysRemaining));
+
+          final int n = activeDeltas.length;
+          final String confidence;
+          if (n >= 7) {
+            confidence = 'high';
+          } else if (n >= 3) {
+            confidence = 'medium';
+          } else {
+            confidence = 'low';
+          }
+
+          return {
+            'completed': false,
+            'currentProgress': currentProgress,
+            'daysRemaining': daysRemaining,
+            'projectedDate': projectedDate,
+            // avgDailyGain now means tasks/day (not %/day)
+            'avgDailyGain': avgTasksPerDay,
+            'confidence': confidence,
+            'avgDailyGainUnit': 'tasks',
+          };
+        },
+        loading: () => null,
+        error: (_, _) => null,
+      );
     },
     loading: () => null,
     error: (e, st) => null,
