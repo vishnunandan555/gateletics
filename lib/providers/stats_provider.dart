@@ -19,12 +19,10 @@ class CategoryStudyTime {
   });
 }
 
-final progressLogsProvider = FutureProvider<List<SyllabusProgressLog>>((ref) async {
-  // Watch syllabusProvider to trigger reactivity when any syllabus update happens
-  ref.watch(syllabusProvider);
-  final db = ref.read(appDatabaseProvider);
-  // Get all active logs across time
-  return db.getProgressLogsForPeriod(DateTime(2020, 1, 1), DateTime(2030, 12, 31));
+final progressLogsProvider = StreamProvider<List<SyllabusProgressLog>>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  // Watch all active logs reactively
+  return db.watchProgressLogsForPeriod(DateTime(2020, 1, 1), DateTime(2030, 12, 31));
 });
 
 

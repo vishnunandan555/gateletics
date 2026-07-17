@@ -19,6 +19,9 @@ class WaveAreaChartPainter extends CustomPainter {
   final bool showGoalLine;
   final bool sharpLines;
   final bool disableGlow;
+  final List<String> xAxisLabels;
+  final String timeframe;
+  final DateTime selectedWeekStart;
 
   WaveAreaChartPainter({
     required this.data,
@@ -31,6 +34,9 @@ class WaveAreaChartPainter extends CustomPainter {
     this.showGoalLine = true,
     this.sharpLines = false,
     this.disableGlow = false,
+    required this.xAxisLabels,
+    required this.timeframe,
+    required this.selectedWeekStart,
   });
 
   @override
@@ -48,12 +54,12 @@ class WaveAreaChartPainter extends CustomPainter {
     final maxData = data.reduce(max);
     final maxY = maxData > goalValue ? (maxData * 1.15) : (goalValue > 0.0 ? goalValue : 1.0);
 
-    final usableHeight = height - 20;
+    final usableHeight = height - 35;
 
     final points = <Offset>[];
     for (int i = 0; i < data.length; i++) {
       final x = (i + 0.5) * colWidth;
-      final y = height - (data[i] / (maxY > 0 ? maxY : 1.0)) * usableHeight - 10;
+      final y = height - (data[i] / (maxY > 0 ? maxY : 1.0)) * usableHeight - 25;
       points.add(Offset(x, y));
     }
 
@@ -70,7 +76,7 @@ class WaveAreaChartPainter extends CustomPainter {
     }
 
     if (showGoalLine) {
-      final yGoal = height - (goalValue / (maxY > 0 ? maxY : 1.0)) * usableHeight - 10;
+      final yGoal = height - (goalValue / (maxY > 0 ? maxY : 1.0)) * usableHeight - 25;
 
       final goalPaint = Paint()
         ..color = Colors.white.withAlpha(40)
@@ -122,8 +128,8 @@ class WaveAreaChartPainter extends CustomPainter {
     }
 
     final fillPath = Path.from(path);
-    fillPath.lineTo(points.last.dx, height);
-    fillPath.lineTo(points.first.dx, height);
+    fillPath.lineTo(points.last.dx, height - 25);
+    fillPath.lineTo(points.first.dx, height - 25);
     fillPath.close();
 
     final fillGradient = LinearGradient(
@@ -168,7 +174,7 @@ class WaveAreaChartPainter extends CustomPainter {
       final secondaryPoints = <Offset>[];
       for (int i = 0; i < secondaryData!.length; i++) {
         final x = (i + 0.5) * colWidthSec;
-        final y = height - (secondaryData![i] / maxSecY) * usableHeight - 10;
+        final y = height - (secondaryData![i] / maxSecY) * usableHeight - 25;
         secondaryPoints.add(Offset(x, y));
       }
 
@@ -230,10 +236,10 @@ class WaveAreaChartPainter extends CustomPainter {
       double currentY = 0.0;
       double dashHt = 4.0;
       double spaceHt = 3.0;
-      while (currentY < height) {
+      while (currentY < height - 25) {
         canvas.drawLine(
           Offset(selectedPoint.dx, currentY),
-          Offset(selectedPoint.dx, min(currentY + dashHt, height)),
+          Offset(selectedPoint.dx, min(currentY + dashHt, height - 25)),
           indicatorPaint,
         );
         currentY += dashHt + spaceHt;
@@ -295,6 +301,43 @@ class WaveAreaChartPainter extends CustomPainter {
       }
     }
     canvas.restore();
+
+    // Draw X-axis labels aligned with data points (outside clipped region)
+    final labelPaintColorDefault = Colors.white.withAlpha(80);
+    for (int i = 0; i < data.length; i++) {
+      if (i >= xAxisLabels.length) continue;
+      final label = xAxisLabels[i];
+      final dayNum = i + 1;
+      final showLabel = timeframe != 'Monthly' || (dayNum == 1 || dayNum % 5 == 0 || dayNum == xAxisLabels.length);
+      if (!showLabel) continue;
+
+      bool isToday = false;
+      if (timeframe == 'Weekly') {
+        final date = selectedWeekStart.add(Duration(days: i));
+        final now = DateTime.now();
+        isToday = now.year == date.year && now.month == date.month && now.day == date.day;
+      }
+
+      final labelColor = isToday ? accentColor : labelPaintColorDefault;
+      final labelWeight = isToday ? FontWeight.bold : FontWeight.normal;
+
+      final labelPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: GoogleFonts.outfit(
+            color: labelColor,
+            fontWeight: labelWeight,
+            fontSize: 9.5,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final xOffset = points[i].dx - labelPainter.width / 2;
+      final yOffset = height - 14;
+
+      labelPainter.paint(canvas, Offset(xOffset, yOffset));
+    }
   }
 
   @override
@@ -747,6 +790,9 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
                                     showGoalLine: widget.timeframe != 'Yearly' && !swapChartLines,
                                     sharpLines: false,
                                     disableGlow: disableGlow,
+                                    xAxisLabels: labels,
+                                    timeframe: widget.timeframe,
+                                    selectedWeekStart: widget.selectedWeekStart,
                                   ),
                                 )
                               : Center(
@@ -822,33 +868,6 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
                   ),
                 ],
               ),
-              SizedBox(height: context.s(8)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(labels.length, (index) {
-                  final label = labels[index];
-                  final dayNum = index + 1;
-                  final showLabel = widget.timeframe != 'Monthly' || (dayNum == 1 || dayNum % 5 == 0 || dayNum == labels.length);
-                  final displayLabel = showLabel ? label : '';
-
-                  final isToday = widget.timeframe == 'Weekly' &&
-                      DateTime.now().difference(widget.selectedWeekStart.add(Duration(days: index))).inDays == 0 &&
-                      DateTime.now().weekday == widget.selectedWeekStart.add(Duration(days: index)).weekday;
-
-                  return SizedBox(
-                    width: colWidth(labels.length),
-                    child: Text(
-                      displayLabel,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.outfit(
-                        color: isToday ? widget.accentColor : Colors.white30,
-                        fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
-                        fontSize: context.s(9.5),
-                      ),
-                    ),
-                  );
-                }),
-              ),
             ],
           ),
         ),
@@ -856,11 +875,6 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
         _buildGraphPaginationRow(widget.accentColor, widget.accountCreationDate, widget.history),
       ],
     );
-  }
-
-  double colWidth(int length) {
-    if (length == 0) return 0;
-    return context.s(20);
   }
 
   Widget _buildTimeframeSelector(Color accentColor) {

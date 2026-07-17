@@ -605,6 +605,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       // 5. Check if there are custom notice board tasks
       final customTsks = await _db.select(_db.customTasks).get();
       if (customTsks.isNotEmpty) return true;
+
+      // 6. Check if there are active progress logs
+      final logs = await _db.select(_db.syllabusProgressLogs).get();
+      if (logs.any((l) => !l.isDeleted)) return true;
     } catch (e) {
       debugPrint("Error checking local modifications: $e");
       return true;

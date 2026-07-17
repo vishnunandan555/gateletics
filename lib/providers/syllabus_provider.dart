@@ -165,15 +165,34 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   // Task methods
   Future<void> toggleTask(int taskId, bool isCompleted) async {
+    final syllabusVal = ref.read(syllabusProvider).value;
+    int? categoryId;
+    int? topicId;
+    if (syllabusVal != null) {
+      for (final cat in syllabusVal) {
+        for (final topic in cat.topics) {
+          if (topic.tasks.any((t) => t.id == taskId)) {
+            categoryId = cat.category.id;
+            topicId = topic.topic.id;
+            break;
+          }
+        }
+        if (categoryId != null) break;
+      }
+    }
+
     await _db.transaction(() async {
       await _db.updateSyllabusTaskCompletion(taskId, isCompleted);
-      await _db.updateSyllabusCategoryInteractionByTaskId(taskId);
-
-      final task = await (_db.select(_db.syllabusTasks)..where((t) => t.id.equals(taskId))).getSingle();
-      final topic = await (_db.select(_db.syllabusTopics)..where((t) => t.id.equals(task.topicId))).getSingle();
+      if (categoryId != null) {
+        await (_db.update(_db.syllabusCategories)..where((t) => t.id.equals(categoryId!))).write(
+          SyllabusCategoriesCompanion(lastInteractedAt: Value(DateTime.now())),
+        );
+      }
 
       if (isCompleted) {
-        await _db.insertProgressLog(topic.categoryId, topic.id, taskId, 1);
+        if (categoryId != null && topicId != null) {
+          await _db.insertProgressLog(categoryId, topicId, taskId, 1);
+        }
       } else {
         await _db.softDeleteTaskProgressLog(taskId);
       }
@@ -244,16 +263,32 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   }
 
   Future<void> updateCounterCard(int id, String name, int currentCount, int maxCount, String? resourceLink) async {
-    await _db.transaction(() async {
-      final oldTopic = await (_db.select(_db.syllabusTopics)..where((t) => t.id.equals(id))).getSingle();
-      
-      await _db.updateCounterCard(id, name, currentCount, maxCount, resourceLink);
-      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+    final syllabusVal = ref.read(syllabusProvider).value;
+    int oldCount = 0;
+    int categoryId = 1;
+    if (syllabusVal != null) {
+      for (final cat in syllabusVal) {
+        for (final topic in cat.topics) {
+          if (topic.topic.id == id) {
+            oldCount = topic.topic.currentCount;
+            categoryId = cat.category.id;
+            break;
+          }
+        }
+        if (oldCount != 0 || categoryId != 1) break;
+      }
+    }
 
-      final delta = currentCount - oldTopic.currentCount;
+    await _db.transaction(() async {
+      await _db.updateCounterCard(id, name, currentCount, maxCount, resourceLink);
+      await (_db.update(_db.syllabusCategories)..where((t) => t.id.equals(categoryId))).write(
+        SyllabusCategoriesCompanion(lastInteractedAt: Value(DateTime.now())),
+      );
+
+      final delta = currentCount - oldCount;
       if (delta > 0) {
         for (int i = 0; i < delta; i++) {
-          await _db.insertProgressLog(oldTopic.categoryId, id, null, 1);
+          await _db.insertProgressLog(categoryId, id, null, 1);
         }
       } else if (delta < 0) {
         await _db.softDeleteCounterProgressLog(id, delta.abs());
@@ -263,16 +298,32 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   }
 
   Future<void> updateCounterValue(int id, int newCount) async {
+    final syllabusVal = ref.read(syllabusProvider).value;
+    int oldCount = 0;
+    int categoryId = 1;
+    if (syllabusVal != null) {
+      for (final cat in syllabusVal) {
+        for (final topic in cat.topics) {
+          if (topic.topic.id == id) {
+            oldCount = topic.topic.currentCount;
+            categoryId = cat.category.id;
+            break;
+          }
+        }
+        if (oldCount != 0 || categoryId != 1) break;
+      }
+    }
+
     await _db.transaction(() async {
-      final oldTopic = await (_db.select(_db.syllabusTopics)..where((t) => t.id.equals(id))).getSingle();
-
       await _db.updateCounterValue(id, newCount);
-      await _db.updateSyllabusCategoryInteractionByTopicId(id);
+      await (_db.update(_db.syllabusCategories)..where((t) => t.id.equals(categoryId))).write(
+        SyllabusCategoriesCompanion(lastInteractedAt: Value(DateTime.now())),
+      );
 
-      final delta = newCount - oldTopic.currentCount;
+      final delta = newCount - oldCount;
       if (delta > 0) {
         for (int i = 0; i < delta; i++) {
-          await _db.insertProgressLog(oldTopic.categoryId, id, null, 1);
+          await _db.insertProgressLog(categoryId, id, null, 1);
         }
       } else if (delta < 0) {
         await _db.softDeleteCounterProgressLog(id, delta.abs());
@@ -343,6 +394,14 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
   // Reset / Presets
   Future<void> resetTrackingData() async {
     await _db.resetSyllabusTrackingData();
+
+    // Clear weak categories/topics in SharedPreferences & Riverpod providers
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('weak_category_ids');
+    await prefs.remove('weak_topic_ids');
+    ref.read(weakCategoriesProvider.notifier).state = {};
+    ref.read(weakTopicsProvider.notifier).state = {};
+
     _triggerSync();
   }
 
@@ -371,6 +430,12 @@ extension SyllabusReset on AppDatabase {
       await (update(syllabusTopics)).write(
         const SyllabusTopicsCompanion(
           currentCount: Value(0),
+          resourceUrl: Value(null),
+        ),
+      );
+      await (update(syllabusProgressLogs)).write(
+        const SyllabusProgressLogsCompanion(
+          isDeleted: Value(true),
         ),
       );
     });

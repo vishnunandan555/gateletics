@@ -541,12 +541,18 @@ class AppDatabase extends _$AppDatabase {
       final categoryTopics = await (select(syllabusTopics)..where((t) => t.categoryId.equals(categoryId) & t.isDeleted.equals(false))).get();
       for (final topic in categoryTopics) {
         if (topic.isCounter) {
+          final delta = topic.maxCount - topic.currentCount;
           await (update(syllabusTopics)..where((t) => t.id.equals(topic.id))).write(
             SyllabusTopicsCompanion(
               currentCount: Value(topic.maxCount),
               lastInteractedAt: Value(DateTime.now()),
             ),
           );
+          if (delta > 0) {
+            for (int i = 0; i < delta; i++) {
+              await insertProgressLog(categoryId, topic.id, null, 1);
+            }
+          }
         } else {
           final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topic.id) & t.isDeleted.equals(false))).get();
           for (final task in tasks) {
@@ -558,6 +564,7 @@ class AppDatabase extends _$AppDatabase {
                   lastInteractedAt: Value(DateTime.now()),
                 ),
               );
+              await insertProgressLog(categoryId, topic.id, task.id, 1);
             }
           }
         }
@@ -587,6 +594,13 @@ class AppDatabase extends _$AppDatabase {
           );
         }
       }
+      // Soft-delete all progress logs under this category
+      await (update(syllabusProgressLogs)..where((l) => l.categoryId.equals(categoryId))).write(
+        SyllabusProgressLogsCompanion(
+          isDeleted: const Value(true),
+          lastInteractedAt: Value(DateTime.now()),
+        ),
+      );
       await updateSyllabusCategoryInteraction(categoryId);
     });
   }
@@ -595,12 +609,18 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       final topic = await (select(syllabusTopics)..where((t) => t.id.equals(topicId))).getSingle();
       if (topic.isCounter) {
+        final delta = topic.maxCount - topic.currentCount;
         await (update(syllabusTopics)..where((t) => t.id.equals(topicId))).write(
           SyllabusTopicsCompanion(
             currentCount: Value(topic.maxCount),
             lastInteractedAt: Value(DateTime.now()),
           ),
         );
+        if (delta > 0) {
+          for (int i = 0; i < delta; i++) {
+            await insertProgressLog(topic.categoryId, topicId, null, 1);
+          }
+        }
       } else {
         final tasks = await (select(syllabusTasks)..where((t) => t.topicId.equals(topicId) & t.isDeleted.equals(false))).get();
         for (final task in tasks) {
@@ -612,6 +632,7 @@ class AppDatabase extends _$AppDatabase {
                 lastInteractedAt: Value(DateTime.now()),
               ),
             );
+            await insertProgressLog(topic.categoryId, topicId, task.id, 1);
           }
         }
       }
@@ -638,6 +659,13 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       }
+      // Soft-delete all progress logs under this topic
+      await (update(syllabusProgressLogs)..where((l) => l.topicId.equals(topicId))).write(
+        SyllabusProgressLogsCompanion(
+          isDeleted: const Value(true),
+          lastInteractedAt: Value(DateTime.now()),
+        ),
+      );
       await updateSyllabusCategoryInteractionByTopicId(topicId);
     });
   }
@@ -690,11 +718,16 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  // Progress log operations
   Future<List<SyllabusProgressLog>> getProgressLogsForPeriod(DateTime start, DateTime end) async {
     return (select(syllabusProgressLogs)
           ..where((l) => l.isDeleted.equals(false) & l.timestamp.isBetweenValues(start, end)))
         .get();
+  }
+
+  Stream<List<SyllabusProgressLog>> watchProgressLogsForPeriod(DateTime start, DateTime end) {
+    return (select(syllabusProgressLogs)
+          ..where((l) => l.isDeleted.equals(false) & l.timestamp.isBetweenValues(start, end)))
+        .watch();
   }
 
   Future<void> insertProgressLog(int categoryId, int topicId, int? taskId, int delta) async {
