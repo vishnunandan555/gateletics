@@ -396,8 +396,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     });
 
     int taskCounter = 1;
+    final taskKeyToId = <String, int>{};
     mergedSylTsks.forEach((key, k) {
       final id = taskCounter++;
+      taskKeyToId[key] = id;
       final topicId = topKeyToId[k['topicKey']] ?? 1;
       finalSylTsks.add({
         'id': id,
@@ -489,6 +491,74 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     }
     final finalCustomTasks = mergedCustomTasks.values.toList();
 
+    // Merge Syllabus Progress Logs
+    final localLogs = List<Map<String, dynamic>>.from(local['syllabusProgressLogs'] ?? []);
+    final cloudLogs = List<Map<String, dynamic>>.from(cloud['syllabusProgressLogs'] ?? []);
+    final mergedLogs = <String, Map<String, dynamic>>{};
+
+    String getTaskKeyForLog(dynamic taskId, dynamic topicId, List<Map<String, dynamic>> tsksList, List<Map<String, dynamic>> topsList, List<Map<String, dynamic>> catsList) {
+      final targetTaskId = _parseInt(taskId);
+      final targetTopicId = _parseInt(topicId);
+      final topicKey = getTopicKeyForSource(targetTopicId, topsList, catsList);
+      if (targetTaskId == null) return "${topicKey}_none";
+      final match = tsksList.firstWhere(
+        (k) => _parseInt(k['id']) == targetTaskId,
+        orElse: () => {},
+      );
+      final name = match['name'] as String? ?? 'Unknown';
+      return "${topicKey}_$name";
+    }
+
+    for (final l in localLogs) {
+      final taskKey = getTaskKeyForLog(l['taskId'], l['topicId'], localSylTsks, localSylTops, localSylCats);
+      final key = "${l['timestamp']}_${l['delta']}_$taskKey";
+      mergedLogs[key] = {
+        ...l,
+        'taskKey': taskKey,
+      };
+    }
+    for (final l in cloudLogs) {
+      final taskKey = getTaskKeyForLog(l['taskId'], l['topicId'], cloudSylTsks, cloudSylTops, cloudSylCats);
+      final key = "${l['timestamp']}_${l['delta']}_$taskKey";
+      if (!mergedLogs.containsKey(key)) {
+        mergedLogs[key] = {
+          ...l,
+          'taskKey': taskKey,
+        };
+      } else {
+        final existing = mergedLogs[key]!;
+        mergedLogs[key] = _resolveConflict(existing, l);
+      }
+    }
+
+    final finalProgressLogs = <Map<String, dynamic>>[];
+    int logCounter = 1;
+    mergedLogs.forEach((key, l) {
+      final id = logCounter++;
+      final taskKey = l['taskKey'] as String;
+      
+      final parts = taskKey.split('_');
+      final catName = parts[0];
+      final topicName = parts[1];
+      final taskName = parts.sublist(2).join('_');
+
+      final topicKey = "${catName}_$topicName";
+      final catId = catNameToId[catName] ?? 1;
+      final topicId = topKeyToId[topicKey] ?? 1;
+      final taskId = taskName == 'none' ? null : (taskKeyToId["${topicKey}_$taskName"]);
+
+      finalProgressLogs.add({
+        'id': id,
+        'categoryId': catId,
+        'topicId': topicId,
+        'taskId': taskId,
+        'delta': _parseInt(l['delta']) ?? 1,
+        'timestamp': l['timestamp'],
+        'isDeleted': l['isDeleted'] ?? false,
+        'lastInteractedAt': l['lastInteractedAt'],
+      });
+    });
+
     return {
       'version': 9,
       'syllabusCategories': finalSylCats,
@@ -497,6 +567,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       'focusSessions': finalFocusSess,
       'dailyHistory': finalDailyHist,
       'customTasks': finalCustomTasks,
+      'syllabusProgressLogs': finalProgressLogs,
       'lastInteractedAt': DateTime.now().toIso8601String(),
       'hideDownloadBanner': local['hideDownloadBanner'] ?? cloud['hideDownloadBanner'] ?? false,
     };
@@ -953,6 +1024,63 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
             (lt['isDeleted'] ?? false) != (ct['isDeleted'] ?? false) ||
             _parseInt(lt['position']) != _parseInt(ct['position'])) {
           debugPrint("Sync diff: task mismatch ($key) completion: ${lt['isCompleted']} vs ${ct['isCompleted']}, isDeleted: ${lt['isDeleted']} vs ${ct['isDeleted']}, position: ${lt['position']} vs ${ct['position']}");
+          return false;
+        }
+      }
+
+      // 8. Compare syllabus progress logs
+      final localLogs = local['syllabusProgressLogs'] as List? ?? [];
+      final cloudLogs = cloud['syllabusProgressLogs'] as List? ?? [];
+      if (localLogs.length != cloudLogs.length) {
+        debugPrint("Sync diff: progress logs count (${localLogs.length} vs ${cloudLogs.length})");
+        return false;
+      }
+
+      // Build task mappings for local and cloud
+      final localTaskIdToNameMap = <int, String>{};
+      for (var t in localTasks) {
+        final topicPath = localTopicIdToNameMap[_parseInt(t['topicId'])] ?? 'Unknown/Unknown';
+        final taskId = _parseInt(t['id']);
+        if (taskId != null) {
+          localTaskIdToNameMap[taskId] = "$topicPath/${t['name'] ?? ''}";
+        }
+      }
+      final cloudTaskIdToNameMap = <int, String>{};
+      for (var t in cloudTasks) {
+        final topicPath = cloudTopicIdToNameMap[_parseInt(t['topicId'])] ?? 'Unknown/Unknown';
+        final taskId = _parseInt(t['id']);
+        if (taskId != null) {
+          cloudTaskIdToNameMap[taskId] = "$topicPath/${t['name'] ?? ''}";
+        }
+      }
+
+      String getLocalLogPathKey(Map<String, dynamic> log) {
+        final topicPath = localTopicIdToNameMap[_parseInt(log['topicId'])] ?? 'Unknown/Unknown';
+        final taskId = _parseInt(log['taskId']);
+        final taskPath = taskId != null ? localTaskIdToNameMap[taskId] ?? 'Unknown/Unknown/Unknown' : "$topicPath/none";
+        return "${log['timestamp']}_${log['delta']}_$taskPath";
+      }
+
+      String getCloudLogPathKey(Map<String, dynamic> log) {
+        final topicPath = cloudTopicIdToNameMap[_parseInt(log['topicId'])] ?? 'Unknown/Unknown';
+        final taskId = _parseInt(log['taskId']);
+        final taskPath = taskId != null ? cloudTaskIdToNameMap[taskId] ?? 'Unknown/Unknown/Unknown' : "$topicPath/none";
+        return "${log['timestamp']}_${log['delta']}_$taskPath";
+      }
+
+      final localLogMap = <String, Map<String, dynamic>>{
+        for (var l in localLogs) getLocalLogPathKey(Map<String, dynamic>.from(l)): Map<String, dynamic>.from(l)
+      };
+
+      for (final cl in cloudLogs) {
+        final key = getCloudLogPathKey(Map<String, dynamic>.from(cl));
+        final ll = localLogMap[key];
+        if (ll == null) {
+          debugPrint("Sync diff: cloud syllabus progress log not found in local ($key)");
+          return false;
+        }
+        if ((ll['isDeleted'] ?? false) != (cl['isDeleted'] ?? false)) {
+          debugPrint("Sync diff: progress log mismatch ($key) isDeleted: ${ll['isDeleted']} vs ${cl['isDeleted']}");
           return false;
         }
       }

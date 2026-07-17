@@ -2921,6 +2921,530 @@ class CustomTasksCompanion extends UpdateCompanion<CustomTask> {
   }
 }
 
+class $SyllabusProgressLogsTable extends SyllabusProgressLogs
+    with TableInfo<$SyllabusProgressLogsTable, SyllabusProgressLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyllabusProgressLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_categories (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _topicIdMeta = const VerificationMeta(
+    'topicId',
+  );
+  @override
+  late final GeneratedColumn<int> topicId = GeneratedColumn<int>(
+    'topic_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_topics (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<int> taskId = GeneratedColumn<int>(
+    'task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES syllabus_tasks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _deltaMeta = const VerificationMeta('delta');
+  @override
+  late final GeneratedColumn<int> delta = GeneratedColumn<int>(
+    'delta',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timestampMeta = const VerificationMeta(
+    'timestamp',
+  );
+  @override
+  late final GeneratedColumn<DateTime> timestamp = GeneratedColumn<DateTime>(
+    'timestamp',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isDeletedMeta = const VerificationMeta(
+    'isDeleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
+    'is_deleted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_deleted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _lastInteractedAtMeta = const VerificationMeta(
+    'lastInteractedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastInteractedAt =
+      GeneratedColumn<DateTime>(
+        'last_interacted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    categoryId,
+    topicId,
+    taskId,
+    delta,
+    timestamp,
+    isDeleted,
+    lastInteractedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'syllabus_progress_logs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyllabusProgressLog> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('topic_id')) {
+      context.handle(
+        _topicIdMeta,
+        topicId.isAcceptableOrUnknown(data['topic_id']!, _topicIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_topicIdMeta);
+    }
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    }
+    if (data.containsKey('delta')) {
+      context.handle(
+        _deltaMeta,
+        delta.isAcceptableOrUnknown(data['delta']!, _deltaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deltaMeta);
+    }
+    if (data.containsKey('timestamp')) {
+      context.handle(
+        _timestampMeta,
+        timestamp.isAcceptableOrUnknown(data['timestamp']!, _timestampMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_timestampMeta);
+    }
+    if (data.containsKey('is_deleted')) {
+      context.handle(
+        _isDeletedMeta,
+        isDeleted.isAcceptableOrUnknown(data['is_deleted']!, _isDeletedMeta),
+      );
+    }
+    if (data.containsKey('last_interacted_at')) {
+      context.handle(
+        _lastInteractedAtMeta,
+        lastInteractedAt.isAcceptableOrUnknown(
+          data['last_interacted_at']!,
+          _lastInteractedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyllabusProgressLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyllabusProgressLog(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category_id'],
+      )!,
+      topicId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}topic_id'],
+      )!,
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}task_id'],
+      ),
+      delta: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}delta'],
+      )!,
+      timestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}timestamp'],
+      )!,
+      isDeleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_deleted'],
+      )!,
+      lastInteractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interacted_at'],
+      ),
+    );
+  }
+
+  @override
+  $SyllabusProgressLogsTable createAlias(String alias) {
+    return $SyllabusProgressLogsTable(attachedDatabase, alias);
+  }
+}
+
+class SyllabusProgressLog extends DataClass
+    implements Insertable<SyllabusProgressLog> {
+  final int id;
+  final int categoryId;
+  final int topicId;
+  final int? taskId;
+  final int delta;
+  final DateTime timestamp;
+  final bool isDeleted;
+  final DateTime? lastInteractedAt;
+  const SyllabusProgressLog({
+    required this.id,
+    required this.categoryId,
+    required this.topicId,
+    this.taskId,
+    required this.delta,
+    required this.timestamp,
+    required this.isDeleted,
+    this.lastInteractedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['category_id'] = Variable<int>(categoryId);
+    map['topic_id'] = Variable<int>(topicId);
+    if (!nullToAbsent || taskId != null) {
+      map['task_id'] = Variable<int>(taskId);
+    }
+    map['delta'] = Variable<int>(delta);
+    map['timestamp'] = Variable<DateTime>(timestamp);
+    map['is_deleted'] = Variable<bool>(isDeleted);
+    if (!nullToAbsent || lastInteractedAt != null) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt);
+    }
+    return map;
+  }
+
+  SyllabusProgressLogsCompanion toCompanion(bool nullToAbsent) {
+    return SyllabusProgressLogsCompanion(
+      id: Value(id),
+      categoryId: Value(categoryId),
+      topicId: Value(topicId),
+      taskId: taskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(taskId),
+      delta: Value(delta),
+      timestamp: Value(timestamp),
+      isDeleted: Value(isDeleted),
+      lastInteractedAt: lastInteractedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastInteractedAt),
+    );
+  }
+
+  factory SyllabusProgressLog.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyllabusProgressLog(
+      id: serializer.fromJson<int>(json['id']),
+      categoryId: serializer.fromJson<int>(json['categoryId']),
+      topicId: serializer.fromJson<int>(json['topicId']),
+      taskId: serializer.fromJson<int?>(json['taskId']),
+      delta: serializer.fromJson<int>(json['delta']),
+      timestamp: serializer.fromJson<DateTime>(json['timestamp']),
+      isDeleted: serializer.fromJson<bool>(json['isDeleted']),
+      lastInteractedAt: serializer.fromJson<DateTime?>(
+        json['lastInteractedAt'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'categoryId': serializer.toJson<int>(categoryId),
+      'topicId': serializer.toJson<int>(topicId),
+      'taskId': serializer.toJson<int?>(taskId),
+      'delta': serializer.toJson<int>(delta),
+      'timestamp': serializer.toJson<DateTime>(timestamp),
+      'isDeleted': serializer.toJson<bool>(isDeleted),
+      'lastInteractedAt': serializer.toJson<DateTime?>(lastInteractedAt),
+    };
+  }
+
+  SyllabusProgressLog copyWith({
+    int? id,
+    int? categoryId,
+    int? topicId,
+    Value<int?> taskId = const Value.absent(),
+    int? delta,
+    DateTime? timestamp,
+    bool? isDeleted,
+    Value<DateTime?> lastInteractedAt = const Value.absent(),
+  }) => SyllabusProgressLog(
+    id: id ?? this.id,
+    categoryId: categoryId ?? this.categoryId,
+    topicId: topicId ?? this.topicId,
+    taskId: taskId.present ? taskId.value : this.taskId,
+    delta: delta ?? this.delta,
+    timestamp: timestamp ?? this.timestamp,
+    isDeleted: isDeleted ?? this.isDeleted,
+    lastInteractedAt: lastInteractedAt.present
+        ? lastInteractedAt.value
+        : this.lastInteractedAt,
+  );
+  SyllabusProgressLog copyWithCompanion(SyllabusProgressLogsCompanion data) {
+    return SyllabusProgressLog(
+      id: data.id.present ? data.id.value : this.id,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      topicId: data.topicId.present ? data.topicId.value : this.topicId,
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      delta: data.delta.present ? data.delta.value : this.delta,
+      timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
+      isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
+      lastInteractedAt: data.lastInteractedAt.present
+          ? data.lastInteractedAt.value
+          : this.lastInteractedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyllabusProgressLog(')
+          ..write('id: $id, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('topicId: $topicId, ')
+          ..write('taskId: $taskId, ')
+          ..write('delta: $delta, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    categoryId,
+    topicId,
+    taskId,
+    delta,
+    timestamp,
+    isDeleted,
+    lastInteractedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyllabusProgressLog &&
+          other.id == this.id &&
+          other.categoryId == this.categoryId &&
+          other.topicId == this.topicId &&
+          other.taskId == this.taskId &&
+          other.delta == this.delta &&
+          other.timestamp == this.timestamp &&
+          other.isDeleted == this.isDeleted &&
+          other.lastInteractedAt == this.lastInteractedAt);
+}
+
+class SyllabusProgressLogsCompanion
+    extends UpdateCompanion<SyllabusProgressLog> {
+  final Value<int> id;
+  final Value<int> categoryId;
+  final Value<int> topicId;
+  final Value<int?> taskId;
+  final Value<int> delta;
+  final Value<DateTime> timestamp;
+  final Value<bool> isDeleted;
+  final Value<DateTime?> lastInteractedAt;
+  const SyllabusProgressLogsCompanion({
+    this.id = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.topicId = const Value.absent(),
+    this.taskId = const Value.absent(),
+    this.delta = const Value.absent(),
+    this.timestamp = const Value.absent(),
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
+  });
+  SyllabusProgressLogsCompanion.insert({
+    this.id = const Value.absent(),
+    required int categoryId,
+    required int topicId,
+    this.taskId = const Value.absent(),
+    required int delta,
+    required DateTime timestamp,
+    this.isDeleted = const Value.absent(),
+    this.lastInteractedAt = const Value.absent(),
+  }) : categoryId = Value(categoryId),
+       topicId = Value(topicId),
+       delta = Value(delta),
+       timestamp = Value(timestamp);
+  static Insertable<SyllabusProgressLog> custom({
+    Expression<int>? id,
+    Expression<int>? categoryId,
+    Expression<int>? topicId,
+    Expression<int>? taskId,
+    Expression<int>? delta,
+    Expression<DateTime>? timestamp,
+    Expression<bool>? isDeleted,
+    Expression<DateTime>? lastInteractedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (categoryId != null) 'category_id': categoryId,
+      if (topicId != null) 'topic_id': topicId,
+      if (taskId != null) 'task_id': taskId,
+      if (delta != null) 'delta': delta,
+      if (timestamp != null) 'timestamp': timestamp,
+      if (isDeleted != null) 'is_deleted': isDeleted,
+      if (lastInteractedAt != null) 'last_interacted_at': lastInteractedAt,
+    });
+  }
+
+  SyllabusProgressLogsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? categoryId,
+    Value<int>? topicId,
+    Value<int?>? taskId,
+    Value<int>? delta,
+    Value<DateTime>? timestamp,
+    Value<bool>? isDeleted,
+    Value<DateTime?>? lastInteractedAt,
+  }) {
+    return SyllabusProgressLogsCompanion(
+      id: id ?? this.id,
+      categoryId: categoryId ?? this.categoryId,
+      topicId: topicId ?? this.topicId,
+      taskId: taskId ?? this.taskId,
+      delta: delta ?? this.delta,
+      timestamp: timestamp ?? this.timestamp,
+      isDeleted: isDeleted ?? this.isDeleted,
+      lastInteractedAt: lastInteractedAt ?? this.lastInteractedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (topicId.present) {
+      map['topic_id'] = Variable<int>(topicId.value);
+    }
+    if (taskId.present) {
+      map['task_id'] = Variable<int>(taskId.value);
+    }
+    if (delta.present) {
+      map['delta'] = Variable<int>(delta.value);
+    }
+    if (timestamp.present) {
+      map['timestamp'] = Variable<DateTime>(timestamp.value);
+    }
+    if (isDeleted.present) {
+      map['is_deleted'] = Variable<bool>(isDeleted.value);
+    }
+    if (lastInteractedAt.present) {
+      map['last_interacted_at'] = Variable<DateTime>(lastInteractedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyllabusProgressLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('topicId: $topicId, ')
+          ..write('taskId: $taskId, ')
+          ..write('delta: $delta, ')
+          ..write('timestamp: $timestamp, ')
+          ..write('isDeleted: $isDeleted, ')
+          ..write('lastInteractedAt: $lastInteractedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2931,6 +3455,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FocusSessionsTable focusSessions = $FocusSessionsTable(this);
   late final $DailyHistoryTable dailyHistory = $DailyHistoryTable(this);
   late final $CustomTasksTable customTasks = $CustomTasksTable(this);
+  late final $SyllabusProgressLogsTable syllabusProgressLogs =
+      $SyllabusProgressLogsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2942,6 +3468,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     focusSessions,
     dailyHistory,
     customTasks,
+    syllabusProgressLogs,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2958,6 +3485,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('syllabus_tasks', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'syllabus_categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('syllabus_progress_logs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'syllabus_topics',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('syllabus_progress_logs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'syllabus_tasks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('syllabus_progress_logs', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3007,6 +3555,32 @@ final class $$SyllabusCategoriesTableReferences
     ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_syllabusTopicsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $SyllabusProgressLogsTable,
+    List<SyllabusProgressLog>
+  >
+  _syllabusProgressLogsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.syllabusProgressLogs,
+        aliasName:
+            'syllabus_categories__id__syllabus_progress_logs__category_id',
+      );
+
+  $$SyllabusProgressLogsTableProcessedTableManager
+  get syllabusProgressLogsRefs {
+    final manager = $$SyllabusProgressLogsTableTableManager(
+      $_db,
+      $_db.syllabusProgressLogs,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _syllabusProgressLogsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3068,6 +3642,31 @@ class $$SyllabusCategoriesTableFilterComposer
           }) => $$SyllabusTopicsTableFilterComposer(
             $db: $db,
             $table: $db.syllabusTopics,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> syllabusProgressLogsRefs(
+    Expression<bool> Function($$SyllabusProgressLogsTableFilterComposer f) f,
+  ) {
+    final $$SyllabusProgressLogsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.syllabusProgressLogs,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusProgressLogsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusProgressLogs,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3171,6 +3770,32 @@ class $$SyllabusCategoriesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> syllabusProgressLogsRefs<T extends Object>(
+    Expression<T> Function($$SyllabusProgressLogsTableAnnotationComposer a) f,
+  ) {
+    final $$SyllabusProgressLogsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.syllabusProgressLogs,
+          getReferencedColumn: (t) => t.categoryId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SyllabusProgressLogsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.syllabusProgressLogs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$SyllabusCategoriesTableTableManager
@@ -3186,7 +3811,10 @@ class $$SyllabusCategoriesTableTableManager
           $$SyllabusCategoriesTableUpdateCompanionBuilder,
           (SyllabusCategory, $$SyllabusCategoriesTableReferences),
           SyllabusCategory,
-          PrefetchHooks Function({bool syllabusTopicsRefs})
+          PrefetchHooks Function({
+            bool syllabusTopicsRefs,
+            bool syllabusProgressLogsRefs,
+          })
         > {
   $$SyllabusCategoriesTableTableManager(
     _$AppDatabase db,
@@ -3244,38 +3872,63 @@ class $$SyllabusCategoriesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({syllabusTopicsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (syllabusTopicsRefs) db.syllabusTopics,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (syllabusTopicsRefs)
-                    await $_getPrefetchedData<
-                      SyllabusCategory,
-                      $SyllabusCategoriesTable,
-                      SyllabusTopic
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SyllabusCategoriesTableReferences
-                          ._syllabusTopicsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$SyllabusCategoriesTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).syllabusTopicsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.categoryId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({syllabusTopicsRefs = false, syllabusProgressLogsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (syllabusTopicsRefs) db.syllabusTopics,
+                    if (syllabusProgressLogsRefs) db.syllabusProgressLogs,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (syllabusTopicsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusCategory,
+                          $SyllabusCategoriesTable,
+                          SyllabusTopic
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusCategoriesTableReferences
+                              ._syllabusTopicsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).syllabusTopicsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (syllabusProgressLogsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusCategory,
+                          $SyllabusCategoriesTable,
+                          SyllabusProgressLog
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusCategoriesTableReferences
+                              ._syllabusProgressLogsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusCategoriesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).syllabusProgressLogsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.categoryId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3292,7 +3945,10 @@ typedef $$SyllabusCategoriesTableProcessedTableManager =
       $$SyllabusCategoriesTableUpdateCompanionBuilder,
       (SyllabusCategory, $$SyllabusCategoriesTableReferences),
       SyllabusCategory,
-      PrefetchHooks Function({bool syllabusTopicsRefs})
+      PrefetchHooks Function({
+        bool syllabusTopicsRefs,
+        bool syllabusProgressLogsRefs,
+      })
     >;
 typedef $$SyllabusTopicsTableCreateCompanionBuilder =
     SyllabusTopicsCompanion Function({
@@ -3360,6 +4016,31 @@ final class $$SyllabusTopicsTableReferences
     ).filter((f) => f.topicId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_syllabusTasksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $SyllabusProgressLogsTable,
+    List<SyllabusProgressLog>
+  >
+  _syllabusProgressLogsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.syllabusProgressLogs,
+        aliasName: 'syllabus_topics__id__syllabus_progress_logs__topic_id',
+      );
+
+  $$SyllabusProgressLogsTableProcessedTableManager
+  get syllabusProgressLogsRefs {
+    final manager = $$SyllabusProgressLogsTableTableManager(
+      $_db,
+      $_db.syllabusProgressLogs,
+    ).filter((f) => f.topicId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _syllabusProgressLogsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3459,6 +4140,31 @@ class $$SyllabusTopicsTableFilterComposer
           }) => $$SyllabusTasksTableFilterComposer(
             $db: $db,
             $table: $db.syllabusTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> syllabusProgressLogsRefs(
+    Expression<bool> Function($$SyllabusProgressLogsTableFilterComposer f) f,
+  ) {
+    final $$SyllabusProgressLogsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.syllabusProgressLogs,
+      getReferencedColumn: (t) => t.topicId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusProgressLogsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusProgressLogs,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3637,6 +4343,32 @@ class $$SyllabusTopicsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> syllabusProgressLogsRefs<T extends Object>(
+    Expression<T> Function($$SyllabusProgressLogsTableAnnotationComposer a) f,
+  ) {
+    final $$SyllabusProgressLogsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.syllabusProgressLogs,
+          getReferencedColumn: (t) => t.topicId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SyllabusProgressLogsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.syllabusProgressLogs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$SyllabusTopicsTableTableManager
@@ -3652,7 +4384,11 @@ class $$SyllabusTopicsTableTableManager
           $$SyllabusTopicsTableUpdateCompanionBuilder,
           (SyllabusTopic, $$SyllabusTopicsTableReferences),
           SyllabusTopic,
-          PrefetchHooks Function({bool categoryId, bool syllabusTasksRefs})
+          PrefetchHooks Function({
+            bool categoryId,
+            bool syllabusTasksRefs,
+            bool syllabusProgressLogsRefs,
+          })
         > {
   $$SyllabusTopicsTableTableManager(
     _$AppDatabase db,
@@ -3724,11 +4460,16 @@ class $$SyllabusTopicsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({categoryId = false, syllabusTasksRefs = false}) {
+              ({
+                categoryId = false,
+                syllabusTasksRefs = false,
+                syllabusProgressLogsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (syllabusTasksRefs) db.syllabusTasks,
+                    if (syllabusProgressLogsRefs) db.syllabusProgressLogs,
                   ],
                   addJoins:
                       <
@@ -3787,6 +4528,27 @@ class $$SyllabusTopicsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (syllabusProgressLogsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusTopic,
+                          $SyllabusTopicsTable,
+                          SyllabusProgressLog
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusTopicsTableReferences
+                              ._syllabusProgressLogsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusTopicsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).syllabusProgressLogsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.topicId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3807,7 +4569,11 @@ typedef $$SyllabusTopicsTableProcessedTableManager =
       $$SyllabusTopicsTableUpdateCompanionBuilder,
       (SyllabusTopic, $$SyllabusTopicsTableReferences),
       SyllabusTopic,
-      PrefetchHooks Function({bool categoryId, bool syllabusTasksRefs})
+      PrefetchHooks Function({
+        bool categoryId,
+        bool syllabusTasksRefs,
+        bool syllabusProgressLogsRefs,
+      })
     >;
 typedef $$SyllabusTasksTableCreateCompanionBuilder =
     SyllabusTasksCompanion Function({
@@ -3855,6 +4621,31 @@ final class $$SyllabusTasksTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $SyllabusProgressLogsTable,
+    List<SyllabusProgressLog>
+  >
+  _syllabusProgressLogsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.syllabusProgressLogs,
+        aliasName: 'syllabus_tasks__id__syllabus_progress_logs__task_id',
+      );
+
+  $$SyllabusProgressLogsTableProcessedTableManager
+  get syllabusProgressLogsRefs {
+    final manager = $$SyllabusProgressLogsTableTableManager(
+      $_db,
+      $_db.syllabusProgressLogs,
+    ).filter((f) => f.taskId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _syllabusProgressLogsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 }
@@ -3924,6 +4715,31 @@ class $$SyllabusTasksTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> syllabusProgressLogsRefs(
+    Expression<bool> Function($$SyllabusProgressLogsTableFilterComposer f) f,
+  ) {
+    final $$SyllabusProgressLogsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.syllabusProgressLogs,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusProgressLogsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusProgressLogs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -4053,6 +4869,32 @@ class $$SyllabusTasksTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> syllabusProgressLogsRefs<T extends Object>(
+    Expression<T> Function($$SyllabusProgressLogsTableAnnotationComposer a) f,
+  ) {
+    final $$SyllabusProgressLogsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.syllabusProgressLogs,
+          getReferencedColumn: (t) => t.taskId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SyllabusProgressLogsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.syllabusProgressLogs,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$SyllabusTasksTableTableManager
@@ -4068,7 +4910,7 @@ class $$SyllabusTasksTableTableManager
           $$SyllabusTasksTableUpdateCompanionBuilder,
           (SyllabusTask, $$SyllabusTasksTableReferences),
           SyllabusTask,
-          PrefetchHooks Function({bool topicId})
+          PrefetchHooks Function({bool topicId, bool syllabusProgressLogsRefs})
         > {
   $$SyllabusTasksTableTableManager(_$AppDatabase db, $SyllabusTasksTable table)
     : super(
@@ -4129,47 +4971,74 @@ class $$SyllabusTasksTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({topicId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (topicId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.topicId,
-                                referencedTable: $$SyllabusTasksTableReferences
-                                    ._topicIdTable(db),
-                                referencedColumn: $$SyllabusTasksTableReferences
-                                    ._topicIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({topicId = false, syllabusProgressLogsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (syllabusProgressLogsRefs) db.syllabusProgressLogs,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (topicId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.topicId,
+                                    referencedTable:
+                                        $$SyllabusTasksTableReferences
+                                            ._topicIdTable(db),
+                                    referencedColumn:
+                                        $$SyllabusTasksTableReferences
+                                            ._topicIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (syllabusProgressLogsRefs)
+                        await $_getPrefetchedData<
+                          SyllabusTask,
+                          $SyllabusTasksTable,
+                          SyllabusProgressLog
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SyllabusTasksTableReferences
+                              ._syllabusProgressLogsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SyllabusTasksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).syllabusProgressLogsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.taskId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4186,7 +5055,7 @@ typedef $$SyllabusTasksTableProcessedTableManager =
       $$SyllabusTasksTableUpdateCompanionBuilder,
       (SyllabusTask, $$SyllabusTasksTableReferences),
       SyllabusTask,
-      PrefetchHooks Function({bool topicId})
+      PrefetchHooks Function({bool topicId, bool syllabusProgressLogsRefs})
     >;
 typedef $$FocusSessionsTableCreateCompanionBuilder =
     FocusSessionsCompanion Function({
@@ -4872,6 +5741,576 @@ typedef $$CustomTasksTableProcessedTableManager =
       CustomTask,
       PrefetchHooks Function()
     >;
+typedef $$SyllabusProgressLogsTableCreateCompanionBuilder =
+    SyllabusProgressLogsCompanion Function({
+      Value<int> id,
+      required int categoryId,
+      required int topicId,
+      Value<int?> taskId,
+      required int delta,
+      required DateTime timestamp,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
+    });
+typedef $$SyllabusProgressLogsTableUpdateCompanionBuilder =
+    SyllabusProgressLogsCompanion Function({
+      Value<int> id,
+      Value<int> categoryId,
+      Value<int> topicId,
+      Value<int?> taskId,
+      Value<int> delta,
+      Value<DateTime> timestamp,
+      Value<bool> isDeleted,
+      Value<DateTime?> lastInteractedAt,
+    });
+
+final class $$SyllabusProgressLogsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $SyllabusProgressLogsTable,
+          SyllabusProgressLog
+        > {
+  $$SyllabusProgressLogsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SyllabusCategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.syllabusCategories.createAlias(
+        'syllabus_progress_logs__category_id__syllabus_categories__id',
+      );
+
+  $$SyllabusCategoriesTableProcessedTableManager get categoryId {
+    final $_column = $_itemColumn<int>('category_id')!;
+
+    final manager = $$SyllabusCategoriesTableTableManager(
+      $_db,
+      $_db.syllabusCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SyllabusTopicsTable _topicIdTable(_$AppDatabase db) => db
+      .syllabusTopics
+      .createAlias('syllabus_progress_logs__topic_id__syllabus_topics__id');
+
+  $$SyllabusTopicsTableProcessedTableManager get topicId {
+    final $_column = $_itemColumn<int>('topic_id')!;
+
+    final manager = $$SyllabusTopicsTableTableManager(
+      $_db,
+      $_db.syllabusTopics,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_topicIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SyllabusTasksTable _taskIdTable(_$AppDatabase db) => db.syllabusTasks
+      .createAlias('syllabus_progress_logs__task_id__syllabus_tasks__id');
+
+  $$SyllabusTasksTableProcessedTableManager? get taskId {
+    final $_column = $_itemColumn<int>('task_id');
+    if ($_column == null) return null;
+    final manager = $$SyllabusTasksTableTableManager(
+      $_db,
+      $_db.syllabusTasks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_taskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SyllabusProgressLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyllabusProgressLogsTable> {
+  $$SyllabusProgressLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get delta => $composableBuilder(
+    column: $table.delta,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SyllabusCategoriesTableFilterComposer get categoryId {
+    final $$SyllabusCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.syllabusCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusTopicsTableFilterComposer get topicId {
+    final $$SyllabusTopicsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.topicId,
+      referencedTable: $db.syllabusTopics,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusTopicsTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusTopics,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusTasksTableFilterComposer get taskId {
+    final $$SyllabusTasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.syllabusTasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusTasksTableFilterComposer(
+            $db: $db,
+            $table: $db.syllabusTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyllabusProgressLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyllabusProgressLogsTable> {
+  $$SyllabusProgressLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get delta => $composableBuilder(
+    column: $table.delta,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get timestamp => $composableBuilder(
+    column: $table.timestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isDeleted => $composableBuilder(
+    column: $table.isDeleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SyllabusCategoriesTableOrderingComposer get categoryId {
+    final $$SyllabusCategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.syllabusCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusCategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusTopicsTableOrderingComposer get topicId {
+    final $$SyllabusTopicsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.topicId,
+      referencedTable: $db.syllabusTopics,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusTopicsTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusTopics,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusTasksTableOrderingComposer get taskId {
+    final $$SyllabusTasksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.syllabusTasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusTasksTableOrderingComposer(
+            $db: $db,
+            $table: $db.syllabusTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyllabusProgressLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyllabusProgressLogsTable> {
+  $$SyllabusProgressLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get delta =>
+      $composableBuilder(column: $table.delta, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get timestamp =>
+      $composableBuilder(column: $table.timestamp, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDeleted =>
+      $composableBuilder(column: $table.isDeleted, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastInteractedAt => $composableBuilder(
+    column: $table.lastInteractedAt,
+    builder: (column) => column,
+  );
+
+  $$SyllabusCategoriesTableAnnotationComposer get categoryId {
+    final $$SyllabusCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.syllabusCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$SyllabusCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.syllabusCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$SyllabusTopicsTableAnnotationComposer get topicId {
+    final $$SyllabusTopicsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.topicId,
+      referencedTable: $db.syllabusTopics,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusTopicsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syllabusTopics,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SyllabusTasksTableAnnotationComposer get taskId {
+    final $$SyllabusTasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.syllabusTasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SyllabusTasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.syllabusTasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SyllabusProgressLogsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyllabusProgressLogsTable,
+          SyllabusProgressLog,
+          $$SyllabusProgressLogsTableFilterComposer,
+          $$SyllabusProgressLogsTableOrderingComposer,
+          $$SyllabusProgressLogsTableAnnotationComposer,
+          $$SyllabusProgressLogsTableCreateCompanionBuilder,
+          $$SyllabusProgressLogsTableUpdateCompanionBuilder,
+          (SyllabusProgressLog, $$SyllabusProgressLogsTableReferences),
+          SyllabusProgressLog,
+          PrefetchHooks Function({bool categoryId, bool topicId, bool taskId})
+        > {
+  $$SyllabusProgressLogsTableTableManager(
+    _$AppDatabase db,
+    $SyllabusProgressLogsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyllabusProgressLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyllabusProgressLogsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$SyllabusProgressLogsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> categoryId = const Value.absent(),
+                Value<int> topicId = const Value.absent(),
+                Value<int?> taskId = const Value.absent(),
+                Value<int> delta = const Value.absent(),
+                Value<DateTime> timestamp = const Value.absent(),
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
+              }) => SyllabusProgressLogsCompanion(
+                id: id,
+                categoryId: categoryId,
+                topicId: topicId,
+                taskId: taskId,
+                delta: delta,
+                timestamp: timestamp,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int categoryId,
+                required int topicId,
+                Value<int?> taskId = const Value.absent(),
+                required int delta,
+                required DateTime timestamp,
+                Value<bool> isDeleted = const Value.absent(),
+                Value<DateTime?> lastInteractedAt = const Value.absent(),
+              }) => SyllabusProgressLogsCompanion.insert(
+                id: id,
+                categoryId: categoryId,
+                topicId: topicId,
+                taskId: taskId,
+                delta: delta,
+                timestamp: timestamp,
+                isDeleted: isDeleted,
+                lastInteractedAt: lastInteractedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SyllabusProgressLogsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({categoryId = false, topicId = false, taskId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$SyllabusProgressLogsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$SyllabusProgressLogsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (topicId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.topicId,
+                                    referencedTable:
+                                        $$SyllabusProgressLogsTableReferences
+                                            ._topicIdTable(db),
+                                    referencedColumn:
+                                        $$SyllabusProgressLogsTableReferences
+                                            ._topicIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (taskId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.taskId,
+                                    referencedTable:
+                                        $$SyllabusProgressLogsTableReferences
+                                            ._taskIdTable(db),
+                                    referencedColumn:
+                                        $$SyllabusProgressLogsTableReferences
+                                            ._taskIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SyllabusProgressLogsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyllabusProgressLogsTable,
+      SyllabusProgressLog,
+      $$SyllabusProgressLogsTableFilterComposer,
+      $$SyllabusProgressLogsTableOrderingComposer,
+      $$SyllabusProgressLogsTableAnnotationComposer,
+      $$SyllabusProgressLogsTableCreateCompanionBuilder,
+      $$SyllabusProgressLogsTableUpdateCompanionBuilder,
+      (SyllabusProgressLog, $$SyllabusProgressLogsTableReferences),
+      SyllabusProgressLog,
+      PrefetchHooks Function({bool categoryId, bool topicId, bool taskId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4888,4 +6327,6 @@ class $AppDatabaseManager {
       $$DailyHistoryTableTableManager(_db, _db.dailyHistory);
   $$CustomTasksTableTableManager get customTasks =>
       $$CustomTasksTableTableManager(_db, _db.customTasks);
+  $$SyllabusProgressLogsTableTableManager get syllabusProgressLogs =>
+      $$SyllabusProgressLogsTableTableManager(_db, _db.syllabusProgressLogs);
 }

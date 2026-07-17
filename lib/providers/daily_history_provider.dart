@@ -7,6 +7,7 @@ import 'syllabus_provider.dart';
 import 'focus_provider.dart';
 import 'completion_provider.dart';
 import 'rollover_provider.dart';
+import 'stats_provider.dart';
 
 // Stream of historical snapshots
 final dailyHistoryProvider = StreamProvider<List<DailyHistoryData>>((ref) {
@@ -154,47 +155,19 @@ final currentStreakProvider = Provider<int>((ref) {
 // last 7 active days, and projects against LIVE remaining task count so that
 // adding/deleting cards instantly adjusts the projection.
 final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
-  final historyAsync = ref.watch(dailyHistoryProvider);
+  final logsAsync = ref.watch(progressLogsProvider);
   final statsAsync = ref.watch(completionStatsProvider);
 
-  // Need both history and live stats
-  return historyAsync.when(
-    data: (history) {
+  return logsAsync.when(
+    data: (logs) {
       return statsAsync.when(
         data: (liveStats) {
-          if (history.isEmpty) return null;
-
           // Live remaining tasks (always current — immune to card deletions)
           final remainingTasks = liveStats.total - liveStats.completed;
           final currentProgress = liveStats.percentage;
 
           if (currentProgress >= 100.0 || remainingTasks <= 0) {
             return {'completed': true, 'currentProgress': currentProgress};
-          }
-
-          final sortedHistory = List<DailyHistoryData>.from(history)
-            ..sort((a, b) => a.dateStr.compareTo(b.dateStr));
-
-          // Build date -> tasksCompletedTotal map
-          final taskMap = <String, int>{};
-          for (final h in sortedHistory) {
-            taskMap[h.dateStr] = h.tasksCompletedTotal;
-          }
-
-          // Helper: get the best known tasksCompletedTotal for a given date
-          // Falls back to the most recent prior day's snapshot.
-          int getTasksForDate(DateTime date) {
-            final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-            if (taskMap.containsKey(dateStr)) return taskMap[dateStr]!;
-            // Walk backwards to find nearest prior snapshot
-            int last = 0;
-            for (final h in sortedHistory) {
-              final recDate = DateTime.tryParse(h.dateStr);
-              if (recDate != null && !recDate.isAfter(date)) {
-                last = h.tasksCompletedTotal;
-              }
-            }
-            return last;
           }
 
           final today = DateTime.now();
@@ -205,12 +178,19 @@ final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
           final activeDeltas = <double>[];
           for (int i = 0; i < 14 && activeDeltas.length < 7; i++) {
             final day = todayMidnight.subtract(Duration(days: i));
-            final prevDay = day.subtract(const Duration(days: 1));
-            final tasksToday = getTasksForDate(day);
-            final tasksPrev = getTasksForDate(prevDay);
-            double delta = (tasksToday - tasksPrev).toDouble();
-            if (delta < 0) delta = 0.0; // clamp — handles deleted completed tasks
-            if (delta > 0) activeDeltas.add(delta); // only active days
+            final nextDay = day.add(const Duration(days: 1));
+
+            // Count total progress increments (deltas) logged on this day
+            int progressOnDay = 0;
+            for (final log in logs) {
+              if (log.timestamp.compareTo(day) >= 0 && log.timestamp.isBefore(nextDay)) {
+                progressOnDay += log.delta;
+              }
+            }
+
+            if (progressOnDay > 0) {
+              activeDeltas.add(progressOnDay.toDouble());
+            }
           }
 
           if (activeDeltas.isEmpty) return null;
@@ -236,7 +216,6 @@ final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
             'currentProgress': currentProgress,
             'daysRemaining': daysRemaining,
             'projectedDate': projectedDate,
-            // avgDailyGain now means tasks/day (not %/day)
             'avgDailyGain': avgTasksPerDay,
             'confidence': confidence,
             'avgDailyGainUnit': 'tasks',
@@ -247,7 +226,7 @@ final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
       );
     },
     loading: () => null,
-    error: (e, st) => null,
+    error: (_, _) => null,
   );
 });
 

@@ -168,6 +168,15 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     await _db.transaction(() async {
       await _db.updateSyllabusTaskCompletion(taskId, isCompleted);
       await _db.updateSyllabusCategoryInteractionByTaskId(taskId);
+
+      final task = await (_db.select(_db.syllabusTasks)..where((t) => t.id.equals(taskId))).getSingle();
+      final topic = await (_db.select(_db.syllabusTopics)..where((t) => t.id.equals(task.topicId))).getSingle();
+
+      if (isCompleted) {
+        await _db.insertProgressLog(topic.categoryId, topic.id, taskId, 1);
+      } else {
+        await _db.softDeleteTaskProgressLog(taskId);
+      }
     });
     _triggerSync();
   }
@@ -236,16 +245,38 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   Future<void> updateCounterCard(int id, String name, int currentCount, int maxCount, String? resourceLink) async {
     await _db.transaction(() async {
+      final oldTopic = await (_db.select(_db.syllabusTopics)..where((t) => t.id.equals(id))).getSingle();
+      
       await _db.updateCounterCard(id, name, currentCount, maxCount, resourceLink);
       await _db.updateSyllabusCategoryInteractionByTopicId(id);
+
+      final delta = currentCount - oldTopic.currentCount;
+      if (delta > 0) {
+        for (int i = 0; i < delta; i++) {
+          await _db.insertProgressLog(oldTopic.categoryId, id, null, 1);
+        }
+      } else if (delta < 0) {
+        await _db.softDeleteCounterProgressLog(id, delta.abs());
+      }
     });
     _triggerSync();
   }
 
   Future<void> updateCounterValue(int id, int newCount) async {
     await _db.transaction(() async {
+      final oldTopic = await (_db.select(_db.syllabusTopics)..where((t) => t.id.equals(id))).getSingle();
+
       await _db.updateCounterValue(id, newCount);
       await _db.updateSyllabusCategoryInteractionByTopicId(id);
+
+      final delta = newCount - oldTopic.currentCount;
+      if (delta > 0) {
+        for (int i = 0; i < delta; i++) {
+          await _db.insertProgressLog(oldTopic.categoryId, id, null, 1);
+        }
+      } else if (delta < 0) {
+        await _db.softDeleteCounterProgressLog(id, delta.abs());
+      }
     });
     _triggerSync();
   }

@@ -115,8 +115,6 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     final todayFocusSeconds = ref.watch(todayFocusDurationProvider).value ?? 0;
     final dailyGoalMinutes = ref.watch(dailyFocusGoalProvider);
     final categoriesAsync = ref.watch(syllabusCategoriesProvider);
-    final topicsAsync = ref.watch(syllabusTopicsProvider);
-    final tasksAsync = ref.watch(syllabusTasksProvider);
     final projection = ref.watch(projectedCompletionProvider);
     final showProjComp = ref.watch(showProjectedCompletionProvider);
     final accountCreationDateAsync = ref.watch(accountCreationDateProvider);
@@ -261,13 +259,13 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
 
               Builder(
                 builder: (context) {
-                  if (tasksAsync.hasError || topicsAsync.hasError || categoriesAsync.hasError) return const SizedBox();
-                  if (!tasksAsync.hasValue || !topicsAsync.hasValue || !categoriesAsync.hasValue) {
+                  final logsAsync = ref.watch(progressLogsProvider);
+                  if (logsAsync.hasError || categoriesAsync.hasError) return const SizedBox();
+                  if (!logsAsync.hasValue || !categoriesAsync.hasValue) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final filteredList = getFilteredCategoriesStudy(
-                    tasksAsync.value!,
-                    topicsAsync.value!,
+                    logsAsync.value!,
                     categoriesAsync.value!,
                   );
                   return _buildAnimatedEntrance(
@@ -382,12 +380,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
   }
 
   List<CategoryStudyTime> getFilteredCategoriesStudy(
-    List<SyllabusTask> tasks,
-    List<SyllabusTopic> topics,
+    List<SyllabusProgressLog> logs,
     List<SyllabusCategory> categories,
   ) {
-    final Map<int, int> completedTaskCounts = {};
-    int totalCompletedInPeriod = 0;
+    final Map<int, int> categoryProgressSums = {};
+    int totalProgress = 0;
 
     DateTime startDate;
     DateTime endDate;
@@ -403,36 +400,31 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       endDate = DateTime(_selectedYear + 1, 1, 1);
     }
 
-    final topicMap = {for (final t in topics) t.id: t.categoryId};
-
-    for (final task in tasks) {
-      if (task.isCompleted && task.completedAt != null) {
-        if (task.completedAt!.compareTo(startDate) >= 0 && task.completedAt!.isBefore(endDate)) {
-          final catId = topicMap[task.topicId];
-          if (catId != null) {
-            completedTaskCounts[catId] = (completedTaskCounts[catId] ?? 0) + 1;
-            totalCompletedInPeriod++;
-          }
-        }
+    for (final log in logs) {
+      if (log.timestamp.compareTo(startDate) >= 0 && log.timestamp.isBefore(endDate)) {
+        categoryProgressSums[log.categoryId] = (categoryProgressSums[log.categoryId] ?? 0) + log.delta;
+        totalProgress += log.delta;
       }
     }
 
     final List<CategoryStudyTime> list = [];
     final Map<int, SyllabusCategory> catMap = {for (final c in categories) c.id: c};
 
-    for (final entry in completedTaskCounts.entries) {
+    for (final entry in categoryProgressSums.entries) {
       final catId = entry.key;
-      final count = entry.value;
-      final pct = totalCompletedInPeriod > 0 ? (count / totalCompletedInPeriod) * 100 : 0.0;
+      final progress = entry.value;
+      final pct = totalProgress > 0 ? (progress / totalProgress) * 100 : 0.0;
 
       final cat = catMap[catId];
-      list.add(CategoryStudyTime(
-        id: catId,
-        name: cat?.name ?? 'Unknown Category',
-        colorValue: cat?.color ?? 0xFF00FFCC,
-        hours: count.toDouble(),
-        percentage: pct,
-      ));
+      if (cat != null) {
+        list.add(CategoryStudyTime(
+          id: catId,
+          name: cat.name,
+          colorValue: cat.color,
+          hours: progress.toDouble(),
+          percentage: pct,
+        ));
+      }
     }
 
     list.sort((a, b) => b.hours.compareTo(a.hours));
@@ -479,15 +471,39 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
     }
 
     double delta = 0.0;
+    int progressOnDay = 0;
+    final Map<String, int> catContributions = {};
     try {
       final parsed = DateTime.parse(dateStr);
       final progressToday = getProgressForDate(parsed);
       final progressYesterday = getProgressForDate(parsed.subtract(const Duration(days: 1)));
       delta = progressToday - progressYesterday;
       if (delta < 0.0) delta = 0.0;
+
+      final dayStart = DateTime(parsed.year, parsed.month, parsed.day);
+      final dayEnd = dayStart.add(const Duration(days: 1));
+
+      final logs = ref.read(progressLogsProvider).value ?? [];
+      final categories = ref.read(syllabusCategoriesProvider).value ?? [];
+      final catMap = {for (final c in categories) c.id: c.name};
+
+      for (final log in logs) {
+        if (log.timestamp.compareTo(dayStart) >= 0 && log.timestamp.isBefore(dayEnd)) {
+          progressOnDay += log.delta;
+          final catName = catMap[log.categoryId] ?? 'Unknown';
+          catContributions[catName] = (catContributions[catName] ?? 0) + log.delta;
+        }
+      }
     } catch (_) {}
 
-    final deltaStr = delta > 0.0 ? "+${delta.toStringAsFixed(1)}% syllabus" : "no progress change";
+    final deltaPctStr = delta > 0.0 ? "+${delta.toStringAsFixed(1)}% syllabus" : "no progress change";
+    final String deltaStr;
+    if (progressOnDay > 0) {
+      final items = catContributions.entries.map((e) => "${e.key} (+${e.value})").join(', ');
+      deltaStr = "$deltaPctStr\nStudied: $items";
+    } else {
+      deltaStr = deltaPctStr;
+    }
 
     if (record == null || record.totalFocusSeconds == 0) {
       return "$dateLabel\nNo focus sessions recorded\n($deltaStr)";

@@ -10,6 +10,7 @@ class BackupService {
     final focusSess = await db.select(db.focusSessions).get();
     final dailyHist = await db.select(db.dailyHistory).get();
     final customTsks = await db.select(db.customTasks).get();
+    final progressLogs = await db.select(db.syllabusProgressLogs).get();
 
     final exportedSyllabusCats = syllabusCats.map((c) => {
       'id': c.id,
@@ -72,6 +73,17 @@ class BackupService {
       'lastInteractedAt': ct.lastInteractedAt?.toIso8601String(),
     }).toList();
 
+    final exportedProgressLogs = progressLogs.map((l) => {
+      'id': l.id,
+      'categoryId': l.categoryId,
+      'topicId': l.topicId,
+      'taskId': l.taskId,
+      'delta': l.delta,
+      'timestamp': l.timestamp.toIso8601String(),
+      'isDeleted': l.isDeleted,
+      'lastInteractedAt': l.lastInteractedAt?.toIso8601String(),
+    }).toList();
+
     return {
       'version': 9,
       'syllabusCategories': exportedSyllabusCats,
@@ -80,6 +92,7 @@ class BackupService {
       'focusSessions': exportedFocusSessions,
       'dailyHistory': exportedDailyHistory,
       'customTasks': exportedCustomTasks,
+      'syllabusProgressLogs': exportedProgressLogs,
       'lastInteractedAt': DateTime.now().toIso8601String(),
     };
   }
@@ -145,7 +158,9 @@ class BackupService {
           }
         }
 
+        final oldTaskIdToNewId = <int, int>{};
         for (final k in syllabusTasksData) {
+          final oldId = ((k['id'] ?? 0) as num).toInt();
           final oldTopicId = ((k['topicId'] ?? 0) as num).toInt();
           final name = k['name'] as String? ?? '';
           final isCompleted = k['isCompleted'] as bool? ?? false;
@@ -158,7 +173,7 @@ class BackupService {
  
           final newTopicId = oldTopicIdToNewId[oldTopicId];
           if (newTopicId != null) {
-            await db.addSyllabusTask(
+            final newTaskId = await db.addSyllabusTask(
               newTopicId,
               name,
               position: position,
@@ -167,6 +182,42 @@ class BackupService {
               isDeleted: isDeleted,
               lastInteractedAt: lastInteracted,
             );
+            oldTaskIdToNewId[oldId] = newTaskId;
+          }
+        }
+
+        final progressLogsData = payload['syllabusProgressLogs'] as List<dynamic>?;
+        if (progressLogsData != null) {
+          await db.delete(db.syllabusProgressLogs).go();
+          for (final l in progressLogsData) {
+            final oldCatId = ((l['categoryId'] ?? 0) as num).toInt();
+            final oldTopicId = ((l['topicId'] ?? 0) as num).toInt();
+            final oldTaskIdVal = l['taskId'];
+            final oldTaskId = oldTaskIdVal != null ? (oldTaskIdVal as num).toInt() : null;
+            final delta = ((l['delta'] ?? 1) as num).toInt();
+            final timestampStr = l['timestamp'] as String?;
+            final timestamp = timestampStr != null ? DateTime.tryParse(timestampStr) : null;
+            final isDeleted = l['isDeleted'] as bool? ?? false;
+            final lastIntStr = l['lastInteractedAt'] as String?;
+            final lastInteracted = lastIntStr != null ? DateTime.tryParse(lastIntStr) : null;
+
+            final newCatId = oldCatIdToNewId[oldCatId];
+            final newTopicId = oldTopicIdToNewId[oldTopicId];
+            final newTaskId = oldTaskId != null ? oldTaskIdToNewId[oldTaskId] : null;
+
+            if (newCatId != null && newTopicId != null && timestamp != null) {
+              await db.into(db.syllabusProgressLogs).insert(
+                SyllabusProgressLogsCompanion.insert(
+                  categoryId: newCatId,
+                  topicId: newTopicId,
+                  taskId: Value(newTaskId),
+                  delta: delta,
+                  timestamp: timestamp,
+                  isDeleted: Value(isDeleted),
+                  lastInteractedAt: Value(lastInteracted),
+                ),
+              );
+            }
           }
         }
       }

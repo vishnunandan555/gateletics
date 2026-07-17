@@ -73,6 +73,17 @@ class CustomTasks extends Table {
   DateTimeColumn get lastInteractedAt => dateTime().nullable()();
 }
 
+class SyllabusProgressLogs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get categoryId => integer().references(SyllabusCategories, #id, onDelete: KeyAction.cascade)();
+  IntColumn get topicId => integer().references(SyllabusTopics, #id, onDelete: KeyAction.cascade)();
+  IntColumn get taskId => integer().nullable().references(SyllabusTasks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get delta => integer()();
+  DateTimeColumn get timestamp => dateTime()();
+  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get lastInteractedAt => dateTime().nullable()();
+}
+
 class SyllabusTopicWithTasks {
   final SyllabusTopic topic;
   final List<SyllabusTask> tasks;
@@ -93,7 +104,7 @@ class SyllabusCategoryWithTopics {
   });
 }
 
-@DriftDatabase(tables: [SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions, DailyHistory, CustomTasks])
+@DriftDatabase(tables: [SyllabusCategories, SyllabusTopics, SyllabusTasks, FocusSessions, DailyHistory, CustomTasks, SyllabusProgressLogs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(conn.connect(schemaVersion: appSchemaVersion));
   AppDatabase.forTesting(super.executor);
@@ -194,6 +205,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 13) {
             try {
               await m.addColumn(dailyHistory, dailyHistory.tasksCompletedTotal);
+            } catch (_) {}
+          }
+          if (from < 14) {
+            try {
+              await m.createTable(syllabusProgressLogs);
             } catch (_) {}
           }
           if (shouldSeed) {
@@ -672,6 +688,71 @@ class AppDatabase extends _$AppDatabase {
         lastInteractedAt: Value(DateTime.now()),
       ),
     );
+  }
+
+  // Progress log operations
+  Future<List<SyllabusProgressLog>> getProgressLogsForPeriod(DateTime start, DateTime end) async {
+    return (select(syllabusProgressLogs)
+          ..where((l) => l.isDeleted.equals(false) & l.timestamp.isBetweenValues(start, end)))
+        .get();
+  }
+
+  Future<void> insertProgressLog(int categoryId, int topicId, int? taskId, int delta) async {
+    await into(syllabusProgressLogs).insert(
+      SyllabusProgressLogsCompanion.insert(
+        categoryId: categoryId,
+        topicId: topicId,
+        taskId: Value(taskId),
+        delta: delta,
+        timestamp: DateTime.now(),
+        lastInteractedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> softDeleteTaskProgressLog(int taskId) async {
+    await (update(syllabusProgressLogs)..where((l) => l.taskId.equals(taskId))).write(
+      SyllabusProgressLogsCompanion(
+        isDeleted: const Value(true),
+        lastInteractedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<void> softDeleteCounterProgressLog(int topicId, int countToCancel) async {
+    // Find the most recent active progress logs for this topic
+    final activeLogs = await (select(syllabusProgressLogs)
+          ..where((l) => l.topicId.equals(topicId) & l.isDeleted.equals(false) & l.taskId.isNull())
+          ..orderBy([(l) => OrderingTerm(expression: l.timestamp, mode: OrderingMode.desc)]))
+        .get();
+
+    if (activeLogs.isEmpty) return;
+
+    await transaction(() async {
+      int remaining = countToCancel;
+      for (final log in activeLogs) {
+        if (remaining <= 0) break;
+        if (log.delta <= remaining) {
+          // Soft delete the whole log entry
+          await (update(syllabusProgressLogs)..where((l) => l.id.equals(log.id))).write(
+            SyllabusProgressLogsCompanion(
+              isDeleted: const Value(true),
+              lastInteractedAt: Value(DateTime.now()),
+            ),
+          );
+          remaining -= log.delta;
+        } else {
+          // Partially decrement the log entry delta
+          await (update(syllabusProgressLogs)..where((l) => l.id.equals(log.id))).write(
+            SyllabusProgressLogsCompanion(
+              delta: Value(log.delta - remaining),
+              lastInteractedAt: Value(DateTime.now()),
+            ),
+          );
+          remaining = 0;
+        }
+      }
+    });
   }
 
   // ----------------------------------------------------
