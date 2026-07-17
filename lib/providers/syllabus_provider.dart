@@ -284,7 +284,7 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   Future<void> reorderCategories(List<int> orderedIds) async {
     await _db.updateSyllabusCategoryPositions(orderedIds);
-    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+    ref.read(syllabusCategoriesOrderProvider.notifier).setOrder(orderedIds);
     _triggerSync();
   }
 

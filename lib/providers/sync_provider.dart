@@ -134,6 +134,12 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     }
   }
 
+  int? _parseInt(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toInt();
+    return int.tryParse(val.toString());
+  }
+
   Future<void> _updateSyncState({
     required SyncStatus status,
     DateTime? lastSyncedAt,
@@ -260,8 +266,13 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     }
 
     // Build Maps for Topic resolution (old categoryId mapped to Category name)
-    String getSylCatName(int catId, List<Map<String, dynamic>> catsList) {
-      final match = catsList.firstWhere((c) => c['id'] == catId, orElse: () => {});
+    String getSylCatName(dynamic catId, List<Map<String, dynamic>> catsList) {
+      final targetId = _parseInt(catId);
+      if (targetId == null) return 'General';
+      final match = catsList.firstWhere(
+        (c) => _parseInt(c['id']) == targetId,
+        orElse: () => {},
+      );
       return match['name'] as String? ?? 'General';
     }
 
@@ -270,7 +281,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     for (final t in localSylTops) {
       final catName = t.containsKey('categoryName')
           ? t['categoryName'] as String
-          : getSylCatName(t['categoryId'] as int, localSylCats);
+          : getSylCatName(t['categoryId'], localSylCats);
       final key = "${catName}_${t['name']}";
       mergedSylTops[key] = {
         ...t,
@@ -280,7 +291,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     for (final t in cloudSylTops) {
       final catName = t.containsKey('categoryName')
           ? t['categoryName'] as String
-          : getSylCatName(t['categoryId'] as int, cloudSylCats);
+          : getSylCatName(t['categoryId'], cloudSylCats);
       final key = "${catName}_${t['name']}";
       if (!mergedSylTops.containsKey(key)) {
         mergedSylTops[key] = {
@@ -298,10 +309,15 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     }
 
     // Helper to find Topic Name
-    String getTopicKeyForSource(int topicId, List<Map<String, dynamic>> topsList, List<Map<String, dynamic>> catsList) {
-      final match = topsList.firstWhere((t) => t['id'] == topicId, orElse: () => {});
+    String getTopicKeyForSource(dynamic topicId, List<Map<String, dynamic>> topsList, List<Map<String, dynamic>> catsList) {
+      final targetId = _parseInt(topicId);
+      if (targetId == null) return 'General_Unknown';
+      final match = topsList.firstWhere(
+        (t) => _parseInt(t['id']) == targetId,
+        orElse: () => {},
+      );
       final name = match['name'] as String? ?? 'Unknown';
-      final catId = match['categoryId'] as int? ?? 0;
+      final catId = match['categoryId'];
       final catName = getSylCatName(catId, catsList);
       return "${catName}_$name";
     }
@@ -311,7 +327,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     for (final k in localSylTsks) {
       final topicKey = k.containsKey('topicKey')
           ? k['topicKey'] as String
-          : getTopicKeyForSource(k['topicId'] as int, localSylTops, localSylCats);
+          : getTopicKeyForSource(k['topicId'], localSylTops, localSylCats);
       final key = "${topicKey}_${k['name']}";
       mergedSylTsks[key] = {
         ...k,
@@ -321,7 +337,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     for (final k in cloudSylTsks) {
       final topicKey = k.containsKey('topicKey')
           ? k['topicKey'] as String
-          : getTopicKeyForSource(k['topicId'] as int, cloudSylTops, cloudSylCats);
+          : getTopicKeyForSource(k['topicId'], cloudSylTops, cloudSylCats);
       final key = "${topicKey}_${k['name']}";
       if (!mergedSylTsks.containsKey(key)) {
         mergedSylTsks[key] = {
@@ -351,8 +367,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       finalSylCats.add({
         'id': id,
         'name': name,
-        'position': c['position'],
-        'color': c['color'],
+        'position': _parseInt(c['position']),
+        'color': _parseInt(c['color']),
         'lastInteractedAt': c['lastInteractedAt'],
         'isDeleted': c['isDeleted'] ?? false,
       });
@@ -363,15 +379,16 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     mergedSylTops.forEach((key, t) {
       final id = topCounter++;
       topKeyToId[key] = id;
-      final catId = catNameToId[t['categoryName']] ?? 1;
+      final catName = t['categoryName'];
+      final catId = catNameToId[catName] ?? 1;
       finalSylTops.add({
         'id': id,
         'categoryId': catId,
         'name': t['name'],
-        'position': t['position'],
+        'position': _parseInt(t['position']),
         'isCounter': t['isCounter'] ?? false,
-        'currentCount': t['currentCount'] ?? 0,
-        'maxCount': t['maxCount'] ?? 0,
+        'currentCount': _parseInt(t['currentCount']) ?? 0,
+        'maxCount': _parseInt(t['maxCount']) ?? 0,
         'resourceUrl': t['resourceUrl'],
         'isDeleted': t['isDeleted'] ?? false,
         'lastInteractedAt': t['lastInteractedAt'],
@@ -387,7 +404,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         'topicId': topicId,
         'name': k['name'],
         'isCompleted': k['isCompleted'],
-        'position': k['position'],
+        'position': _parseInt(k['position']),
         'completedAt': k['completedAt'],
         'isDeleted': k['isDeleted'] ?? false,
         'lastInteractedAt': k['lastInteractedAt'],
@@ -846,8 +863,8 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
           return false;
         }
         if ((lc['isDeleted'] ?? false) != (cc['isDeleted'] ?? false) ||
-            lc['color'] != cc['color'] ||
-            lc['position'] != cc['position']) {
+            _parseInt(lc['color']) != _parseInt(cc['color']) ||
+            _parseInt(lc['position']) != _parseInt(cc['position'])) {
           debugPrint("Sync diff: syllabus category mismatch ($catName) isDeleted: ${lc['isDeleted']} vs ${cc['isDeleted']}, color: ${lc['color']} vs ${cc['color']}, position: ${lc['position']} vs ${cc['position']}");
           return false;
         }
@@ -861,18 +878,18 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         return false;
       }
 
-      final localCatIdToNameMap = {for (var c in localSylCats) c['id']: c['name'] as String};
-      final cloudCatIdToNameMap = {for (var c in cloudSylCats) c['id']: c['name'] as String};
+      final localCatIdToNameMap = {for (var c in localSylCats) _parseInt(c['id']): c['name'] as String};
+      final cloudCatIdToNameMap = {for (var c in cloudSylCats) _parseInt(c['id']): c['name'] as String};
 
       final localTopicMap = <String, Map<String, dynamic>>{};
       for (var t in localSylTops) {
-        final catName = localCatIdToNameMap[t['categoryId']] ?? 'Unknown';
+        final catName = localCatIdToNameMap[_parseInt(t['categoryId'])] ?? 'Unknown';
         final key = "$catName/${t['name']}";
         localTopicMap[key] = Map<String, dynamic>.from(t);
       }
 
       for (final ct in cloudSylTops) {
-        final catName = cloudCatIdToNameMap[ct['categoryId']] ?? 'Unknown';
+        final catName = cloudCatIdToNameMap[_parseInt(ct['categoryId'])] ?? 'Unknown';
         final key = "$catName/${ct['name']}";
         final lt = localTopicMap[key];
         if (lt == null) {
@@ -881,10 +898,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         }
         if ((lt['isDeleted'] ?? false) != (ct['isDeleted'] ?? false) ||
             (lt['isCounter'] ?? false) != (ct['isCounter'] ?? false) ||
-            (lt['currentCount'] ?? 0) != (ct['currentCount'] ?? 0) ||
-            (lt['maxCount'] ?? 0) != (ct['maxCount'] ?? 0) ||
+            _parseInt(lt['currentCount']) != _parseInt(ct['currentCount']) ||
+            _parseInt(lt['maxCount']) != _parseInt(ct['maxCount']) ||
             lt['resourceUrl'] != ct['resourceUrl'] ||
-            lt['position'] != ct['position']) {
+            _parseInt(lt['position']) != _parseInt(ct['position'])) {
           debugPrint("Sync diff: syllabus topic mismatch ($key) isDeleted: ${lt['isDeleted']} vs ${ct['isDeleted']}, isCounter: ${lt['isCounter']} vs ${ct['isCounter']}, currentCount: ${lt['currentCount']} vs ${ct['currentCount']}, maxCount: ${lt['maxCount']} vs ${ct['maxCount']}, resourceUrl: ${lt['resourceUrl']} vs ${ct['resourceUrl']}, position: ${lt['position']} vs ${ct['position']}");
           return false;
         }
@@ -898,26 +915,34 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         return false;
       }
 
-      final localTopicIdToNameMap = <dynamic, String>{};
+      final localTopicIdToNameMap = <int, String>{};
       for (var t in localSylTops) {
-        final catName = localCatIdToNameMap[t['categoryId']] ?? 'Unknown';
-        localTopicIdToNameMap[t['id']] = "$catName/${t['name']}";
+        final catId = _parseInt(t['categoryId']);
+        final catName = localCatIdToNameMap[catId] ?? 'Unknown';
+        final topicId = _parseInt(t['id']);
+        if (topicId != null) {
+          localTopicIdToNameMap[topicId] = "$catName/${t['name']}";
+        }
       }
-      final cloudTopicIdToNameMap = <dynamic, String>{};
+      final cloudTopicIdToNameMap = <int, String>{};
       for (var t in cloudSylTops) {
-        final catName = cloudCatIdToNameMap[t['categoryId']] ?? 'Unknown';
-        cloudTopicIdToNameMap[t['id']] = "$catName/${t['name']}";
+        final catId = _parseInt(t['categoryId']);
+        final catName = cloudCatIdToNameMap[catId] ?? 'Unknown';
+        final topicId = _parseInt(t['id']);
+        if (topicId != null) {
+          cloudTopicIdToNameMap[topicId] = "$catName/${t['name']}";
+        }
       }
 
       final localTaskMap = <String, Map<String, dynamic>>{};
       for (var t in localTasks) {
-        final topicPath = localTopicIdToNameMap[t['topicId']] ?? 'Unknown/Unknown';
+        final topicPath = localTopicIdToNameMap[_parseInt(t['topicId'])] ?? 'Unknown/Unknown';
         final key = "$topicPath/${t['name'] ?? ''}";
         localTaskMap[key] = Map<String, dynamic>.from(t);
       }
 
       for (final ct in cloudTasks) {
-        final topicPath = cloudTopicIdToNameMap[ct['topicId']] ?? 'Unknown/Unknown';
+        final topicPath = cloudTopicIdToNameMap[_parseInt(ct['topicId'])] ?? 'Unknown/Unknown';
         final key = "$topicPath/${ct['name'] ?? ''}";
         final lt = localTaskMap[key];
         if (lt == null) {
@@ -926,7 +951,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
         }
         if (lt['isCompleted'] != ct['isCompleted'] ||
             (lt['isDeleted'] ?? false) != (ct['isDeleted'] ?? false) ||
-            lt['position'] != ct['position']) {
+            _parseInt(lt['position']) != _parseInt(ct['position'])) {
           debugPrint("Sync diff: task mismatch ($key) completion: ${lt['isCompleted']} vs ${ct['isCompleted']}, isDeleted: ${lt['isDeleted']} vs ${ct['isDeleted']}, position: ${lt['position']} vs ${ct['position']}");
           return false;
         }

@@ -135,43 +135,71 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     final syllabusAsync = ref.watch(syllabusProvider);
 
-    return Scaffold(
-      body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          // Track overall scrolled state for app bar transparency
-          final isScrolled = notification.metrics.pixels > 10.0;
-          if (ref.read(completionIsScrolledProvider) != isScrolled) {
-            Future.microtask(() {
-              ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
-            });
-          }
-
-          // Track overscroll to show Search Bar
-          if (notification is ScrollUpdateNotification) {
-            final double pixels = notification.metrics.pixels;
-            if (pixels < 0) {
-              final double overscroll = -pixels;
-              if (overscroll > 15.0) {
-                if (!searchBarVisible) {
-                  setState(() {
-                    searchBarVisible = true;
-                  });
-                  _resetAutoHideTimer();
+    return PopScope(
+      canPop: !searchBarVisible,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (searchBarVisible) {
+          setState(() {
+            searchBarVisible = false;
+            searchQuery = "";
+            _searchController.clear();
+          });
+          _focusNode.unfocus();
+        }
+      },
+      child: Scaffold(
+        body: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            // Track overall scrolled state for app bar transparency
+            final isScrolled = notification.metrics.pixels > 10.0;
+            if (ref.read(completionIsScrolledProvider) != isScrolled) {
+              Future.microtask(() {
+                ref.read(completionIsScrolledProvider.notifier).setScrolled(isScrolled);
+              });
+            }
+  
+            // Track overscroll to show/hide Search Bar
+            if (notification is ScrollUpdateNotification) {
+              final double pixels = notification.metrics.pixels;
+              if (pixels < 0) {
+                final double overscroll = -pixels;
+                if (overscroll > 15.0) {
+                  if (!searchBarVisible) {
+                    setState(() {
+                      searchBarVisible = true;
+                    });
+                    _resetAutoHideTimer();
+                  }
                 }
-              }
-              if (overscroll >= 65.0) {
-                if (!_focusNode.hasFocus) {
-                  _focusNode.requestFocus();
-                  _resetAutoHideTimer();
+                if (overscroll >= 65.0) {
+                  if (!_focusNode.hasFocus) {
+                    _focusNode.requestFocus();
+                    _resetAutoHideTimer();
+                  }
+                }
+              } else if (pixels > 15.0) {
+                if (searchBarVisible) {
+                  setState(() {
+                    searchBarVisible = false;
+                    searchQuery = "";
+                    _searchController.clear();
+                  });
+                  _focusNode.unfocus();
                 }
               }
             }
+            return false;
+          },
+        child: () {
+          if (syllabusAsync.hasError && !syllabusAsync.hasValue) {
+            return Center(child: Text('Error: ${syllabusAsync.error}'));
           }
-          return false;
-        },
-        child: syllabusAsync.when(
-          data: (syllabusData) {
-            final isSyllabusEmpty = syllabusData.isEmpty;
+          if (!syllabusAsync.hasValue) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final syllabusData = syllabusAsync.value!;
+          final isSyllabusEmpty = syllabusData.isEmpty;
 
             final stats = ref.watch(completionStatsProvider).value ?? CompletionStats(percentage: 0.0, completed: 0, total: 0);
             final overallProgress = stats.percentage;
@@ -425,12 +453,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ],
               ],
             ));
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error: $err')),
-        ),
+          }(),
       ),
-    );
+    ));
   }
 }
 

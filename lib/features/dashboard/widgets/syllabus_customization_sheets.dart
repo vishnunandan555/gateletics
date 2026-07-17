@@ -25,17 +25,23 @@ void showSyllabusCategoryOptionsSheet(
 
   showModalBottomSheet(
     context: context,
+    isScrollControlled: true,
     backgroundColor: const Color(0xFF18181B),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(sheetContext).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -166,6 +172,8 @@ void showSyllabusCategoryOptionsSheet(
         ),
       ),
     ),
+  ),
+  ),
   );
 }
 
@@ -455,10 +463,12 @@ void showReorderSyllabusTopicsDialog(
               child: Text('CANCEL', style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final orderedIds = topics.map((e) => e.id).toList();
-                ref.read(syllabusControllerProvider.notifier).reorderTopics(category.id, orderedIds);
-                Navigator.pop(context);
+                await ref.read(syllabusControllerProvider.notifier).reorderTopics(category.id, orderedIds);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
@@ -664,10 +674,12 @@ void showReorderSyllabusCategoriesDialog(
               child: Text('CANCEL', style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final orderedIds = categories.map((e) => e.id).toList();
-                ref.read(syllabusControllerProvider.notifier).reorderCategories(orderedIds);
-                Navigator.pop(context);
+                await ref.read(syllabusControllerProvider.notifier).reorderCategories(orderedIds);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF27272A),
@@ -902,10 +914,12 @@ void showReorderSyllabusTasksDialog(
               child: Text('CANCEL', style: GoogleFonts.outfit(color: Colors.white60, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 final orderedIds = tasks.map((e) => e.id).toList();
-                ref.read(syllabusControllerProvider.notifier).reorderTasks(topic.id, orderedIds);
-                Navigator.pop(context);
+                await ref.read(syllabusControllerProvider.notifier).reorderTasks(topic.id, orderedIds);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: accentColor,
