@@ -1,6 +1,6 @@
 # Privacy Policy for GATEletics
 
-Last updated: July 1, 2026
+Last updated: July 17, 2026
 
 Vishnu Nandan ("we", "our", or "us") operates the GATEletics application (the "App"). We are committed to protecting your privacy. This Privacy Policy explains our practices regarding your information.
 
@@ -14,7 +14,10 @@ The App is designed as an offline-first tool. If you choose not to sign in, we d
 ### B. Cloud Backup & Sync Mode (Optional)
 If you choose to sign in using Google Sign-In:
 - **Authentication Identifiers:** We use Firebase Authentication to verify your identity. This grants access to basic Google Account info (such as your name, email address, and profile picture URL) which we use solely to associate your synchronized database with your account.
-- **Database Backup Storage:** We securely upload and synchronize your progress data (such as completed tasks, subject checklists, focus history, and configurations—including user-configured profile preferences like custom names or local avatar display settings) to Google Cloud Firestore. This ensures you can restore your data across multiple devices.
+- **Database Backup Storage:** We securely upload and synchronize your progress data to Google Cloud Firestore. This includes your completed tasks, subject checklists, focus history, counter configurations, custom note annotations, daily snapshot histories, custom notice board tasks, and configurations (including user-configured profile preferences like custom names or local avatar display settings). This ensures you can restore your data across multiple devices.
+
+### C. On-Device Progress Card Generation (Optional)
+If you use the Shareable Daily Progress Card feature, the App renders and saves an image card containing your study summary on your device's local memory. This image rendering is performed entirely on-device; no image files or progress summary details are sent to, processed by, or stored on our servers.
 
 ---
 

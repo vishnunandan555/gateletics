@@ -6,7 +6,6 @@ import '../../../../providers/focus_provider.dart';
 import '../../../../providers/daily_history_provider.dart';
 import '../../../../providers/rollover_provider.dart';
 import '../../../../providers/category_autosort_provider.dart';
-import '../../../../providers/syllabus_provider.dart';
 import '../../../../database/app_database.dart';
 
 class TimerSettingsSection extends ConsumerWidget {
@@ -119,50 +118,7 @@ class TimerSettingsSection extends ConsumerWidget {
             ref.read(categoryAutoSortProvider.notifier).setAutoSort(val);
           },
         ),
-        const Divider(color: Colors.white10, height: 1),
-        ListTile(
-          leading: const Icon(Icons.auto_awesome, color: Colors.amberAccent),
-          title: Text('Syllabus Checklist Preset', style: titleStyle),
-          subtitle: Text(
-            'Reset and apply the default standard GATE checklist preset',
-            style: subtitleStyle,
-          ),
-          onTap: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                backgroundColor: const Color(0xFF18181B),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                title: const Text('Apply Syllabus Preset'),
-                content: const Text(
-                  'This will reset and overwrite all current syllabus categories and checklist progress. Continue?',
-                  style: TextStyle(color: Colors.white70),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.amberAccent,
-                      foregroundColor: Colors.black,
-                    ),
-                    child: const Text('Apply'),
-                  ),
-                ],
-              ),
-            );
 
-            if (confirmed == true) {
-              await ref.read(syllabusControllerProvider.notifier).applyPreset();
-            }
-          },
-        ),
-        const Divider(color: Colors.white10, height: 1),
         ListTile(
           leading: Icon(Icons.track_changes_rounded, color: accentColor),
           title: Text('Daily Study Goal', style: titleStyle),
