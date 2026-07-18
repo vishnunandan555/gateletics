@@ -173,20 +173,20 @@ final projectedCompletionProvider = Provider<Map<String, dynamic>?>((ref) {
           final today = DateTime.now();
           final todayMidnight = DateTime(today.year, today.month, today.day);
 
+          final dailyCounts = <String, int>{};
+          for (final log in logs) {
+            final ts = log.timestamp;
+            final key = "${ts.year}-${ts.month.toString().padLeft(2, '0')}-${ts.day.toString().padLeft(2, '0')}";
+            dailyCounts[key] = (dailyCounts[key] ?? 0) + log.delta;
+          }
+
           // Calculate daily deltas for up to last 14 calendar days,
           // keeping only the last 7 that had non-zero progress (active days).
           final activeDeltas = <double>[];
           for (int i = 0; i < 14 && activeDeltas.length < 7; i++) {
             final day = todayMidnight.subtract(Duration(days: i));
-            final nextDay = day.add(const Duration(days: 1));
-
-            // Count total progress increments (deltas) logged on this day
-            int progressOnDay = 0;
-            for (final log in logs) {
-              if (log.timestamp.compareTo(day) >= 0 && log.timestamp.isBefore(nextDay)) {
-                progressOnDay += log.delta;
-              }
-            }
+            final key = "${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}";
+            final progressOnDay = dailyCounts[key] ?? 0;
 
             if (progressOnDay > 0) {
               activeDeltas.add(progressOnDay.toDouble());

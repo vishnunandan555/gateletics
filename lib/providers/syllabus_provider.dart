@@ -71,7 +71,7 @@ final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>(
 
   if (autoSort) {
     final lockedOrder = ref.watch(syllabusCategoriesOrderProvider);
-    if (lockedOrder.isEmpty) {
+    if (lockedOrder.isEmpty && cats.isNotEmpty) {
       cats.sort((a, b) => _compareSyllabusCategories(a, b));
       final ids = cats.map((e) => e.id).toList();
       Future.microtask(() {
@@ -266,16 +266,18 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     final syllabusVal = ref.read(syllabusProvider).value;
     int oldCount = 0;
     int categoryId = 1;
+    bool found = false;
     if (syllabusVal != null) {
       for (final cat in syllabusVal) {
         for (final topic in cat.topics) {
           if (topic.topic.id == id) {
             oldCount = topic.topic.currentCount;
             categoryId = cat.category.id;
+            found = true;
             break;
           }
         }
-        if (oldCount != 0 || categoryId != 1) break;
+        if (found) break;
       }
     }
 
@@ -301,16 +303,18 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
     final syllabusVal = ref.read(syllabusProvider).value;
     int oldCount = 0;
     int categoryId = 1;
+    bool found = false;
     if (syllabusVal != null) {
       for (final cat in syllabusVal) {
         for (final topic in cat.topics) {
           if (topic.topic.id == id) {
             oldCount = topic.topic.currentCount;
             categoryId = cat.category.id;
+            found = true;
             break;
           }
         }
-        if (oldCount != 0 || categoryId != 1) break;
+        if (found) break;
       }
     }
 
@@ -407,12 +411,14 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   Future<void> applyPreset([List<PresetCategory>? preset]) async {
     state = const AsyncValue.loading();
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
     state = await AsyncValue.guard(() => _db.seedSyllabus(preset));
     _triggerSync();
   }
 
   Future<void> resetEverything() async {
     state = const AsyncValue.loading();
+    ref.read(syllabusCategoriesOrderProvider.notifier).clear();
     state = await AsyncValue.guard(() => _db.resetSyllabusEverything());
     _triggerSync();
   }
@@ -433,11 +439,7 @@ extension SyllabusReset on AppDatabase {
           resourceUrl: Value(null),
         ),
       );
-      await (update(syllabusProgressLogs)).write(
-        const SyllabusProgressLogsCompanion(
-          isDeleted: Value(true),
-        ),
-      );
+      await delete(syllabusProgressLogs).go();
     });
   }
 

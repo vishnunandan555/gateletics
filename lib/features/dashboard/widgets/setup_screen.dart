@@ -64,12 +64,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     super.dispose();
   }
 
-  Future<bool> _checkIfLocalDataExists() async {
-    final db = ref.read(appDatabaseProvider);
-    final sylCats = await db.select(db.syllabusCategories).get();
-    if (sylCats.isNotEmpty) return true;
-    return false;
-  }
+
 
   Future<void> _checkForCloudBackup() async {
     final authState = ref.read(authProvider).value;
@@ -86,9 +81,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           _showSyncConflictDialog();
         }
       } else {
-        final hasData = await _checkIfLocalDataExists();
-        if (hasData && !forceOnboarding) {
-          await ref.read(setupCompletedProvider.notifier).completeSetup();
+        final hasSetup = ref.read(setupCompletedProvider).value ?? false;
+        if (hasSetup && !forceOnboarding) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

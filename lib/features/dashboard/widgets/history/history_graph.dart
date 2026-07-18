@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../database/app_database.dart';
 import '../../../../providers/disable_graph_glow_provider.dart';
 import '../../../../providers/swap_chart_lines_provider.dart';
+import '../../../../providers/stats_provider.dart';
+import '../../../../providers/completion_provider.dart';
 import '../../../../utils/ui_scaling.dart';
 
 class WaveAreaChartPainter extends CustomPainter {
@@ -418,56 +420,30 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
     final disableGlow = ref.watch(disableGraphGlowProvider);
     final swapChartLines = ref.watch(swapChartLinesProvider);
 
+    final logsAsync = ref.watch(progressLogsProvider);
+    final statsAsync = ref.watch(completionStatsProvider);
+
+    final logs = logsAsync.value ?? [];
+    final totalItems = statsAsync.value?.total ?? 100;
+
     double totalHours = 0.0;
     double totalProgressInc = 0.0;
     List<double> dataPointsHours = [];
     List<double> dataPointsProgress = [];
     List<String> labels = [];
 
-    double getProgressForDate(DateTime date) {
-      final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      final match = widget.history.firstWhere(
-        (h) => h.dateStr == dateStr,
-        orElse: () => const DailyHistoryData(
-          dateStr: '',
-          totalFocusSeconds: 0,
-          targetGoalSeconds: 0,
-          isGoalCompleted: false,
-          syllabusProgressPct: -1.0,
-          tasksCompletedTotal: 0,
-        ),
-      );
-      if (match.syllabusProgressPct >= 0.0) {
-        return match.syllabusProgressPct;
-      }
-      double lastProgress = 0.0;
-      DateTime? lastDate;
-      for (final h in widget.history) {
-        final recDate = DateTime.tryParse(h.dateStr);
-        if (recDate != null && recDate.isBefore(date)) {
-          if (lastDate == null || recDate.isAfter(lastDate)) {
-            lastDate = recDate;
-            lastProgress = h.syllabusProgressPct;
-          }
+    double getSyllabusProgressDeltaFromLogs(DateTime date, List<SyllabusProgressLog> logs, int totalItems) {
+      if (totalItems <= 0) return 0.0;
+      final start = DateTime(date.year, date.month, date.day);
+      final end = start.add(const Duration(days: 1));
+
+      int deltaSum = 0;
+      for (final l in logs) {
+        if (!l.timestamp.isBefore(start) && l.timestamp.isBefore(end)) {
+          deltaSum += l.delta;
         }
       }
-      return lastProgress;
-    }
-
-    double getSyllabusDeltaForDate(DateTime date) {
-      final progressToday = getProgressForDate(date);
-      final progressYesterday = getProgressForDate(date.subtract(const Duration(days: 1)));
-      final delta = progressToday - progressYesterday;
-      return delta < 0.0 ? 0.0 : delta;
-    }
-
-    double getProgressForMonthEnd(int year, int month) {
-      if (month <= 0) {
-        final jan1 = DateTime(year, 1, 1);
-        return getProgressForDate(jan1.subtract(const Duration(days: 1)));
-      }
-      final lastDay = DateTime(year, month + 1, 0);
-      return getProgressForDate(lastDay);
+      return (deltaSum / totalItems) * 100.0;
     }
 
     double pctChange = 0.0;
@@ -476,8 +452,11 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
     double previousSum = 0.0;
 
     if (widget.timeframe == 'Weekly') {
-      currentSum = 0.0;
-      previousSum = 0.0;
+      double currentHoursSum = 0.0;
+      double previousHoursSum = 0.0;
+      double currentProgressSum = 0.0;
+      double previousProgressSum = 0.0;
+
       final startOfWeek = widget.selectedWeekStart;
       final prevStartOfWeek = startOfWeek.subtract(const Duration(days: 7));
 
@@ -485,13 +464,18 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
         final dCurr = startOfWeek.add(Duration(days: i));
         final dateStrCurr = "${dCurr.year}-${dCurr.month.toString().padLeft(2, '0')}-${dCurr.day.toString().padLeft(2, '0')}";
         final recordCurr = widget.history.firstWhere((h) => h.dateStr == dateStrCurr, orElse: () => DailyHistoryData(dateStr: dateStrCurr, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0, tasksCompletedTotal: 0));
-        currentSum += recordCurr.totalFocusSeconds;
+        currentHoursSum += recordCurr.totalFocusSeconds;
+        currentProgressSum += getSyllabusProgressDeltaFromLogs(dCurr, logs, totalItems);
 
         final dPrev = prevStartOfWeek.add(Duration(days: i));
         final dateStrPrev = "${dPrev.year}-${dPrev.month.toString().padLeft(2, '0')}-${dPrev.day.toString().padLeft(2, '0')}";
         final recordPrev = widget.history.firstWhere((h) => h.dateStr == dateStrPrev, orElse: () => DailyHistoryData(dateStr: dateStrPrev, totalFocusSeconds: 0, targetGoalSeconds: widget.dailyGoalMinutes * 60, isGoalCompleted: false, syllabusProgressPct: 0, tasksCompletedTotal: 0));
-        previousSum += recordPrev.totalFocusSeconds;
+        previousHoursSum += recordPrev.totalFocusSeconds;
+        previousProgressSum += getSyllabusProgressDeltaFromLogs(dPrev, logs, totalItems);
       }
+
+      currentSum = swapChartLines ? currentProgressSum : currentHoursSum;
+      previousSum = swapChartLines ? previousProgressSum : previousHoursSum;
 
       if (previousSum > 0) {
         pctChange = ((currentSum - previousSum) / previousSum) * 100;
@@ -509,28 +493,50 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
         dataPointsHours.add(hrs);
         totalHours += hrs;
 
-        final delta = getSyllabusDeltaForDate(d);
+        final delta = getSyllabusProgressDeltaFromLogs(d, logs, totalItems);
         dataPointsProgress.add(delta);
         totalProgressInc += delta;
       }
     } else if (widget.timeframe == 'Monthly') {
-      currentSum = 0.0;
-      previousSum = 0.0;
+      double currentHoursSum = 0.0;
+      double previousHoursSum = 0.0;
+      double currentProgressSum = 0.0;
+      double previousProgressSum = 0.0;
+
       for (final h in widget.history) {
         final d = DateTime.tryParse(h.dateStr);
         if (d != null) {
           if (d.year == widget.selectedMonth.year && d.month == widget.selectedMonth.month) {
-            currentSum += h.totalFocusSeconds;
+            currentHoursSum += h.totalFocusSeconds;
           } else {
             final prevMonth = widget.selectedMonth.month == 1
                 ? DateTime(widget.selectedMonth.year - 1, 12)
                 : DateTime(widget.selectedMonth.year, widget.selectedMonth.month - 1);
             if (d.year == prevMonth.year && d.month == prevMonth.month) {
-              previousSum += h.totalFocusSeconds;
+              previousHoursSum += h.totalFocusSeconds;
             }
           }
         }
       }
+
+      final daysInMonth = DateTime(widget.selectedMonth.year, widget.selectedMonth.month + 1, 0).day;
+      for (int d = 1; d <= daysInMonth; d++) {
+        final cellDate = DateTime(widget.selectedMonth.year, widget.selectedMonth.month, d);
+        currentProgressSum += getSyllabusProgressDeltaFromLogs(cellDate, logs, totalItems);
+      }
+
+      final prevMonth = widget.selectedMonth.month == 1
+          ? DateTime(widget.selectedMonth.year - 1, 12)
+          : DateTime(widget.selectedMonth.year, widget.selectedMonth.month - 1);
+      final daysInPrevMonth = DateTime(prevMonth.year, prevMonth.month + 1, 0).day;
+      for (int d = 1; d <= daysInPrevMonth; d++) {
+        final cellDate = DateTime(prevMonth.year, prevMonth.month, d);
+        previousProgressSum += getSyllabusProgressDeltaFromLogs(cellDate, logs, totalItems);
+      }
+
+      currentSum = swapChartLines ? currentProgressSum : currentHoursSum;
+      previousSum = swapChartLines ? previousProgressSum : previousHoursSum;
+
       if (previousSum > 0) {
         pctChange = ((currentSum - previousSum) / previousSum) * 100;
       } else {
@@ -538,7 +544,6 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
       }
       isUp = pctChange >= 0;
 
-      final daysInMonth = DateTime(widget.selectedMonth.year, widget.selectedMonth.month + 1, 0).day;
       labels = List.generate(daysInMonth, (i) => "${i + 1}");
       for (int d = 1; d <= daysInMonth; d++) {
         final cellDate = DateTime(widget.selectedMonth.year, widget.selectedMonth.month, d);
@@ -548,23 +553,52 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
         dataPointsHours.add(hrs);
         totalHours += hrs;
 
-        final delta = getSyllabusDeltaForDate(cellDate);
+        final delta = getSyllabusProgressDeltaFromLogs(cellDate, logs, totalItems);
         dataPointsProgress.add(delta);
         totalProgressInc += delta;
       }
     } else {
-      currentSum = 0.0;
-      previousSum = 0.0;
+      double currentHoursSum = 0.0;
+      double previousHoursSum = 0.0;
+      double currentProgressSum = 0.0;
+      double previousProgressSum = 0.0;
+
       for (final h in widget.history) {
         final d = DateTime.tryParse(h.dateStr);
         if (d != null) {
           if (d.year == widget.selectedYear) {
-            currentSum += h.totalFocusSeconds;
+            currentHoursSum += h.totalFocusSeconds;
           } else if (d.year == widget.selectedYear - 1) {
-            previousSum += h.totalFocusSeconds;
+            previousHoursSum += h.totalFocusSeconds;
           }
         }
       }
+
+      for (int m = 1; m <= 12; m++) {
+        final monthStart = DateTime(widget.selectedYear, m, 1);
+        final monthEnd = m == 12 ? DateTime(widget.selectedYear + 1, 1, 1) : DateTime(widget.selectedYear, m + 1, 1);
+        int monthDeltaSum = 0;
+        for (final l in logs) {
+          if (!l.timestamp.isBefore(monthStart) && l.timestamp.isBefore(monthEnd)) {
+            monthDeltaSum += l.delta;
+          }
+        }
+        currentProgressSum += totalItems > 0 ? (monthDeltaSum / totalItems) * 100.0 : 0.0;
+
+        final prevYearMonthStart = DateTime(widget.selectedYear - 1, m, 1);
+        final prevYearMonthEnd = m == 12 ? DateTime(widget.selectedYear, 1, 1) : DateTime(widget.selectedYear - 1, m + 1, 1);
+        int prevYearMonthDeltaSum = 0;
+        for (final l in logs) {
+          if (!l.timestamp.isBefore(prevYearMonthStart) && l.timestamp.isBefore(prevYearMonthEnd)) {
+            prevYearMonthDeltaSum += l.delta;
+          }
+        }
+        previousProgressSum += totalItems > 0 ? (prevYearMonthDeltaSum / totalItems) * 100.0 : 0.0;
+      }
+
+      currentSum = swapChartLines ? currentProgressSum : currentHoursSum;
+      previousSum = swapChartLines ? previousProgressSum : previousHoursSum;
+
       if (previousSum > 0) {
         pctChange = ((currentSum - previousSum) / previousSum) * 100;
       } else {
@@ -582,10 +616,15 @@ class _HistoryGraphState extends ConsumerState<HistoryGraph> with TickerProvider
         dataPointsHours.add(hrs);
         totalHours += hrs;
 
-        final progressThisMonth = getProgressForMonthEnd(widget.selectedYear, m);
-        final progressPrevMonth = getProgressForMonthEnd(widget.selectedYear, m - 1);
-        double delta = progressThisMonth - progressPrevMonth;
-        if (delta < 0.0) delta = 0.0;
+        final monthStart = DateTime(widget.selectedYear, m, 1);
+        final monthEnd = m == 12 ? DateTime(widget.selectedYear + 1, 1, 1) : DateTime(widget.selectedYear, m + 1, 1);
+        int monthDeltaSum = 0;
+        for (final l in logs) {
+          if (!l.timestamp.isBefore(monthStart) && l.timestamp.isBefore(monthEnd)) {
+            monthDeltaSum += l.delta;
+          }
+        }
+        final delta = totalItems > 0 ? (monthDeltaSum / totalItems) * 100.0 : 0.0;
         dataPointsProgress.add(delta);
         totalProgressInc += delta;
       }

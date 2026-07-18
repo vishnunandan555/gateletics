@@ -126,11 +126,15 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-  Future<void> hardResetEverything() async {
+  Future<void> wipeDatabaseData() async {
     await transaction(() async {
+      await delete(syllabusProgressLogs).go();
       await delete(syllabusTasks).go();
       await delete(syllabusTopics).go();
       await delete(syllabusCategories).go();
+      await delete(focusSessions).go();
+      await delete(dailyHistory).go();
+      await delete(customTasks).go();
     });
   }
 
@@ -345,6 +349,12 @@ class AppDatabase extends _$AppDatabase {
           lastInteractedAt: Value(now),
         ),
       );
+      await (update(syllabusProgressLogs)..where((l) => l.categoryId.equals(id))).write(
+        SyllabusProgressLogsCompanion(
+          isDeleted: const Value(true),
+          lastInteractedAt: Value(now),
+        ),
+      );
     });
   }
 
@@ -427,6 +437,12 @@ class AppDatabase extends _$AppDatabase {
           lastInteractedAt: Value(now),
         ),
       );
+      await (update(syllabusProgressLogs)..where((l) => l.topicId.equals(id))).write(
+        SyllabusProgressLogsCompanion(
+          isDeleted: const Value(true),
+          lastInteractedAt: Value(now),
+        ),
+      );
     });
   }
 
@@ -492,12 +508,21 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> deleteSyllabusTask(int id) async {
-    await (update(syllabusTasks)..where((t) => t.id.equals(id))).write(
-      SyllabusTasksCompanion(
-        isDeleted: const Value(true),
-        lastInteractedAt: Value(DateTime.now()),
-      ),
-    );
+    await transaction(() async {
+      final now = DateTime.now();
+      await (update(syllabusTasks)..where((t) => t.id.equals(id))).write(
+        SyllabusTasksCompanion(
+          isDeleted: const Value(true),
+          lastInteractedAt: Value(now),
+        ),
+      );
+      await (update(syllabusProgressLogs)..where((l) => l.taskId.equals(id))).write(
+        SyllabusProgressLogsCompanion(
+          isDeleted: const Value(true),
+          lastInteractedAt: Value(now),
+        ),
+      );
+    });
   }
 
   Future<void> updateSyllabusTaskPositions(int topicId, List<int> orderedTaskIds) async {

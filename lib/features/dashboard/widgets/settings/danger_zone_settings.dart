@@ -20,6 +20,7 @@ import '../../../../providers/task_font_size_provider.dart';
 import '../../../../providers/overall_ui_scale_provider.dart';
 import '../../../../providers/subject_provider.dart';
 import '../../../../providers/sync_provider.dart';
+import '../../../../providers/stats_provider.dart';
 import '../../../../database/backup_service.dart';
 
 class DangerZoneSettingsSection extends ConsumerWidget {
@@ -178,6 +179,7 @@ class DangerZoneSettingsSection extends ConsumerWidget {
     try {
       if (everything) {
         final db = ref.read(appDatabaseProvider);
+        await db.delete(db.syllabusProgressLogs).go();
         await db.delete(db.syllabusTasks).go();
         await db.delete(db.syllabusTopics).go();
         await db.delete(db.syllabusCategories).go();
@@ -192,6 +194,7 @@ class DangerZoneSettingsSection extends ConsumerWidget {
 
         ref.invalidate(authProvider);
         ref.invalidate(syllabusProvider);
+        ref.invalidate(progressLogsProvider);
         ref.read(focusProvider.notifier).resetState();
         ref.invalidate(todayFocusSessionsProvider);
         ref.invalidate(todayFocusDurationProvider);
@@ -213,6 +216,8 @@ class DangerZoneSettingsSection extends ConsumerWidget {
         await db.delete(db.dailyHistory).go();
         await db.delete(db.customTasks).go();
 
+        ref.invalidate(syllabusProvider);
+        ref.invalidate(progressLogsProvider);
         ref.invalidate(todayFocusSessionsProvider);
         ref.invalidate(todayFocusDurationProvider);
         ref.invalidate(dailyFocusGoalProvider);

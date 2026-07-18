@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'sync_provider.dart';
+import 'setup_provider.dart';
+import 'syllabus_provider.dart';
 import 'windows_auth_helper.dart';
 
 // Check if Firebase is supported on the current platform
@@ -140,6 +142,36 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  Future<void> _wipeLocalUserData() async {
+    // 1. Wipe the local database completely
+    try {
+      final db = ref.read(appDatabaseProvider);
+      await db.wipeDatabaseData();
+    } catch (e) {
+      debugPrint("Error wiping database: $e");
+    }
+
+    // 2. Reset setup/onboarding completion status
+    try {
+      await ref.read(setupCompletedProvider.notifier).resetSetup(forceOnboarding: true);
+    } catch (e) {
+      debugPrint("Error resetting setup: $e");
+    }
+
+    // 3. Clear other shared preferences keys
+    try {
+      await _prefs.remove('selected_branch');
+      await _prefs.remove('daily_focus_goal');
+      await _prefs.remove('check_in_goal_minutes');
+      await _prefs.remove('weak_category_ids');
+      await _prefs.remove('weak_topic_ids');
+      await _prefs.remove('overall_progress_color');
+      await _prefs.remove('stats_is_heatmap_mode');
+    } catch (e) {
+      debugPrint("Error resetting prefs: $e");
+    }
+  }
+
   // Handle Sign-Out
   Future<void> signOut() async {
     state = const AsyncValue.loading();
@@ -151,6 +183,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         await FirebaseAuth.instance.signOut();
       }
       await _prefs.setBool('has_chosen_offline', false);
+      await _wipeLocalUserData();
       try {
         await ref.read(syncProvider.notifier).clearSyncState();
       } catch (e) {
@@ -176,6 +209,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
       await FirebaseAuth.instance.signOut();
     }
+    await _wipeLocalUserData();
     try {
       await ref.read(syncProvider.notifier).clearSyncState();
     } catch (e) {
@@ -210,6 +244,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
       await _prefs.setBool('has_chosen_offline', false);
       await _prefs.remove('account_creation_date');
+      await _wipeLocalUserData();
       try {
         await ref.read(syncProvider.notifier).clearSyncState();
       } catch (e) {

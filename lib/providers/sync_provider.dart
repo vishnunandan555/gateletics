@@ -9,8 +9,8 @@ import '../database/app_database.dart';
 import '../database/backup_service.dart';
 import 'auth_provider.dart';
 import 'syllabus_provider.dart';
+import 'setup_provider.dart';
 import 'hide_download_banner_provider.dart';
-import 'rollover_provider.dart';
 import '../database/syllabus_preset.dart';
 
 enum SyncStatus {
@@ -192,13 +192,17 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
   Future<Map<String, dynamic>> exportLocalData() async {
     final exported = await BackupService.exportDatabase(_db);
     exported['hideDownloadBanner'] = ref.read(hideDownloadBannerProvider);
+    exported['hasCompletedSetup'] = true;
     return exported;
   }
 
   // Helper: Restore database from backup JSON format
   Future<void> _restoreLocalData(Map<String, dynamic> payload) async {
     await BackupService.restoreDatabase(_db, payload);
-    // DO NOT clear expanded/collapsed state caches on sync restores
+    final hasCompleted = payload['hasCompletedSetup'] as bool? ?? false;
+    if (hasCompleted) {
+      await ref.read(setupCompletedProvider.notifier).completeSetup();
+    }
   }
 
   void clearDatabaseCaches() {
@@ -413,11 +417,7 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       });
     });
 
-    // Merge Focus Sessions: Filter out sessions older than today based on rollover settings
-    final rollover = ref.read(studyDayRolloverProvider);
-    final now = DateTime.now();
-    final todayStart = getStudyDayStart(now, rollover: rollover);
-
+    // Merge Focus Sessions: Keep all historical focus sessions
     final localFocusSess = List<Map<String, dynamic>>.from(local['focusSessions'] ?? []);
     final cloudFocusSess = List<Map<String, dynamic>>.from(cloud['focusSessions'] ?? []);
     final mergedFocusSess = <String, Map<String, dynamic>>{};
@@ -425,9 +425,11 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     for (final fs in [...localFocusSess, ...cloudFocusSess]) {
       final startTimeStr = fs['startTime'] as String?;
       if (startTimeStr != null) {
-        final startTime = DateTime.tryParse(startTimeStr);
-        if (startTime != null && !startTime.isBefore(todayStart)) {
+        final existing = mergedFocusSess[startTimeStr];
+        if (existing == null) {
           mergedFocusSess[startTimeStr] = fs;
+        } else {
+          mergedFocusSess[startTimeStr] = _resolveConflict(existing, fs);
         }
       }
     }
@@ -499,14 +501,26 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
     String getTaskKeyForLog(dynamic taskId, dynamic topicId, List<Map<String, dynamic>> tsksList, List<Map<String, dynamic>> topsList, List<Map<String, dynamic>> catsList) {
       final targetTaskId = _parseInt(taskId);
       final targetTopicId = _parseInt(topicId);
-      final topicKey = getTopicKeyForSource(targetTopicId, topsList, catsList);
-      if (targetTaskId == null) return "${topicKey}_none";
+      
+      String catName = 'General';
+      String topicName = 'Unknown';
+      if (targetTopicId != null) {
+        final match = topsList.firstWhere(
+          (t) => _parseInt(t['id']) == targetTopicId,
+          orElse: () => {},
+        );
+        topicName = match['name'] as String? ?? 'Unknown';
+        final catId = match['categoryId'];
+        catName = getSylCatName(catId, catsList);
+      }
+      
+      if (targetTaskId == null) return "$catName:::$topicName:::none";
       final match = tsksList.firstWhere(
         (k) => _parseInt(k['id']) == targetTaskId,
         orElse: () => {},
       );
       final name = match['name'] as String? ?? 'Unknown';
-      return "${topicKey}_$name";
+      return "$catName:::$topicName:::$name";
     }
 
     for (final l in localLogs) {
@@ -537,10 +551,10 @@ class SyncNotifier extends Notifier<SyncState> with WidgetsBindingObserver {
       final id = logCounter++;
       final taskKey = l['taskKey'] as String;
       
-      final parts = taskKey.split('_');
+      final parts = taskKey.split(':::');
       final catName = parts[0];
       final topicName = parts[1];
-      final taskName = parts.sublist(2).join('_');
+      final taskName = parts[2];
 
       final topicKey = "${catName}_$topicName";
       final catId = catNameToId[catName] ?? 1;

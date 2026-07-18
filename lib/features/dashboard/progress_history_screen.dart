@@ -9,6 +9,7 @@ import '../../providers/focus_provider.dart';
 import '../../providers/subject_provider.dart';
 import '../../providers/syllabus_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/completion_provider.dart';
 import '../../utils/ui_scaling.dart';
 import '../../database/app_database.dart';
 
@@ -439,47 +440,11 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       dateLabel = "${months[parsed.month - 1]} ${parsed.day}, ${parsed.year}";
     } catch (_) {}
 
-    final history = ref.read(dailyHistoryProvider).value ?? [];
-    double getProgressForDate(DateTime date) {
-      final dStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-      final match = history.firstWhere(
-        (h) => h.dateStr == dStr,
-        orElse: () => const DailyHistoryData(
-          dateStr: '',
-          totalFocusSeconds: 0,
-          targetGoalSeconds: 0,
-          isGoalCompleted: false,
-          syllabusProgressPct: -1.0,
-          tasksCompletedTotal: 0,
-        ),
-      );
-      if (match.syllabusProgressPct >= 0.0) {
-        return match.syllabusProgressPct;
-      }
-      double lastProgress = 0.0;
-      DateTime? lastDate;
-      for (final h in history) {
-        final recDate = DateTime.tryParse(h.dateStr);
-        if (recDate != null && recDate.isBefore(date)) {
-          if (lastDate == null || recDate.isAfter(lastDate)) {
-            lastDate = recDate;
-            lastProgress = h.syllabusProgressPct;
-          }
-        }
-      }
-      return lastProgress;
-    }
-
     double delta = 0.0;
     int progressOnDay = 0;
     final Map<String, int> catContributions = {};
     try {
       final parsed = DateTime.parse(dateStr);
-      final progressToday = getProgressForDate(parsed);
-      final progressYesterday = getProgressForDate(parsed.subtract(const Duration(days: 1)));
-      delta = progressToday - progressYesterday;
-      if (delta < 0.0) delta = 0.0;
-
       final dayStart = DateTime(parsed.year, parsed.month, parsed.day);
       final dayEnd = dayStart.add(const Duration(days: 1));
 
@@ -488,12 +453,15 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
       final catMap = {for (final c in categories) c.id: c.name};
 
       for (final log in logs) {
-        if (log.timestamp.compareTo(dayStart) >= 0 && log.timestamp.isBefore(dayEnd)) {
+        if (!log.timestamp.isBefore(dayStart) && log.timestamp.isBefore(dayEnd)) {
           progressOnDay += log.delta;
           final catName = catMap[log.categoryId] ?? 'Unknown';
           catContributions[catName] = (catContributions[catName] ?? 0) + log.delta;
         }
       }
+
+      final totalItems = ref.read(completionStatsProvider).value?.total ?? 100;
+      delta = totalItems > 0 ? (progressOnDay / totalItems) * 100.0 : 0.0;
     } catch (_) {}
 
     final deltaPctStr = delta > 0.0 ? "+${delta.toStringAsFixed(1)}% syllabus" : "no progress change";
