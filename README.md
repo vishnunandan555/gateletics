@@ -1,7 +1,7 @@
 # GATEletics
 
 [![Build & Release](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/vishnunandan555/gateletics/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-1.2.13-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
+[![Version](https://img.shields.io/badge/version-1.2.14-emerald.svg)](https://github.com/vishnunandan555/gateletics/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)](https://flutter.dev)
 
@@ -116,6 +116,14 @@ All production releases are automatically compiled, versioned, and packaged via 
 7. **Windows (Desktop UI)** (`gateletics-windows-deskUI-beta-v1.x.x.zip`): Optimized widescreen grid layout (BETA).
 8. **Linux (Desktop UI - AppImage)** (`gateletics-linux-deskUI-beta-v1.x.x.AppImage`): Portable widescreen Linux binary (BETA).
 9. **Linux (Desktop UI - Tarball)** (`gateletics-linux-deskUI-beta-v1.x.x.tar.gz`): Compressed widescreen Linux files (BETA).
+
+## 🌟 Version 1.2.14 Highlights
+
+- **Fixed Onboarding Setup Bypassing**: Ensured new users logging in with cloud accounts with no existing database state do not skip the onboarding wizard, by saving and checking `hasCompletedSetup` flags inside the sync payloads.
+- **Robust Multi-User State Wiping**: Added comprehensive database and SharedPreferences flushing when users logout or delete accounts to prevent cross-account local data pollution.
+- **Fixed Infinite Sorting Loop & Crashes**: Resolved an infinite microtask sorting loop inside the category sort provider that locked the main thread and caused OOM VM crashes on empty databases/resets.
+- **Improved Data Resets & Deletions sync**: Propagated stats resets (Reset Everything/Reset Tracking) and individual syllabus item deletions (Category, Topic, Task) to cleanly purge progress records, keeping the weekly/monthly/yearly stats graphs, tooltips, and projection cards perfectly synced.
+- **Parent Category Lookup Break Optimization**: Streamlined syllabus category and topic counter update loops to terminate instantly using explicit boolean state tags.
 
 ## 🌟 Version 1.2.10 Highlights
 
