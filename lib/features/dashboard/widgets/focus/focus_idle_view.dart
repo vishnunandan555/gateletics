@@ -11,6 +11,7 @@ import 'timer_painters.dart';
 import '../../../../utils/ui_scaling.dart';
 import 'focus_accomplishments_widget.dart';
 import '../../../../providers/enable_share_progress_card_provider.dart';
+import '../../../../providers/demo_guide_provider.dart';
 import '../share_progress_card.dart';
 
 class FocusIdleView extends ConsumerStatefulWidget {
@@ -35,6 +36,8 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
     final todaySessionsAsync = ref.watch(todayFocusSessionsProvider);
     final todayDurationAsync = ref.watch(todayFocusDurationProvider);
     final dailyGoalMinutes = ref.watch(dailyFocusGoalProvider);
+
+    final isDemoActive = !ref.watch(hasSeenDemoGuideProvider);
 
     return Center(
       child: ConstrainedBox(
@@ -70,13 +73,13 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
               SizedBox(height: context.s(24)),
 
               // Timer Start Box
-              _buildTimerStartBox(context, ref, sessionState, accentColor),
+              _buildTimerStartBox(context, ref, sessionState, accentColor, isDemoActive),
               SizedBox(height: context.s(16)),
 
               // Method Selector Chip
               Center(
                 child: GestureDetector(
-                  key: DemoKeys.focusTimerSelectors,
+                  key: isDemoActive ? DemoKeys.focusTimerSelectors : null,
                   onTap: () => showMethodSelectionMenu(context, sessionState, accentColor, ref),
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: context.s(20), vertical: context.s(10)),
@@ -139,7 +142,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   }
 
                   return GestureDetector(
-                    key: DemoKeys.focusDailyGoalBar,
+                    key: isDemoActive ? DemoKeys.focusDailyGoalBar : null,
                     onTap: () {
                       setState(() {
                         _displayMode = (_displayMode + 1) % 4;
@@ -313,14 +316,14 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
 
 
 
-  Widget _buildTimerStartBox(BuildContext context, WidgetRef ref, FocusSessionState sessionState, Color accentColor) {
+  Widget _buildTimerStartBox(BuildContext context, WidgetRef ref, FocusSessionState sessionState, Color accentColor, bool isDemoActive) {
     if (sessionState.details.isCountUp) {
       // Freestyle big play button
       return SizedBox(
         height: context.s(252),
         child: Center(
           child: GestureDetector(
-            key: DemoKeys.focusStartButton,
+            key: isDemoActive ? DemoKeys.focusStartButton : null,
             onTap: () => ref.read(focusProvider.notifier).startSession(),
             child: Container(
               width: context.s(140),
@@ -440,7 +443,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                 width: double.infinity,
                 height: context.s(48),
                 child: FilledButton.icon(
-                  key: DemoKeys.focusStartButton,
+                  key: isDemoActive ? DemoKeys.focusStartButton : null,
                   onPressed: () => ref.read(focusProvider.notifier).startSession(),
                   style: FilledButton.styleFrom(
                     backgroundColor: accentColor,

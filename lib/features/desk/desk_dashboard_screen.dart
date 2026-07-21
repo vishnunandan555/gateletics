@@ -27,7 +27,7 @@ class _DeskDashboardScreenState extends ConsumerState<DeskDashboardScreen> {
   bool searchBarVisible = false;
   String searchQuery = "";
 
-  static const double _maxContentWidth = 1600;
+  static const double _maxContentWidth = 1920;
 
   @override
   void initState() {
@@ -123,7 +123,7 @@ class _DeskDashboardScreenState extends ConsumerState<DeskDashboardScreen> {
     final screenWidth = MediaQuery.sizeOf(context).width;
 
     final double sidebarWidth = screenWidth < 768 ? 76.0 : 220.0;
-    final double availableWidth = (screenWidth - sidebarWidth).clamp(0.0, 1600.0);
+    final double availableWidth = (screenWidth - sidebarWidth).clamp(0.0, 1920.0);
 
     if (syllabusAsync.hasError && !syllabusAsync.hasValue) {
       return Center(child: Text('Error: ${syllabusAsync.error}'));
@@ -372,10 +372,10 @@ class _SyllabusMultiColumnLayout extends StatelessWidget {
     }
 
     int columnCount = 2;
-    if (availableWidth >= 1300) {
+    if (availableWidth >= 1050) {
       columnCount = 3;
     }
-    if (availableWidth >= 1600) {
+    if (availableWidth >= 1750) {
       columnCount = 4;
     }
 

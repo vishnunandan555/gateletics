@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -133,160 +134,170 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
       children: [
         SizedBox(
           height: context.s(96),
-          child: PageView(
-            controller: _pageController,
-            onPageChanged: (page) async {
-              setState(() {
-                _currentPage = page;
-              });
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setInt('home_carousel_page', page);
-              } catch (_) {}
-            },
-            children: [
-              // Card 1: Syllabus Completion
-              _buildCardWrapper(
-                onTap: () => widget.onTabChange(1), // Nav to Completion tab (index 1)
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${completionPercent.toStringAsFixed(0)}%',
-                      style: getProgressStyle(54, accentColor),
-                    ),
-                    SizedBox(width: context.s(20)),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'SYLLABUS',
-                          style: GoogleFonts.orbitron(
-                            color: Colors.white,
-                            fontSize: context.s(15),
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: context.s(1.0),
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.trackpad,
+                PointerDeviceKind.stylus,
+              },
+            ),
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (page) async {
+                setState(() {
+                  _currentPage = page;
+                });
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setInt('home_carousel_page', page);
+                } catch (_) {}
+              },
+              children: [
+                // Card 1: Syllabus Completion
+                _buildCardWrapper(
+                  onTap: () => widget.onTabChange(1), // Nav to Completion tab (index 1)
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '${completionPercent.toStringAsFixed(0)}%',
+                        style: getProgressStyle(54, accentColor),
+                      ),
+                      SizedBox(width: context.s(20)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'SYLLABUS',
+                            style: GoogleFonts.orbitron(
+                              color: Colors.white,
+                              fontSize: context.s(15),
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: context.s(1.0),
+                            ),
                           ),
-                        ),
-                        Text(
-                          'COMPLETION',
-                          style: GoogleFonts.orbitron(
-                            color: Colors.white,
-                            fontSize: context.s(15),
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: context.s(1.0),
+                          Text(
+                            'COMPLETION',
+                            style: GoogleFonts.orbitron(
+                              color: Colors.white,
+                              fontSize: context.s(15),
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: context.s(1.0),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Card 2: Streak Tracker
-              _buildCardWrapper(
-                onTap: () => widget.onTabChange(0), // Nav to Stats tab (index 0)
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '$currentStreak DAYS',
-                          style: getProgressStyle(28, Colors.white),
-                        ),
-                        SizedBox(height: context.s(4)),
-                        Text(
-                          'Daily Goal Streak',
-                          style: GoogleFonts.orbitron(
-                            color: Colors.white60,
-                            fontSize: context.s(12),
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: context.s(0.5),
+                // Card 2: Streak Tracker
+                _buildCardWrapper(
+                  onTap: () => widget.onTabChange(0), // Nav to Stats tab (index 0)
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$currentStreak DAYS',
+                            style: getProgressStyle(28, Colors.white),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(width: context.s(32)),
-                    SizedBox(
-                      width: context.s(64),
-                      height: context.s(64),
-                      child: CustomPaint(
-                        painter: NeonProgressPainter(
-                          progress: dailyProgress,
-                          color: Colors.orangeAccent,
-                          strokeWidth: context.s(6),
-                        ),
-                        child: Center(
-                          child: SvgPicture.asset(
-                            'assets/fire.svg',
-                            width: context.s(32),
-                            height: context.s(32),
+                          SizedBox(height: context.s(4)),
+                          Text(
+                            'Daily Goal Streak',
+                            style: GoogleFonts.orbitron(
+                              color: Colors.white60,
+                              fontSize: context.s(12),
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: context.s(0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(width: context.s(32)),
+                      SizedBox(
+                        width: context.s(64),
+                        height: context.s(64),
+                        child: CustomPaint(
+                          painter: NeonProgressPainter(
+                            progress: dailyProgress,
+                            color: Colors.orangeAccent,
+                            strokeWidth: context.s(6),
+                          ),
+                          child: Center(
+                            child: SvgPicture.asset(
+                              'assets/fire.svg',
+                              width: context.s(32),
+                              height: context.s(32),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-              // Card 3: Monthly / Weekly Goal progress
-              _buildCardWrapper(
-                onTap: () => widget.onTabChange(0), // Nav to Stats tab
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: context.s(64),
-                      height: context.s(64),
-                      child: CustomPaint(
-                        painter: NeonProgressPainter(
-                          progress: monthlyProgress,
-                          color: Colors.cyanAccent,
-                          strokeWidth: context.s(6),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: context.s(24)),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '${(monthlyProgress * 100).toStringAsFixed(0)}%',
-                          style: getProgressStyle(28, Colors.cyanAccent),
-                        ),
-                        SizedBox(height: context.s(2)),
-                        Text(
-                          'monthly goal reached',
-                          style: GoogleFonts.orbitron(
-                            color: Colors.white60,
-                            fontSize: context.s(11),
-                            fontWeight: FontWeight.bold,
+                // Card 3: Monthly / Weekly Goal progress
+                _buildCardWrapper(
+                  onTap: () => widget.onTabChange(0), // Nav to Stats tab
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: context.s(64),
+                        height: context.s(64),
+                        child: CustomPaint(
+                          painter: NeonProgressPainter(
+                            progress: monthlyProgress,
+                            color: Colors.cyanAccent,
+                            strokeWidth: context.s(6),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      SizedBox(width: context.s(24)),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${(monthlyProgress * 100).toStringAsFixed(0)}%',
+                            style: getProgressStyle(28, Colors.cyanAccent),
+                          ),
+                          SizedBox(height: context.s(2)),
+                          Text(
+                            'monthly goal reached',
+                            style: GoogleFonts.orbitron(
+                              color: Colors.white60,
+                              fontSize: context.s(11),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Card 4: Triple Ring Overview
-              _buildCardWrapper(
-                onTap: () => widget.onTabChange(0), // Nav to Stats tab
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildTripleRing(context, 'DAILY', dailyProgress, accentColor),
-                    _buildTripleRing(context, 'WEEKLY', weeklyProgress, Colors.orangeAccent),
-                    _buildTripleRing(context, 'MONTHLY', monthlyProgress, Colors.cyanAccent),
-                  ],
+                // Card 4: Triple Ring Overview
+                _buildCardWrapper(
+                  onTap: () => widget.onTabChange(0), // Nav to Stats tab
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildTripleRing(context, 'DAILY', dailyProgress, accentColor),
+                      _buildTripleRing(context, 'WEEKLY', weeklyProgress, Colors.orangeAccent),
+                      _buildTripleRing(context, 'MONTHLY', monthlyProgress, Colors.cyanAccent),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         // Indicator Dots
@@ -294,14 +305,24 @@ class _HomeCarouselState extends ConsumerState<HomeCarousel> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(4, (index) {
             final isActive = _currentPage == index;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.symmetric(horizontal: context.s(2)),
-              width: isActive ? context.s(8) : context.s(3),
-              height: context.s(3),
-              decoration: BoxDecoration(
-                color: isActive ? accentColor : Colors.white24,
-                borderRadius: BorderRadius.circular(context.s(1.5)),
+            return GestureDetector(
+              onTap: () {
+                _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: EdgeInsets.symmetric(horizontal: context.s(4), vertical: context.s(4)),
+                width: isActive ? context.s(12) : context.s(6),
+                height: context.s(6),
+                decoration: BoxDecoration(
+                  color: isActive ? accentColor : Colors.white24,
+                  borderRadius: BorderRadius.circular(context.s(3)),
+                ),
               ),
             );
           }),

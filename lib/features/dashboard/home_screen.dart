@@ -192,8 +192,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  // Desktop Top Bar: Notice Board Toggle Action
-                                  if (isDesktop) ...[
+                                  // Desktop Top Bar: Notice Board Toggle Action (Only rendered in Desk UI shell, not in Mobile UI shell which has its own shell header)
+                                  if (widget.onNavigate != null) ...[
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
