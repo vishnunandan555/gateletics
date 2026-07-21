@@ -32,6 +32,10 @@ String resolveInitialRoute() {
   // 3. Desktop layouts (Windows, Linux, macOS, Web on large screens)
   if (kIsWeb) {
     try {
+      final path = Uri.base.path;
+      if (path.contains('/desk')) {
+        return '/desk';
+      }
       final view = PlatformDispatcher.instance.views.first;
       final logicalWidth = view.physicalSize.width / view.devicePixelRatio;
       if (logicalWidth > 600) {

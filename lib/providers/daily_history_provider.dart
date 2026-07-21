@@ -18,45 +18,48 @@ final dailyHistoryProvider = StreamProvider<List<DailyHistoryData>>((ref) {
 // A manager provider that listens to active day changes and keeps dailyHistory table up-to-date
 final dailyHistoryManagerProvider = Provider<void>((ref) {
   final db = ref.read(appDatabaseProvider);
-
-  // Watch inputs
-  final todayDurationAsync = ref.watch(todayFocusDurationProvider);
-  final completionAsync = ref.watch(completionPercentageProvider);
-  final completionStatsAsync = ref.watch(completionStatsProvider);
-  final dailyGoalMins = ref.watch(dailyFocusGoalProvider);
   final rollover = ref.watch(studyDayRolloverProvider);
+  final dailyGoalMins = ref.watch(dailyFocusGoalProvider);
 
-  todayDurationAsync.whenData((totalFocusSeconds) {
-    completionAsync.whenData((completionPct) {
-      final now = DateTime.now();
-      final date = studyDayFor(now, rollover);
-      final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  void updateHistory() {
+    final todayDurationAsync = ref.read(todayFocusDurationProvider);
+    final completionAsync = ref.read(completionPercentageProvider);
+    final completionStatsAsync = ref.read(completionStatsProvider);
 
-      // Resolve raw task completion count (0 if stats not yet loaded)
-      final tasksCompleted = completionStatsAsync.when(
-        data: (stats) => stats.completed,
-        loading: () => 0,
-        error: (_, _) => 0,
-      );
+    todayDurationAsync.whenData((totalFocusSeconds) {
+      completionAsync.whenData((completionPct) {
+        final now = DateTime.now();
+        final date = studyDayFor(now, rollover);
+        final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
-      // Run asynchronously outside provider evaluation
-      Future.microtask(() async {
-        try {
-          await db.upsertDailyHistory(
-            dateStr: dateStr,
-            totalFocusSeconds: totalFocusSeconds,
-            targetGoalSeconds: dailyGoalMins * 60,
-            isGoalCompleted: totalFocusSeconds >= (dailyGoalMins * 60),
-            syllabusProgressPct: completionPct,
-            tasksCompletedTotal: tasksCompleted,
-          );
-          await db.deleteOldFocusSessions(rollover: rollover);
-        } catch (e) {
-          debugPrint("Failed to upsert daily history: $e");
-        }
+        final tasksCompleted = completionStatsAsync.when(
+          data: (stats) => stats.completed,
+          loading: () => 0,
+          error: (_, _) => 0,
+        );
+
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            await db.upsertDailyHistory(
+              dateStr: dateStr,
+              totalFocusSeconds: totalFocusSeconds,
+              targetGoalSeconds: dailyGoalMins * 60,
+              isGoalCompleted: totalFocusSeconds >= (dailyGoalMins * 60),
+              syllabusProgressPct: completionPct,
+              tasksCompletedTotal: tasksCompleted,
+            );
+            await db.deleteOldFocusSessions(rollover: rollover);
+          } catch (e) {
+            debugPrint("Failed to upsert daily history: $e");
+          }
+        });
       });
     });
-  });
+  }
+
+  ref.listen(todayFocusDurationProvider, (prev, next) => updateHistory());
+  ref.listen(completionPercentageProvider, (prev, next) => updateHistory());
+  ref.listen(completionStatsProvider, (prev, next) => updateHistory());
 });
 
 final longestStreakProvider = Provider<int>((ref) {

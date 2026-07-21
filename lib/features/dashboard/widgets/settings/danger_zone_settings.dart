@@ -302,6 +302,9 @@ class DangerZoneSettingsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isDesktop = screenWidth > 900;
+
     final resetDataContent = Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -368,15 +371,16 @@ class DangerZoneSettingsSection extends ConsumerWidget {
           ),
           onTap: () => _performRedoOnboarding(context, ref),
         ),
-        ListTile(
-          leading: const Icon(Icons.help_outline_rounded, color: Color(0xFFE040FB)),
-          title: Text('Redo Demo Guide', style: titleStyle),
-          subtitle: Text(
-            'Re-run the interactive walkthrough tutorial of the app',
-            style: subtitleStyle,
+        if (!isDesktop)
+          ListTile(
+            leading: const Icon(Icons.help_outline_rounded, color: Color(0xFFE040FB)),
+            title: Text('Redo Demo Guide', style: titleStyle),
+            subtitle: Text(
+              'Re-run the interactive walkthrough tutorial of the app',
+              style: subtitleStyle,
+            ),
+            onTap: () => _performRedoDemo(context, ref),
           ),
-          onTap: () => _performRedoDemo(context, ref),
-        ),
         resetDataContent,
       ],
     );

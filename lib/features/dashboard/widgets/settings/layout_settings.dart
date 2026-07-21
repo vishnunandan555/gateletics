@@ -26,7 +26,9 @@ class LayoutSettingsSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'App Layout Mode',
+            GoRouterState.of(context).uri.path.startsWith('/desk')
+                ? 'Switch to Mobile UI'
+                : 'Switch to Desktop UI',
             style: titleStyle,
           ),
           if (!GoRouterState.of(context).uri.path.startsWith('/desk')) ...[
@@ -54,7 +56,7 @@ class LayoutSettingsSection extends StatelessWidget {
       subtitle: Text(
         GoRouterState.of(context).uri.path.startsWith('/desk')
             ? 'Return to the mobile-optimized layout'
-            : 'Experience the desktop layout on your web browser',
+            : 'Experience the desktop layout on your device',
         style: subtitleStyle,
       ),
       onTap: () async {

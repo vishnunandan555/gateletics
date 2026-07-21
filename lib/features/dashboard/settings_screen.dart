@@ -29,25 +29,27 @@ class SettingsScreen extends ConsumerWidget {
 
     final titleStyle = GoogleFonts.outfit(
       color: Colors.white,
-      fontSize: context.s(13),
-      fontWeight: FontWeight.bold,
+      fontSize: isDesktop ? 13.0 : context.s(13),
+      fontWeight: isDesktop ? FontWeight.w500 : FontWeight.bold,
     );
 
     final subtitleStyle = GoogleFonts.outfit(
-      color: Colors.white30,
-      fontSize: context.s(11),
+      color: Colors.white.withValues(alpha: 0.45),
+      fontSize: isDesktop ? 11.5 : context.s(11),
     );
 
     Widget buildHeader(String title, {Color? color}) {
       return Padding(
-        padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
+        padding: isDesktop
+            ? const EdgeInsets.fromLTRB(16, 12, 16, 6)
+            : EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
         child: Text(
           title,
-          style: TextStyle(
-            color: (color ?? accentColor).withValues(alpha: 0.7),
-            fontWeight: FontWeight.bold,
-            fontSize: context.s(11),
-            letterSpacing: context.s(1.2),
+          style: GoogleFonts.outfit(
+            color: (color ?? accentColor).withValues(alpha: 0.85),
+            fontWeight: isDesktop ? FontWeight.w600 : FontWeight.bold,
+            fontSize: isDesktop ? 11.5 : context.s(12),
+            letterSpacing: isDesktop ? 0.8 : context.s(0.8),
           ),
         ),
       );
@@ -55,14 +57,16 @@ class SettingsScreen extends ConsumerWidget {
 
     Widget buildSettingsGroup(Widget child) {
       return Container(
-        margin: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(6)),
+        margin: isDesktop
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 4)
+            : EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(6)),
         decoration: BoxDecoration(
           color: const Color(0xFF131316),
-          borderRadius: BorderRadius.circular(context.s(16)),
-          border: Border.all(color: Colors.white.withAlpha(8)),
+          borderRadius: BorderRadius.circular(isDesktop ? 14 : context.s(16)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(context.s(16)),
+          borderRadius: BorderRadius.circular(isDesktop ? 14 : context.s(16)),
           child: Material(
             color: Colors.transparent,
             child: child,
@@ -172,12 +176,12 @@ class SettingsScreen extends ConsumerWidget {
           dense: true,
           titleTextStyle: GoogleFonts.outfit(
             color: Colors.white,
-            fontSize: context.s(13),
-            fontWeight: FontWeight.bold,
+            fontSize: isDesktop ? 13.0 : context.s(13),
+            fontWeight: isDesktop ? FontWeight.w500 : FontWeight.bold,
           ),
           subtitleTextStyle: GoogleFonts.outfit(
-            color: Colors.white30,
-            fontSize: context.s(11),
+            color: Colors.white.withValues(alpha: 0.45),
+            fontSize: isDesktop ? 11.5 : context.s(11),
           ),
         ),
       ),
@@ -185,10 +189,10 @@ class SettingsScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text(
             'SETTINGS',
-            style: GoogleFonts.orbitron(
-              fontSize: context.s(20),
-              fontWeight: FontWeight.w900,
-              letterSpacing: context.s(1.5),
+            style: GoogleFonts.outfit(
+              fontSize: isDesktop ? 16.0 : context.s(18),
+              fontWeight: isDesktop ? FontWeight.w600 : FontWeight.bold,
+              letterSpacing: 0.8,
             ),
           ),
           centerTitle: true,

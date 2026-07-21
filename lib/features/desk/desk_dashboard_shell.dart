@@ -7,12 +7,12 @@ import '../../providers/auth_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../providers/subject_provider.dart';
 import '../dashboard/settings_screen.dart';
-import '../dashboard/home_screen.dart';
 import '../dashboard/widgets/focus_screen.dart';
 import '../../providers/focus_provider.dart';
 import '../dashboard/widgets/shell_common.dart';
 import 'desk_dashboard_screen.dart';
 import '../../providers/overall_ui_scale_provider.dart';
+import '../dashboard/home_screen.dart';
 
 class DeskDashboardShell extends ConsumerStatefulWidget {
   const DeskDashboardShell({super.key});

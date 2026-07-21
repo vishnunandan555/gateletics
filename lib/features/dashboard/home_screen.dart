@@ -43,8 +43,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final hasSeen = ref.read(hasSeenDemoGuideProvider);
-      if (!hasSeen && ref.read(demoGuideProvider) == DemoStep.none) {
+      final isDesktop = MediaQuery.sizeOf(context).width > 900;
+      if (!hasSeen && ref.read(demoGuideProvider) == DemoStep.none && !isDesktop) {
         _showOnboardingPopup(context);
       }
     });
@@ -170,7 +172,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: isDesktop ? 520 : double.infinity,
+                maxWidth: isDesktop ? 660 : double.infinity,
               ),
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -190,76 +192,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  // Desktop Custom Header Row (Logo on left, Toggle Button on right)
+                                  // Desktop Top Bar: Notice Board Toggle Action
                                   if (isDesktop) ...[
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        Row(
-                                          children: [
-                                            Image.asset('assets/logo_trans_cropped.png', width: 28, height: 28),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              'GATEletics',
-                                              style: GoogleFonts.outfit(
-                                                color: Colors.white,
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.bold,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                         Consumer(
-                                           builder: (context, ref, _) {
-                                             final tasks = ref.watch(customTasksProvider).value ?? [];
-                                             final activeTasks = tasks.where((t) => !t.isCompleted).toList();
-                                             Widget iconWidget;
-                                             if (isNoticeBoard) {
-                                               iconWidget = const Icon(
-                                                 Icons.close_rounded,
-                                                 color: Colors.white60,
-                                                 size: 24,
-                                               );
-                                             } else if (activeTasks.isNotEmpty) {
-                                               iconWidget = Row(
-                                                 mainAxisSize: MainAxisSize.min,
-                                                 children: [
-                                                   Icon(Icons.assignment_outlined, color: accentColor, size: 32),
-                                                   const SizedBox(width: 4),
-                                                   Container(
-                                                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                                     decoration: BoxDecoration(
-                                                       color: accentColor,
-                                                       borderRadius: BorderRadius.circular(5),
-                                                     ),
-                                                     child: Text(
-                                                       "${activeTasks.length}",
-                                                       style: GoogleFonts.orbitron(
-                                                         color: Colors.black,
-                                                         fontSize: 10,
-                                                         fontWeight: FontWeight.bold,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               );
-                                             } else {
+                                        Consumer(
+                                          builder: (context, ref, _) {
+                                            final tasks = ref.watch(customTasksProvider).value ?? [];
+                                            final activeTasks = tasks.where((t) => !t.isCompleted).toList();
+                                            Widget iconWidget;
+                                            if (isNoticeBoard) {
+                                              iconWidget = const Icon(
+                                                Icons.close_rounded,
+                                                color: Colors.white60,
+                                                size: 24,
+                                              );
+                                            } else if (activeTasks.isNotEmpty) {
+                                              iconWidget = Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.assignment_outlined, color: accentColor, size: 28),
+                                                  const SizedBox(width: 4),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: accentColor,
+                                                      borderRadius: BorderRadius.circular(5),
+                                                    ),
+                                                    child: Text(
+                                                      "${activeTasks.length}",
+                                                      style: GoogleFonts.orbitron(
+                                                        color: Colors.black,
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              );
+                                            } else {
                                               iconWidget = Icon(
                                                 Icons.assignment_outlined,
                                                 color: accentColor,
-                                                size: 28,
+                                                size: 26,
                                               );
                                             }
                                             return IconButton(
-                                              key: DemoKeys.homeNoticeBoardButton,
                                               icon: iconWidget,
                                               onPressed: () {
                                                 ref.read(noticeBoardModeProvider.notifier).state = !isNoticeBoard;
-                                                if (ref.read(demoGuideProvider) == DemoStep.homeNoticeInteract) {
-                                                  // Notice board is now opening — advance to homeAddTask
-                                                  ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeAddTask);
-                                                }
                                               },
                                               tooltip: isNoticeBoard ? 'Back to Dashboard' : 'Open Notice Board',
                                               splashRadius: 20,
@@ -268,12 +250,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         ),
                                       ],
                                     ),
-                                    SizedBox(height: context.s(16)),
+                                    const SizedBox(height: 12),
+                                  ] else ...[
+                                    SizedBox(height: context.s(72)),
                                   ],
-
-                                  SizedBox(
-                                    height: isDesktop ? context.s(10) : context.s(72),
-                                  ),
                                   if (!isNoticeBoard)
                                     SizedBox(height: context.s(40)), // Push content down so it starts above middle
 
@@ -284,7 +264,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     if (profileState.profilePhotoMode != 'none') ...[
                                       Center(
                                         child: GestureDetector(
-                                          key: DemoKeys.homeProfileAvatar,
+                                          key: isDesktop ? null : DemoKeys.homeProfileAvatar,
                                           onTap: () {
                                             ref.read(overallProgressColorProvider.notifier).next();
                                           },
@@ -345,7 +325,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                      // Big Countdown Timer (DAYS : HRS : MINS : SECS)
                                      if (!ref.watch(disableCountdownProvider)) ...[
                                        SizedBox(
-                                         key: DemoKeys.homeCountdownTimer,
+                                         key: isDesktop ? null : DemoKeys.homeCountdownTimer,
                                          child: const _TickingCountdownTimer(),
                                        ),
                                        SizedBox(height: context.s(16)),
@@ -379,7 +359,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     // Syllabus/Resource Completion Card
                                     if (!disableWidget) ...[
                                       HomeCarousel(
-                                        key: DemoKeys.homeProgressCard,
+                                        key: isDesktop ? null : DemoKeys.homeProgressCard,
                                         accentColor: accentColor,
                                         onTabChange: _navigateToTab,
                                       ),
@@ -388,7 +368,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                                     // Resume Prep / Active Focus Button
                                     SizedBox(
-                                      key: DemoKeys.homeStartButton,
+                                      key: isDesktop ? null : DemoKeys.homeStartButton,
                                       child: isFocusActive
                                           ? ActiveFocusWaveWidget(
                                               accentColor: accentColor,
@@ -420,7 +400,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     SizedBox(height: context.s(28)),
 
                                     SizedBox(
-                                      key: DemoKeys.homeConsistencyGrid,
+                                      key: isDesktop ? null : DemoKeys.homeConsistencyGrid,
                                       child: _buildConsistencyGrid(accentColor, dailyGoalMinutes),
                                     ),
                                   ],
