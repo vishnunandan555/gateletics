@@ -17,6 +17,10 @@ import 'widgets/app_bar_title.dart';
 import 'widgets/countdown_widget.dart';
 import '../../providers/overall_ui_scale_provider.dart';
 import '../../providers/syllabus_provider.dart';
+import '../../providers/demo_guide_provider.dart';
+import '../../utils/demo_keys.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+
 
 class DashboardShell extends ConsumerStatefulWidget {
   const DashboardShell({super.key});
@@ -60,6 +64,28 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   Widget build(BuildContext context) {
     final progressColor = ref.watch(overallProgressColorProvider);
 
+    final shellTab = ref.watch(shellTabProvider);
+    if (_currentIndex != shellTab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_pageController.hasClients) {
+          _pageController.animateToPage(
+            shellTab,
+            duration: const Duration(milliseconds: 420),
+            curve: Curves.easeInOutCubic,
+          );
+          setState(() {
+            _currentIndex = shellTab;
+          });
+        }
+      });
+    }
+
+    ref.listen<DemoStep>(demoGuideProvider, (prev, next) {
+      if (next != DemoStep.none) {
+        _triggerSpotlightForStep(next);
+      }
+    });
+
     ref.listen<SyncState>(syncProvider, (previous, next) {
       if (next.status == SyncStatus.requiresAction && next.pendingCloudData != null) {
         showSyncConflictDialog(context, ref, progressColor);
@@ -81,6 +107,8 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
               setState(() {
                 _currentIndex = index;
               });
+              ref.read(shellTabProvider.notifier).state = index;
+
               if (index != 2) {
                 ref.read(noticeBoardModeProvider.notifier).state = false;
               }
@@ -104,6 +132,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
               currentIndex: _currentIndex,
             ),
           ),
+          const DemoGuideBanner(),
         ],
       ),
       bottomNavigationBar: Theme(
@@ -130,33 +159,39 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(
+                    key: DemoKeys.statsTab,
                     index: 0,
                     icon: Icons.analytics_rounded,
                     label: 'Stats',
                     color: progressColor,
                   ),
                   _buildNavItem(
+                    key: DemoKeys.completionTab,
                     index: 1,
                     icon: Icons.percent_rounded,
                     label: 'Completion',
                     color: progressColor,
                   ),
                   _buildNavItem(
+                    key: DemoKeys.homeTab,
                     index: 2,
                     icon: Icons.home_rounded,
                     label: 'Home',
                     color: progressColor,
                   ),
                   _buildFocusNavItem(
+                    key: DemoKeys.focusTab,
                     index: 3,
                     color: progressColor,
                   ),
                   _buildNavItem(
+                    key: DemoKeys.settingsTab,
                     index: 4,
                     icon: Icons.settings_rounded,
                     label: 'Settings',
                     color: progressColor,
                   ),
+
                 ],
               ),
             ),
@@ -168,6 +203,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
 }
 
   Widget _buildNavItem({
+    Key? key,
     required int index,
     required IconData icon,
     required String label,
@@ -175,7 +211,9 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   }) {
     final isSelected = _currentIndex == index;
     return Expanded(
+      key: key,
       child: InkWell(
+
         onTap: () {
           _pageController.jumpToPage(index);
         },
@@ -203,6 +241,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
   }
 
   Widget _buildFocusNavItem({
+    Key? key,
     required int index,
     required Color color,
   }) {
@@ -229,7 +268,9 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     final timeStr = formatNavDuration(displaySeconds, isCountUp);
 
     return Expanded(
+      key: key,
       child: InkWell(
+
         onTap: () {
           _pageController.jumpToPage(index);
         },
@@ -298,6 +339,427 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
 
   Future<void> _checkDesktopWarning() async {
     // Prompting dialog removed. Auto-routing based on preference / screen size is active.
+  }
+
+  void _runSpotlight(String identifier, List<TargetFocus> targets, VoidCallback onFinish) {
+    final accentColor = ref.read(overallProgressColorProvider);
+    TutorialCoachMark(
+      targets: targets,
+      colorShadow: accentColor,
+      opacityShadow: 0.70,
+      paddingFocus: 12,
+      onFinish: onFinish,
+      onSkip: () {
+        ref.read(demoGuideProvider.notifier).skipDemo();
+        return true;
+      },
+    ).show(context: context);
+  }
+
+  /// Builds the floating tooltip card shown inside the TutorialCoachMark overlay.
+  Widget _buildSpotlightContent(
+    BuildContext context,
+    TutorialCoachMarkController controller,
+    String title,
+    String description,
+    Color accentColor, {
+    bool isLast = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF131316).withValues(alpha: 0.97),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accentColor.withValues(alpha: 0.5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.25),
+            blurRadius: 20,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.orbitron(
+              color: accentColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            description,
+            style: GoogleFonts.outfit(
+              color: Colors.white.withValues(alpha: 0.92),
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () {
+                  controller.skip();
+                },
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white38,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  "Skip Tour",
+                  style: GoogleFonts.outfit(fontSize: 11),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  controller.next();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  isLast ? "Done" : "Next →",
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _triggerSpotlightForStep(DemoStep step) {
+    // These steps have no spotlight — they are pure ACTION waits or auto-waits
+    const noSpotlightSteps = {
+      DemoStep.none,
+      DemoStep.homeNoticeInteract,
+      DemoStep.homeAddTask,
+      DemoStep.completionInteract,
+      DemoStep.focusMethodInteract,
+      DemoStep.focusStartInteract,
+      DemoStep.focusActive,
+      DemoStep.focusSavePrompt,
+      DemoStep.finished,
+    };
+    if (noSpotlightSteps.contains(step)) return;
+    _retryTriggerSpotlight(step, 0);
+  }
+
+  void _retryTriggerSpotlight(DemoStep step, int attempts) {
+    if (attempts > 40) return; // Stop after 4s
+
+    // Each spotlight step maps to the tab page it lives on (0=Stats,1=Completion,2=Home,3=Focus)
+    final stepTargetPages = {
+      DemoStep.homeWelcome: 2,
+      DemoStep.homeCountdown: 2,
+      DemoStep.homeProfileColor: 2,
+      DemoStep.homeStartButton: 2,
+      DemoStep.homeConsistencyGrid: 2,
+      DemoStep.homeNoticeButton: 2,
+      DemoStep.homeCloseNotice: 2,
+      DemoStep.completionProgressBar: 1,
+      DemoStep.completionCategoryMenu: 1,
+      DemoStep.completionSubjectCards: 1,
+      DemoStep.completionLongPress: 1,
+      DemoStep.completionDaysLeft: 1,
+      DemoStep.focusMethodChip: 3,
+      DemoStep.focusStartInfo: 3,
+      DemoStep.focusDailyGoalBar: 3,
+      DemoStep.focusDailyGoalActions: 3,
+      DemoStep.statsStreakCard: 0,
+      DemoStep.statsTopButtons: 0,
+      DemoStep.statsProjection: 0,
+      DemoStep.statsChart: 0,
+    };
+
+    // Wait for page animation to settle before attempting spotlight
+    final targetPage = stepTargetPages[step];
+    if (targetPage != null && _pageController.hasClients) {
+      final currentPage = _pageController.page;
+      if (currentPage == null || (currentPage - targetPage).abs() > 0.01) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) _retryTriggerSpotlight(step, attempts + 1);
+        });
+        return;
+      }
+    }
+
+    // Each spotlight step maps to its target GlobalKey widget
+    final contextMap = {
+      DemoStep.homeWelcome: DemoKeys.homeProgressCard,
+      DemoStep.homeCountdown: DemoKeys.homeCountdownTimer,
+      DemoStep.homeProfileColor: DemoKeys.homeProfileAvatar,
+      DemoStep.homeStartButton: DemoKeys.homeStartButton,
+      DemoStep.homeConsistencyGrid: DemoKeys.homeConsistencyGrid,
+      DemoStep.homeNoticeButton: DemoKeys.homeNoticeBoardButton,
+      DemoStep.homeCloseNotice: DemoKeys.homeNoticeBoardButton,
+      DemoStep.completionProgressBar: DemoKeys.completionProgressBar,
+      DemoStep.completionCategoryMenu: DemoKeys.completionCategoryMenu,
+      DemoStep.completionSubjectCards: DemoKeys.completionFirstSubjectCard,
+      DemoStep.completionLongPress: DemoKeys.completionFirstSubjectCard,
+      DemoStep.completionDaysLeft: DemoKeys.completionDaysLeft,
+      DemoStep.focusMethodChip: DemoKeys.focusTimerSelectors,
+      DemoStep.focusStartInfo: DemoKeys.focusStartButton,
+      DemoStep.focusDailyGoalBar: DemoKeys.focusDailyGoalBar,
+      DemoStep.focusDailyGoalActions: DemoKeys.focusDailyGoalBar,
+      DemoStep.statsStreakCard: DemoKeys.statsStreakCard,
+      DemoStep.statsTopButtons: DemoKeys.statsTopButtons,
+      DemoStep.statsProjection: DemoKeys.statsProjectionCard,
+      DemoStep.statsChart: DemoKeys.statsChartCard,
+    };
+
+    final targetKey = contextMap[step];
+    if (targetKey != null && targetKey.currentContext == null) {
+      // After 5 attempts (~500ms), skip optional steps whose widget may not be visible
+      const skippableSteps = {
+        DemoStep.homeCountdown, DemoStep.homeProfileColor,
+        DemoStep.completionDaysLeft, DemoStep.focusDailyGoalBar,
+        DemoStep.focusDailyGoalActions, DemoStep.statsProjection,
+      };
+      if (attempts >= 5 && skippableSteps.contains(step)) {
+        ref.read(demoGuideProvider.notifier).nextStep();
+        return;
+      }
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _retryTriggerSpotlight(step, attempts + 1);
+      });
+      return;
+    }
+
+    // Build a spotlight target with embedded tooltip content
+    TargetFocus makeTarget(
+      String id,
+      GlobalKey key,
+      String description, {
+      ShapeLightFocus shape = ShapeLightFocus.RRect,
+      double radius = 14,
+      ContentAlign align = ContentAlign.bottom,
+      bool isLast = false,
+      String title = 'GUIDED WALKTHROUGH',
+    }) {
+      final accentColor = ref.read(overallProgressColorProvider);
+      return TargetFocus(
+        identify: id,
+        keyTarget: key,
+        shape: shape,
+        radius: radius,
+        contents: [
+          TargetContent(
+            align: align,
+            builder: (ctx, ctrl) => _buildSpotlightContent(
+              ctx, ctrl, title, description, accentColor, isLast: isLast,
+            ),
+          ),
+        ],
+      );
+    }
+
+    switch (step) {
+      // ── Home Screen ──────────────────────────────────────────────────────
+      case DemoStep.homeWelcome:
+        _runSpotlight("homeWelcome", [
+          makeTarget("progressCard", DemoKeys.homeProgressCard,
+            "Welcome to GATEletics. This carousel shows your overall syllabus progress, subject-level completion percentages, and quick resource links.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeCountdown); });
+        break;
+      case DemoStep.homeCountdown:
+        _runSpotlight("homeCountdown", [
+          makeTarget("countdown", DemoKeys.homeCountdownTimer,
+            "Exam Countdown: A live timer counting down to your GATE exam. You can long-press it to change the exam date, or update it anytime in Settings.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeProfileColor); });
+        break;
+      case DemoStep.homeProfileColor:
+        _runSpotlight("homeProfileColor", [
+          makeTarget("profileAvatar", DemoKeys.homeProfileAvatar,
+            "Accent Color: Tap your profile picture to cycle through color themes. The change applies across every screen — streaks, charts, progress bars — instantly.",
+            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeStartButton); });
+        break;
+      case DemoStep.homeStartButton:
+        _runSpotlight("homeStartButton", [
+          makeTarget("startBtn", DemoKeys.homeStartButton,
+            "Start Focus: Tap this button to jump straight into a study session. The pill fills with your accent color as you hit your daily goal.",
+            shape: ShapeLightFocus.RRect, radius: 30, align: ContentAlign.top,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeConsistencyGrid); });
+        break;
+      case DemoStep.homeConsistencyGrid:
+        _runSpotlight("homeConsistencyGrid", [
+          makeTarget("consistencyGrid", DemoKeys.homeConsistencyGrid,
+            "Consistency Tracker: A 7-day strip centered on today. Each ring fills relative to your daily study goal — a quick visual streak indicator.",
+            align: ContentAlign.top,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeNoticeButton); });
+        break;
+      case DemoStep.homeNoticeButton:
+        _runSpotlight("homeNoticeButton", [
+          makeTarget("noticeBtn", DemoKeys.homeNoticeBoardButton,
+            "Notice Board: Pin reminders, deadlines, or revision notes here. Tap Next, then tap this icon to open it.",
+            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeNoticeInteract); });
+        break;
+      case DemoStep.homeCloseNotice:
+        _runSpotlight("homeCloseNotice", [
+          makeTarget("noticeBtnClose", DemoKeys.homeNoticeBoardButton,
+            "Task pinned. Tap Next to close the board and move to your Syllabus tracker.",
+            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+          ),
+        ], () {
+          ref.read(noticeBoardModeProvider.notifier).state = false;
+          Future.delayed(const Duration(milliseconds: 300), () {
+            ref.read(shellTabProvider.notifier).state = 1;
+            Future.delayed(const Duration(milliseconds: 520), () {
+              ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionProgressBar);
+            });
+          });
+        });
+        break;
+
+      // ── Completion / Syllabus Screen ─────────────────────────────────────
+      case DemoStep.completionProgressBar:
+        _runSpotlight("completionProgressBar", [
+          makeTarget("progressBar", DemoKeys.completionProgressBar,
+            "Overall Progress: This bar shows total syllabus completion — tasks done across all categories. It updates in real time as you check items off.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionCategoryMenu); });
+        break;
+      case DemoStep.completionCategoryMenu:
+        _runSpotlight("completionCategoryMenu", [
+          makeTarget("catMenu", DemoKeys.completionCategoryMenu,
+            "Category Menu: Tap this three-dot icon on any category header to rename it, change its color, pin it, mark it as a weak area, or add new topics.",
+            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionSubjectCards); });
+        break;
+      case DemoStep.completionSubjectCards:
+        _runSpotlight("completionSubjectCards", [
+          makeTarget("subjectCard", DemoKeys.completionFirstSubjectCard,
+            "Subject Card: Each card is a topic within a category. Tap to expand its task list. Check a task to mark it done — progress updates immediately.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionInteract); });
+        break;
+      case DemoStep.completionLongPress:
+        _runSpotlight("completionLongPress", [
+          makeTarget("subjectCardLong", DemoKeys.completionFirstSubjectCard,
+            "Long Press: Long-press any subject card to access edit options — rename it, add or remove tasks, or attach a resource link.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionDaysLeft); });
+        break;
+      case DemoStep.completionDaysLeft:
+        _runSpotlight("completionDaysLeft", [
+          makeTarget("daysLeft", DemoKeys.completionDaysLeft,
+            "Days Left: Shows how many days remain until your GATE exam. Long-press to update the exam date at any time.",
+            shape: ShapeLightFocus.RRect, radius: 12, align: ContentAlign.bottom,
+          ),
+        ], () {
+          ref.read(shellTabProvider.notifier).state = 3;
+          Future.delayed(const Duration(milliseconds: 520), () {
+            ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusMethodChip);
+          });
+        });
+        break;
+
+      // ── Focus Screen ────────────────────────────────────────────────────
+      case DemoStep.focusMethodChip:
+        _runSpotlight("focusMethodChip", [
+          makeTarget("methodChip", DemoKeys.focusTimerSelectors,
+            "Focus Mode: Tap to select your study method — Pomodoro (25 min work + break), Countdown (custom duration), or Freestyle (open-ended stopwatch).",
+            radius: 12, align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusMethodInteract); });
+        break;
+      case DemoStep.focusStartInfo:
+        _runSpotlight("focusStartInfo", [
+          makeTarget("startButton", DemoKeys.focusStartButton,
+            "Start Session: In this demo the timer runs for 10 seconds. Tap Next, then tap the button to begin.",
+            shape: ShapeLightFocus.Circle, align: ContentAlign.top,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusStartInteract); });
+        break;
+      case DemoStep.focusDailyGoalBar:
+        _runSpotlight("focusDailyGoalBar", [
+          makeTarget("dailyGoalBar", DemoKeys.focusDailyGoalBar,
+            "Daily Goal Bar: Tracks today's study time against your set goal. Resets at midnight and feeds your streak counter.",
+            align: ContentAlign.top,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusDailyGoalActions); });
+        break;
+      case DemoStep.focusDailyGoalActions:
+        _runSpotlight("focusDailyGoalActions", [
+          makeTarget("dailyGoalActions", DemoKeys.focusDailyGoalBar,
+            "Two gestures on this bar:\n• Tap — cycles the label through time elapsed, time left, % done, or % remaining.\n• Long press — opens the goal editor to set your daily study target.",
+            align: ContentAlign.top, isLast: false,
+          ),
+        ], () {
+          ref.read(shellTabProvider.notifier).state = 0;
+          Future.delayed(const Duration(milliseconds: 520), () {
+            ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsStreakCard);
+          });
+        });
+        break;
+
+      // ── Stats Screen ────────────────────────────────────────────────────
+      case DemoStep.statsStreakCard:
+        _runSpotlight("statsStreakCard", [
+          makeTarget("streakCard", DemoKeys.statsStreakCard,
+            "Streak Summary: Shows your current study streak, check-in streak, and today's goal progress — all at a glance.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsTopButtons); });
+        break;
+      case DemoStep.statsTopButtons:
+        _runSpotlight("statsTopButtons", [
+          makeTarget("topButtons", DemoKeys.statsTopButtons,
+            "View Toggle: Switch between the yearly Heatmap and monthly Calendar to review your study history. Both modes show daily study durations.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsProjection); });
+        break;
+      case DemoStep.statsProjection:
+        _runSpotlight("statsProjection", [
+          makeTarget("projCard", DemoKeys.statsProjectionCard,
+            "Projected Completion: Estimates when you will finish 100% of your syllabus based on your recent study velocity.",
+            align: ContentAlign.bottom,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsChart); });
+        break;
+      case DemoStep.statsChart:
+        _runSpotlight("statsChart", [
+          makeTarget("chartCard", DemoKeys.statsChartCard,
+            "Study Chart: Hours studied over time, filterable by Week, Month, or Year. Below it, a donut chart breaks down time per subject.",
+            align: ContentAlign.top, isLast: true,
+          ),
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.finished); });
+        break;
+      default:
+        break;
+    }
   }
 
 }
@@ -393,7 +855,7 @@ class _SharedShellHeader extends ConsumerWidget {
                         ignoring: countdownOpacity < 0.5,
                         child: Opacity(
                           opacity: countdownOpacity,
-                          child: const CountdownWidget(),
+                          child: CountdownWidget(key: DemoKeys.completionDaysLeft),
                         ),
                       ),
                       IgnorePointer(
@@ -466,9 +928,14 @@ class _NoticeBoardHeaderButton extends ConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: IconButton(
+        key: DemoKeys.homeNoticeBoardButton, // ← needed so mobile spotlight can find this widget
         icon: iconWidget,
         onPressed: () {
           ref.read(noticeBoardModeProvider.notifier).state = !isNoticeBoard;
+          if (ref.read(demoGuideProvider) == DemoStep.homeNoticeInteract) {
+            // Notice board is now opening — advance to homeAddTask step
+            ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeAddTask);
+          }
         },
         tooltip: isNoticeBoard ? 'Back to Dashboard' : 'Open Notice Board',
         padding: EdgeInsets.zero,
@@ -478,3 +945,204 @@ class _NoticeBoardHeaderButton extends ConsumerWidget {
     );
   }
 }
+
+class DemoGuideBanner extends ConsumerWidget {
+  const DemoGuideBanner({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final step = ref.watch(demoGuideProvider);
+    if (step == DemoStep.none) return const SizedBox.shrink();
+
+    // Spotlight steps show their instructions INSIDE TutorialCoachMark's overlay —
+    // the DemoGuideBanner is not needed (and would be buried under the overlay anyway).
+    const spotlightOnlySteps = {
+      DemoStep.homeWelcome,
+      DemoStep.homeCountdown,
+      DemoStep.homeProfileColor,
+      DemoStep.homeStartButton,
+      DemoStep.homeConsistencyGrid,
+      DemoStep.homeNoticeButton,
+      DemoStep.homeCloseNotice,
+      DemoStep.completionProgressBar,
+      DemoStep.completionCategoryMenu,
+      DemoStep.completionSubjectCards,
+      DemoStep.completionLongPress,
+      DemoStep.completionDaysLeft,
+      DemoStep.focusMethodChip,
+      DemoStep.focusStartInfo,
+      DemoStep.focusDailyGoalBar,
+      DemoStep.focusDailyGoalActions,
+      DemoStep.statsStreakCard,
+      DemoStep.statsTopButtons,
+      DemoStep.statsProjection,
+      DemoStep.statsChart,
+    };
+    if (spotlightOnlySteps.contains(step)) return const SizedBox.shrink();
+
+    final accentColor = ref.watch(overallProgressColorProvider);
+    final overallScale = ref.watch(overallUiScaleProvider).scaleFactor;
+
+    String instruction = "";
+    bool showNext = false;
+    bool showSkip = true;
+    String primaryText = "Next Step";
+
+    switch (step) {
+      // ── Home Screen ───────────────────────────────────────────────────────
+      case DemoStep.homeNoticeInteract:
+        instruction = "Tap the Notice Board icon in the top-right corner to open your pinboard.";
+        showNext = false;
+        break;
+      case DemoStep.homeAddTask:
+        instruction = "Type a quick reminder and tap the + button or press Enter to pin it.";
+        showNext = false;
+        break;
+      // ── Syllabus Screen ───────────────────────────────────────────────────
+      case DemoStep.completionInteract:
+        instruction = "Tap a subject card to expand it, then tap the checkbox on any task to mark it complete.";
+        showNext = false;
+        break;
+      // ── Focus Screen ──────────────────────────────────────────────────────
+      case DemoStep.focusMethodInteract:
+        instruction = "Tap the mode chip to open the focus mode selector. Choose Freestyle for this demo.";
+        showNext = false;
+        break;
+      case DemoStep.focusStartInteract:
+        instruction = "Tap the start button to launch your 10-second demo session.";
+        showNext = false;
+        break;
+      case DemoStep.focusActive:
+        instruction = "Session running. The demo timer lasts 10 seconds. In real sessions, study until the interval ends or you stop manually.";
+        showNext = false;
+        showSkip = false;
+        break;
+      case DemoStep.focusSavePrompt:
+        instruction = "Session complete. Tap Awesome on the summary to save it — then we will explore the Daily Goal bar.";
+        showNext = false;
+        showSkip = false;
+        break;
+      // ── Finish ────────────────────────────────────────────────────────────
+      case DemoStep.finished:
+        instruction = "Walkthrough complete. You have seen every core feature. Tap Start Studying to clear demo data and begin your real GATE preparation.";
+        showNext = true;
+        primaryText = "Start Studying";
+        showSkip = false;
+        break;
+      default:
+        break;
+    }
+
+    return Positioned(
+      bottom: 74 + MediaQuery.of(context).padding.bottom, // Place right above the bottom nav bar
+      left: 16,
+      right: 16,
+      child: SafeArea(
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 300),
+          tween: Tween(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: 0.95 + (0.05 * value),
+              child: Opacity(
+                opacity: value,
+                child: child,
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF131316).withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: accentColor.withValues(alpha: 0.4), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.15),
+                  blurRadius: 16,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step == DemoStep.finished ? "WALKTHROUGH COMPLETE" : "GUIDED WALKTHROUGH",
+                        style: GoogleFonts.orbitron(
+                          color: accentColor,
+                          fontSize: 10 * overallScale,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        instruction,
+                        style: GoogleFonts.outfit(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 12 * overallScale,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showNext)
+                      ElevatedButton(
+                        onPressed: () {
+                          if (step == DemoStep.finished) {
+                            ref.read(demoGuideProvider.notifier).finishDemo();
+                          } else {
+                            ref.read(demoGuideProvider.notifier).nextStep();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          elevation: 2,
+                        ),
+                        child: Text(
+                          primaryText,
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11 * overallScale),
+                        ),
+                      ),
+                    if (showSkip) ...[
+                      const SizedBox(height: 4),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(demoGuideProvider.notifier).skipDemo();
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white54,
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(40, 24),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          "Skip",
+                          style: GoogleFonts.outfit(fontSize: 11 * overallScale),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

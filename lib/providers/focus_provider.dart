@@ -8,6 +8,8 @@ import 'package:drift/drift.dart';
 import '../database/app_database.dart';
 import 'syllabus_provider.dart';
 import 'rollover_provider.dart';
+import 'demo_guide_provider.dart';
+
 
 enum FocusMethod {
   freestyle,
@@ -315,6 +317,10 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
 
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+
+    if (ref.read(demoGuideProvider) == DemoStep.focusStartInteract) {
+      ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusActive);
+    }
   }
 
   void pauseSession() {
@@ -498,6 +504,9 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       selectedMethod: prevMethod,
       customTimerMinutes: prevCustomMins,
     );
+
+    // Note: demo guide advancement to statsIntro is handled by the Awesome button in focus_active_view.dart
+
     return finalSession;
   }
 
@@ -507,8 +516,10 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     final elapsedSegmentSeconds = now.difference(_segmentStartTime!).inSeconds;
 
     if (state.status == FocusStatus.focusing) {
-      final target = state.currentTargetSeconds;
-      final isFreestyle = state.details.isCountUp;
+      final isDemoActive = ref.read(demoGuideProvider) == DemoStep.focusActive;
+      final target = isDemoActive ? 10 : state.currentTargetSeconds;
+      final isFreestyle = isDemoActive ? false : state.details.isCountUp;
+
 
       int nextElapsed = _previousSegmentSeconds + elapsedSegmentSeconds;
       int nextTotalFocused = _previousTotalSecondsFocused + elapsedSegmentSeconds;
@@ -516,30 +527,39 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
       if (!isFreestyle && nextElapsed >= target) {
         // Interval completed!
         _timer?.cancel();
-        state = state.copyWith(
-          elapsedSeconds: target,
-          totalSecondsFocused: nextTotalFocused,
-          completedFocusIntervals: state.completedFocusIntervals + 1,
-        );
-        
-        checkAccomplishments().then((_) {
-          if (state.details.hasBreaks) {
-            // Trigger break
-            state = state.copyWith(
-              status: FocusStatus.breakTime,
-              elapsedSeconds: 0,
-              isBreakActive: true,
-            );
-            _segmentStartTime = DateTime.now();
-            _previousSegmentSeconds = 0;
-            _previousTotalSecondsFocused = state.totalSecondsFocused;
-            _timer?.cancel();
-            _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-          } else {
-            // Timer without break -> automatically finishes session
-            stopSession();
-          }
-        });
+        if (isDemoActive) {
+          state = state.copyWith(
+            status: FocusStatus.paused,
+            elapsedSeconds: target,
+            totalSecondsFocused: nextTotalFocused,
+          );
+          ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusSavePrompt);
+        } else {
+          state = state.copyWith(
+            elapsedSeconds: target,
+            totalSecondsFocused: nextTotalFocused,
+            completedFocusIntervals: state.completedFocusIntervals + 1,
+          );
+          
+          checkAccomplishments().then((_) {
+            if (state.details.hasBreaks) {
+              // Trigger break
+              state = state.copyWith(
+                status: FocusStatus.breakTime,
+                elapsedSeconds: 0,
+                isBreakActive: true,
+              );
+              _segmentStartTime = DateTime.now();
+              _previousSegmentSeconds = 0;
+              _previousTotalSecondsFocused = state.totalSecondsFocused;
+              _timer?.cancel();
+              _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+            } else {
+              // Timer without break -> automatically finishes session
+              stopSession();
+            }
+          });
+        }
       } else {
         state = state.copyWith(
           elapsedSeconds: nextElapsed,

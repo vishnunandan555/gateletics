@@ -9,6 +9,10 @@ import 'timer_painters.dart';
 import '../../../../utils/ui_scaling.dart';
 import '../../../../providers/glow_strength_provider.dart';
 import 'focus_accomplishments_widget.dart';
+import '../../../../utils/demo_keys.dart';
+import '../../../../providers/demo_guide_provider.dart';
+
+
 
 class FocusActiveView extends ConsumerStatefulWidget {
   final Color accentColor;
@@ -27,6 +31,15 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<DemoStep>(demoGuideProvider, (prev, next) async {
+      if (next == DemoStep.focusSavePrompt) {
+        final finalSession = await ref.read(focusProvider.notifier).stopSession();
+        if (context.mounted) {
+          _showSessionSummary(context, finalSession, widget.accentColor);
+        }
+      }
+    });
+
     final sessionState = ref.watch(focusProvider);
     final accentColor = widget.accentColor;
 
@@ -93,6 +106,7 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
 
         // 2. Middle Section (Timer Display) - Centered Vertically
         Center(
+          key: DemoKeys.activeTimerCircle,
           child: isCountUp
               ? Row(
                   mainAxisSize: MainAxisSize.min,
@@ -549,10 +563,18 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
         ? "${(durationMin / 60).toStringAsFixed(1).replaceAll('.0', '')} hr"
         : "$durationMin min";
 
+    // Capture demo state and notifier BEFORE showDialog.
+    // After the session ends, FocusActiveView may be replaced by FocusIdleView,
+    // unmounting this widget. Using ref inside the dialog builder or its callbacks
+    // would then throw "ref used after unmount". The Notifier instance itself is
+    // stable and safe to hold across widget lifecycle boundaries.
+    final isDemoSaveStep = ref.read(demoGuideProvider) == DemoStep.focusSavePrompt;
+    final demoNotifier = ref.read(demoGuideProvider.notifier);
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           backgroundColor: const Color(0xFF131316),
           shape: RoundedRectangleBorder(
@@ -623,8 +645,37 @@ class _FocusActiveViewState extends ConsumerState<FocusActiveView> {
                 ],
 
                 const SizedBox(height: 24),
+                if (isDemoSaveStep) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: accentColor.withAlpha(20),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: accentColor.withAlpha(80)),
+                    ),
+                    child: Text(
+                      "Tap Awesome to save this session and continue the walkthrough.",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
                 FilledButton(
-                  onPressed: () => Navigator.pop(context),
+                  key: DemoKeys.accomplishmentsSaveButton,
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    if (isDemoSaveStep) {
+                      Future.delayed(const Duration(milliseconds: 400), () {
+                        demoNotifier.setStep(DemoStep.focusDailyGoalBar);
+                      });
+                    }
+                  },
                   style: FilledButton.styleFrom(
                     backgroundColor: accentColor,
                     foregroundColor: Colors.black,

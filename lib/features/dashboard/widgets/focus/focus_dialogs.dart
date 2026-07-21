@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../providers/focus_provider.dart';
+import '../../../../providers/demo_guide_provider.dart';
 import 'timer_painters.dart';
 
 // Dialog to configure daily target focus goal
@@ -202,6 +203,12 @@ void showMethodSelectionMenu(BuildContext context, FocusSessionState sessionStat
                         onTap: () {
                           ref.read(focusProvider.notifier).selectMethod(method);
                           Navigator.pop(context);
+                          // Advance demo guide when user selects a method during guided flow
+                          if (ref.read(demoGuideProvider) == DemoStep.focusMethodInteract) {
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusStartInfo);
+                            });
+                          }
                           if (method == FocusMethod.timer) {
                             showCustomDurationPicker(context, 30, accentColor, ref);
                           }

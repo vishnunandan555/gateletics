@@ -18,6 +18,9 @@ import '../../providers/disable_home_screen_widget_provider.dart';
 import '../../providers/disable_countdown_provider.dart';
 import '../../database/app_database.dart';
 import '../../providers/notice_board_provider.dart';
+import '../../providers/demo_guide_provider.dart';
+import '../../utils/demo_keys.dart';
+
 
 class HomeScreen extends ConsumerStatefulWidget {
   final PageController? shellPageController;
@@ -35,6 +38,74 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _noticeTaskController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final hasSeen = ref.read(hasSeenDemoGuideProvider);
+      if (!hasSeen && ref.read(demoGuideProvider) == DemoStep.none) {
+        _showOnboardingPopup(context);
+      }
+    });
+  }
+
+  void _showOnboardingPopup(BuildContext context) {
+    final accentColor = ref.read(overallProgressColorProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131316),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: accentColor.withValues(alpha: 0.15), width: 1.5),
+        ),
+        title: Text(
+          "Welcome to GATEletics!",
+          style: GoogleFonts.orbitron(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontSize: 16,
+            letterSpacing: 0.5,
+          ),
+        ),
+        content: Text(
+          "Would you like to take a quick, 2-minute interactive tour of the app to learn how to track syllabus categories, start focus sessions, and view your study analytics?",
+          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final prefs = ref.read(sharedPreferencesProvider);
+              await prefs.setBool('has_seen_demo_guide', true);
+              ref.read(hasSeenDemoGuideProvider.notifier).state = true;
+            },
+            child: Text(
+              "Skip",
+              style: GoogleFonts.outfit(color: Colors.white54, fontWeight: FontWeight.bold),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(demoGuideProvider.notifier).startDemo();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              "Let's Go!",
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -181,9 +252,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                               );
                                             }
                                             return IconButton(
+                                              key: DemoKeys.homeNoticeBoardButton,
                                               icon: iconWidget,
                                               onPressed: () {
                                                 ref.read(noticeBoardModeProvider.notifier).state = !isNoticeBoard;
+                                                if (ref.read(demoGuideProvider) == DemoStep.homeNoticeInteract) {
+                                                  // Notice board is now opening — advance to homeAddTask
+                                                  ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeAddTask);
+                                                }
                                               },
                                               tooltip: isNoticeBoard ? 'Back to Dashboard' : 'Open Notice Board',
                                               splashRadius: 20,
@@ -208,6 +284,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     if (profileState.profilePhotoMode != 'none') ...[
                                       Center(
                                         child: GestureDetector(
+                                          key: DemoKeys.homeProfileAvatar,
                                           onTap: () {
                                             ref.read(overallProgressColorProvider.notifier).next();
                                           },
@@ -221,6 +298,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             child: CircleAvatar(
                                               radius: context.s(profileState.profilePhotoSize),
                                               backgroundImage: profileImage,
+                                              onBackgroundImageError: profileImage != null ? (e, s) {} : null,
                                               backgroundColor: accentColor.withAlpha(30),
                                               child: profileImage == null
                                                   ? Icon(Icons.person_rounded, color: accentColor, size: context.s(profileState.profilePhotoSize))
@@ -266,7 +344,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                                      // Big Countdown Timer (DAYS : HRS : MINS : SECS)
                                      if (!ref.watch(disableCountdownProvider)) ...[
-                                       const _TickingCountdownTimer(),
+                                       SizedBox(
+                                         key: DemoKeys.homeCountdownTimer,
+                                         child: const _TickingCountdownTimer(),
+                                       ),
                                        SizedBox(height: context.s(16)),
                                      ],
 
@@ -298,6 +379,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     // Syllabus/Resource Completion Card
                                     if (!disableWidget) ...[
                                       HomeCarousel(
+                                        key: DemoKeys.homeProgressCard,
                                         accentColor: accentColor,
                                         onTabChange: _navigateToTab,
                                       ),
@@ -305,12 +387,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ],
 
                                     // Resume Prep / Active Focus Button
-                                    isFocusActive
-                                        ? ActiveFocusWaveWidget(
-                                            accentColor: accentColor,
-                                            onTap: () => _navigateToTab(3),
-                                          )
-                                        : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
+                                    SizedBox(
+                                      key: DemoKeys.homeStartButton,
+                                      child: isFocusActive
+                                          ? ActiveFocusWaveWidget(
+                                              accentColor: accentColor,
+                                              onTap: () => _navigateToTab(3),
+                                            )
+                                          : _buildResumePrepButton(todayProgress, hasStartedToday, accentColor),
+                                    ),
 
                                     // Daily Goal Reached Tick Indicator
                                     if (isDailyGoalReached) ...[
@@ -334,7 +419,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                                     SizedBox(height: context.s(28)),
 
-                                    _buildConsistencyGrid(accentColor, dailyGoalMinutes),
+                                    SizedBox(
+                                      key: DemoKeys.homeConsistencyGrid,
+                                      child: _buildConsistencyGrid(accentColor, dailyGoalMinutes),
+                                    ),
                                   ],
                                 ),
                             ],
@@ -428,16 +516,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     if (value.trim().isNotEmpty) {
                       ref.read(customTasksNotifierProvider.notifier).addTask(value.trim());
                       _noticeTaskController.clear();
+                      // Also advance demo when user submits via Enter key
+                      if (ref.read(demoGuideProvider) == DemoStep.homeAddTask) {
+                        ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeCloseNotice);
+                      }
                     }
                   },
                 ),
               ),
               IconButton(
+                key: DemoKeys.homeAddTaskButton,
                 icon: Icon(Icons.add_rounded, color: accentColor),
                 onPressed: () {
                   if (_noticeTaskController.text.trim().isNotEmpty) {
                     ref.read(customTasksNotifierProvider.notifier).addTask(_noticeTaskController.text.trim());
                     _noticeTaskController.clear();
+                    // Advance demo when user adds their first notice board task
+                    if (ref.read(demoGuideProvider) == DemoStep.homeAddTask) {
+                      ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeCloseNotice);
+                    }
                   }
                 },
               ),

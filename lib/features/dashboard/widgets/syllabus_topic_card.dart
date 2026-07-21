@@ -10,6 +10,7 @@ import '../../../providers/overall_ui_scale_provider.dart';
 import '../../../widgets/progress_bar.dart';
 import 'syllabus_customization_sheets.dart';
 import '../../../utils/ui_scaling.dart';
+import '../../../providers/demo_guide_provider.dart';
 
 class SyllabusTopicCard extends ConsumerWidget {
   final SyllabusTopicWithTasks topicWithTasks;
@@ -233,9 +234,20 @@ class SyllabusTopicCard extends ConsumerWidget {
                     taskTapDetails = details;
                   },
                   onTap: () {
+                    final isBeingCompleted = !task.isCompleted;
                     ref
                         .read(syllabusControllerProvider.notifier)
-                        .toggleTask(task.id, !task.isCompleted);
+                        .toggleTask(task.id, isBeingCompleted);
+                    // Advance demo guide when user marks a task complete during guided flow.
+                    // Done here (UI layer) so timing is deterministic — the Notifier ref
+                    // can go stale after awaits inside the async toggleTask.
+                    if (isBeingCompleted && ref.read(demoGuideProvider) == DemoStep.completionInteract) {
+                      Future.delayed(const Duration(milliseconds: 500), () {
+                        if (ref.read(demoGuideProvider) == DemoStep.completionInteract) {
+                          ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionLongPress);
+                        }
+                      });
+                    }
                   },
                   onLongPress: () {
                     _showTaskContextMenu(context, taskTapDetails, task, ref);

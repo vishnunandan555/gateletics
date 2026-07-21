@@ -19,6 +19,7 @@ import 'widgets/history/history_graph.dart';
 import 'widgets/history/history_streaks.dart';
 import 'widgets/history/history_pie_chart.dart';
 import 'widgets/history/history_projection.dart';
+import '../../utils/demo_keys.dart';
 
 class ProgressHistoryScreen extends ConsumerStatefulWidget {
   const ProgressHistoryScreen({super.key});
@@ -149,11 +150,14 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
             children: [
               _buildAnimatedEntrance(
                 animation: _streakHeaderAnim,
-                child: HistoryStreaks(
-                  dailyGoalStreak: currentStreak,
-                  checkInStreak: checkInStreak,
-                  progressPct: todayProgressPct,
-                  accentColor: accentColor,
+                child: SizedBox(
+                  key: DemoKeys.statsStreakCard,
+                  child: HistoryStreaks(
+                    dailyGoalStreak: currentStreak,
+                    checkInStreak: checkInStreak,
+                    progressPct: todayProgressPct,
+                    accentColor: accentColor,
+                  ),
                 ),
               ),
               SizedBox(height: context.s(16)),
@@ -161,14 +165,19 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
               Center(
                 child: FractionallySizedBox(
                   widthFactor: 0.9,
-                  child: _buildSlidingToggle(accentColor),
+                  child: SizedBox(
+                    key: DemoKeys.statsTopButtons,
+                    child: _buildSlidingToggle(accentColor),
+                  ),
                 ),
               ),
               SizedBox(height: context.s(14)),
 
               _buildAnimatedEntrance(
                 animation: _calendarHeatmapAnim,
-                child: AnimatedSwitcher(
+                child: SizedBox(
+                  key: DemoKeys.statsHeatmapCard,
+                  child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
                   child: _isHeatmapMode
                       ? KeyedSubtree(
@@ -208,15 +217,19 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
                           ),
                         ),
                 ),
+                ),
               ),
 
               if (showProjComp) ...[
                 SizedBox(height: context.s(16)),
                 _buildAnimatedEntrance(
                   animation: _projectedCompletionAnim,
-                  child: HistoryProjection(
-                    projection: projection,
-                    accentColor: accentColor,
+                  child: SizedBox(
+                    key: DemoKeys.statsProjectionCard,
+                    child: HistoryProjection(
+                      projection: projection,
+                      accentColor: accentColor,
+                    ),
                   ),
                 ),
               ],
@@ -225,35 +238,38 @@ class _ProgressHistoryScreenState extends ConsumerState<ProgressHistoryScreen>
 
               _buildAnimatedEntrance(
                 animation: _chartCardAnim,
-                child: HistoryGraph(
-                  timeframe: _timeframe,
-                  selectedWeekStart: _selectedWeekStart,
-                  selectedMonth: _selectedMonth,
-                  selectedYear: _selectedYear,
-                  history: history,
-                  dailyGoalMinutes: dailyGoalMinutes,
-                  accentColor: accentColor,
-                  accountCreationDate: accountCreationDate,
-                  onTimeframeChanged: (time) {
-                    setState(() {
-                      _timeframe = time;
-                    });
-                  },
-                  onSelectedWeekStartChanged: (start) {
-                    setState(() {
-                      _selectedWeekStart = start;
-                    });
-                  },
-                  onSelectedMonthChanged: (month) {
-                    setState(() {
-                      _selectedMonth = month;
-                    });
-                  },
-                  onSelectedYearChanged: (year) {
-                    setState(() {
-                      _selectedYear = year;
-                    });
-                  },
+                child: SizedBox(
+                  key: DemoKeys.statsChartCard,
+                  child: HistoryGraph(
+                    timeframe: _timeframe,
+                    selectedWeekStart: _selectedWeekStart,
+                    selectedMonth: _selectedMonth,
+                    selectedYear: _selectedYear,
+                    history: history,
+                    dailyGoalMinutes: dailyGoalMinutes,
+                    accentColor: accentColor,
+                    accountCreationDate: accountCreationDate,
+                    onTimeframeChanged: (time) {
+                      setState(() {
+                        _timeframe = time;
+                      });
+                    },
+                    onSelectedWeekStartChanged: (start) {
+                      setState(() {
+                        _selectedWeekStart = start;
+                      });
+                    },
+                    onSelectedMonthChanged: (month) {
+                      setState(() {
+                        _selectedMonth = month;
+                      });
+                    },
+                    onSelectedYearChanged: (year) {
+                      setState(() {
+                        _selectedYear = year;
+                      });
+                    },
+                  ),
                 ),
               ),
               SizedBox(height: context.s(16)),

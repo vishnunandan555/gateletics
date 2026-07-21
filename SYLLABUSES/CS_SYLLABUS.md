@@ -152,7 +152,7 @@ The Syllabus is divided into 3 levels
 * [ ] Cache write policies execution (Write-through, Write-back, Write-allocate)
 * [ ] Cache replacement algorithms tracing (LRU, FIFO, Optimal)
 * [ ] Main memory DRAM, SRAM, and interleaved configurations
-* [ ] Secondary storage disk performance metrics (Seek time, Rotational latency, Transfer time)
+* [ ] ! Secondary storage disk performance metrics (Seek time, Rotational latency, Transfer time)
 * [ ] Translation Lookaside Buffer (TLB) hit and miss tracking
 * [ ] Virtual memory address translation and page fault calculations
 
@@ -460,9 +460,9 @@ The Syllabus is divided into 3 levels
 * [ ] TCP congestion control timeout reactions tracking (Fast retransmit, Fast recovery)
 * [ ] Socket programming basic syscalls sequencing (socket, bind, listen, accept, connect)
 * [ ] Domain Name System (DNS) recursive and iterative query resolution tracking
-* [ ] SMTP, POP3, and IMAP electronic mail transactions protocol steps
+* [ ] ! SMTP, POP3, and IMAP electronic mail transactions protocol steps
 * [ ] HTTP and HTTPS stateless transactions, request/response headers parsing
-* [ ] FTP control and data connection state tracking
+* [ ] ! FTP control and data connection state tracking
 * [ ] SSH secure remote terminal session mechanics
 
 ---

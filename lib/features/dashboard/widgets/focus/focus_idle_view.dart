@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../providers/focus_provider.dart';
+import '../../../../utils/demo_keys.dart';
 import '../../../../utils/string_utils.dart';
+
 import 'focus_dialogs.dart';
 import 'timer_painters.dart';
 import '../../../../utils/ui_scaling.dart';
@@ -74,6 +76,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
               // Method Selector Chip
               Center(
                 child: GestureDetector(
+                  key: DemoKeys.focusTimerSelectors,
                   onTap: () => showMethodSelectionMenu(context, sessionState, accentColor, ref),
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: context.s(20), vertical: context.s(10)),
@@ -136,6 +139,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                   }
 
                   return GestureDetector(
+                    key: DemoKeys.focusDailyGoalBar,
                     onTap: () {
                       setState(() {
                         _displayMode = (_displayMode + 1) % 4;
@@ -316,6 +320,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
         height: context.s(252),
         child: Center(
           child: GestureDetector(
+            key: DemoKeys.focusStartButton,
             onTap: () => ref.read(focusProvider.notifier).startSession(),
             child: Container(
               width: context.s(140),
@@ -435,6 +440,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                 width: double.infinity,
                 height: context.s(48),
                 child: FilledButton.icon(
+                  key: DemoKeys.focusStartButton,
                   onPressed: () => ref.read(focusProvider.notifier).startSession(),
                   style: FilledButton.styleFrom(
                     backgroundColor: accentColor,

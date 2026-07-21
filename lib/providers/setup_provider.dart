@@ -21,6 +21,7 @@ class SetupNotifier extends AsyncNotifier<bool> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_completed_setup', false);
     await prefs.setBool('force_onboarding', forceOnboarding);
+    await prefs.setBool('has_seen_demo_guide', false);
     state = const AsyncValue.data(false);
   }
 }

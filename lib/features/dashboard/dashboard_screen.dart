@@ -11,6 +11,8 @@ import 'widgets/syllabus_category_header.dart';
 import 'widgets/syllabus_topic_card.dart';
 import 'widgets/syllabus_customization_sheets.dart';
 import '../../utils/ui_scaling.dart';
+import '../../utils/demo_keys.dart';
+
 
 class CompletionIsScrolledNotifier extends Notifier<bool> {
   @override
@@ -272,6 +274,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: SingleChildScrollView(
                         physics: const NeverScrollableScrollPhysics(),
                         child: Padding(
+                          key: DemoKeys.syllabusSearchBar,
                           padding: EdgeInsets.symmetric(horizontal: context.s(16), vertical: context.s(8)),
                           child: TextField(
                             controller: _searchController,
@@ -315,6 +318,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 SliverToBoxAdapter(
                   child: Padding(
+                    key: DemoKeys.completionProgressBar,
                     padding: EdgeInsets.fromLTRB(context.s(20), context.s(12), context.s(20), context.s(20)),
                     child: PillProgressWidget(
                       percentage: overallProgress,
@@ -425,10 +429,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           child: Padding(
                             padding: headerPadding,
                             child: SyllabusCategoryHeader(
+                              key: index == 0 ? DemoKeys.syllabusCategoryCard : null,
                               category: category,
                               progress: catProgress,
                               topics: rawTopics,
                               isCollapsed: isCollapsed,
+                              isFirstCategory: index == 0,
                             ),
                           ),
                         ),
@@ -438,6 +444,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               (context, idx) {
                                 final topicWithTasks = topics[idx];
                                 return SyllabusTopicCard(
+                                  key: (index == 0 && idx == 0) ? DemoKeys.completionFirstSubjectCard : null,
                                   topicWithTasks: topicWithTasks,
                                   categoryColor: Color(category.color),
                                   forceExpanded: query.isNotEmpty,

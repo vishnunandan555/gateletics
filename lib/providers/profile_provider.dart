@@ -130,7 +130,7 @@ final displayProfileImageProvider = Provider<ImageProvider?>((ref) {
         return null;
       } else {
         final file = io.File(profile.customProfilePhotoPath!);
-        if (file.existsSync()) {
+        if (file.existsSync() && file.lengthSync() > 0) {
           return FileImage(file);
         }
       }

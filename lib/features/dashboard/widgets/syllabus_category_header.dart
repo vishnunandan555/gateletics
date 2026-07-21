@@ -8,12 +8,14 @@ import '../../../providers/category_font_size_provider.dart';
 import 'syllabus_customization_sheets.dart';
 import '../../../utils/string_utils.dart';
 import '../../../utils/ui_scaling.dart';
+import '../../../utils/demo_keys.dart';
 
 class SyllabusCategoryHeader extends ConsumerWidget {
   final SyllabusCategory category;
   final double progress;
   final List<SyllabusTopic> topics;
   final bool isCollapsed;
+  final bool isFirstCategory;
 
   const SyllabusCategoryHeader({
     super.key,
@@ -21,6 +23,7 @@ class SyllabusCategoryHeader extends ConsumerWidget {
     required this.progress,
     required this.topics,
     this.isCollapsed = false,
+    this.isFirstCategory = false,
   });
 
   @override
@@ -189,6 +192,7 @@ class SyllabusCategoryHeader extends ConsumerWidget {
           ),
         ),
         GestureDetector(
+          key: isFirstCategory ? DemoKeys.completionCategoryMenu : null,
           onTap: () => showSyllabusCategoryOptionsSheet(context, category, ref, topics),
           behavior: HitTestBehavior.translucent,
           child: Padding(

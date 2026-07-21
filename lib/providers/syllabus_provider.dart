@@ -6,6 +6,7 @@ import '../database/syllabus_preset.dart';
 import 'category_autosort_provider.dart';
 import 'sync_provider.dart';
 
+
 final appDatabaseProvider = Provider<AppDatabase>((ref) => AppDatabase());
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) => throw UnimplementedError());
 
@@ -70,25 +71,9 @@ final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>(
   final tsks = tasksAsync.value!;
 
   if (autoSort) {
-    final lockedOrder = ref.watch(syllabusCategoriesOrderProvider);
-    if (lockedOrder.isEmpty && cats.isNotEmpty) {
-      cats.sort((a, b) => _compareSyllabusCategories(a, b));
-      final ids = cats.map((e) => e.id).toList();
-      Future.microtask(() {
-        ref.read(syllabusCategoriesOrderProvider.notifier).setOrder(ids);
-      });
-    } else {
-      cats.sort((a, b) {
-        final indexA = lockedOrder.indexOf(a.id);
-        final indexB = lockedOrder.indexOf(b.id);
-        if (indexA != -1 && indexB != -1) {
-          return indexA.compareTo(indexB);
-        }
-        if (indexA != -1) return -1;
-        if (indexB != -1) return 1;
-        return _compareSyllabusCategories(a, b);
-      });
-    }
+    cats.sort((a, b) => _compareSyllabusCategories(a, b));
+  } else {
+    cats.sort((a, b) => a.position.compareTo(b.position));
   }
 
   // Stable partition: pinned categories float to the top
@@ -198,6 +183,7 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
       }
     });
     _triggerSync();
+
   }
 
   Future<void> addTask(int topicId, String name) async {

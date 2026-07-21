@@ -22,6 +22,8 @@ import '../../../../providers/subject_provider.dart';
 import '../../../../providers/sync_provider.dart';
 import '../../../../providers/stats_provider.dart';
 import '../../../../database/backup_service.dart';
+import '../../../../providers/demo_guide_provider.dart';
+
 
 class DangerZoneSettingsSection extends ConsumerWidget {
   final TextStyle titleStyle;
@@ -267,6 +269,37 @@ class DangerZoneSettingsSection extends ConsumerWidget {
     await ref.read(setupCompletedProvider.notifier).resetSetup(forceOnboarding: true);
   }
 
+  Future<void> _performRedoDemo(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF18181B),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Redo Interactive Guide?'),
+        content: const Text(
+          'This will start the interactive demo. Note: During the guide, a sandbox session will run. Your active study logs, statistics, and checked tasks will be temporarily backed up and safely restored once the guide completes or is skipped.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.black),
+            child: const Text('Start'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    await ref.read(demoGuideProvider.notifier).startDemo();
+  }
+
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resetDataContent = Theme(
@@ -334,6 +367,15 @@ class DangerZoneSettingsSection extends ConsumerWidget {
             style: subtitleStyle,
           ),
           onTap: () => _performRedoOnboarding(context, ref),
+        ),
+        ListTile(
+          leading: const Icon(Icons.help_outline_rounded, color: Color(0xFFE040FB)),
+          title: Text('Redo Demo Guide', style: titleStyle),
+          subtitle: Text(
+            'Re-run the interactive walkthrough tutorial of the app',
+            style: subtitleStyle,
+          ),
+          onTap: () => _performRedoDemo(context, ref),
         ),
         resetDataContent,
       ],
