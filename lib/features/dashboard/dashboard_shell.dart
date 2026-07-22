@@ -364,6 +364,8 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
     String title,
     String description,
     Color accentColor, {
+    int stepNumber = 0,
+    int totalSteps = 19,
     bool isLast = false,
   }) {
     return Container(
@@ -385,16 +387,39 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.orbitron(
-              color: accentColor,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.orbitron(
+                  color: accentColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              if (stepNumber > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: accentColor.withValues(alpha: 0.35), width: 1),
+                  ),
+                  child: Text(
+                    "STEP $stepNumber OF $totalSteps",
+                    style: GoogleFonts.orbitron(
+                      color: accentColor,
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             description,
             style: GoogleFonts.outfit(
@@ -551,11 +576,26 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
       String description, {
       ShapeLightFocus shape = ShapeLightFocus.RRect,
       double radius = 14,
-      ContentAlign align = ContentAlign.bottom,
+      ContentAlign? align,
+      int stepNumber = 0,
       bool isLast = false,
       String title = 'GUIDED WALKTHROUGH',
     }) {
       final accentColor = ref.read(overallProgressColorProvider);
+      
+      ContentAlign finalAlign = align ?? ContentAlign.bottom;
+      final renderBox = key.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final position = renderBox.localToGlobal(Offset.zero);
+        final screenHeight = MediaQuery.of(context).size.height;
+        // If target is in lower 55% of screen, place tooltip ABOVE element so it never overflows off-screen
+        if (position.dy > screenHeight * 0.45) {
+          finalAlign = ContentAlign.top;
+        } else if (align == null) {
+          finalAlign = ContentAlign.bottom;
+        }
+      }
+
       return TargetFocus(
         identify: id,
         keyTarget: key,
@@ -563,9 +603,12 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         radius: radius,
         contents: [
           TargetContent(
-            align: align,
+            align: finalAlign,
             builder: (ctx, ctrl) => _buildSpotlightContent(
-              ctx, ctrl, title, description, accentColor, isLast: isLast,
+              ctx, ctrl, title, description, accentColor,
+              stepNumber: stepNumber,
+              totalSteps: 19,
+              isLast: isLast,
             ),
           ),
         ],
@@ -578,7 +621,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("homeWelcome", [
           makeTarget("progressCard", DemoKeys.homeProgressCard,
             "Welcome to GATEletics. This carousel shows your overall syllabus progress, subject-level completion percentages, and quick resource links.",
-            align: ContentAlign.bottom,
+            stepNumber: 1, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeCountdown); });
         break;
@@ -586,7 +629,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("homeCountdown", [
           makeTarget("countdown", DemoKeys.homeCountdownTimer,
             "Exam Countdown: A live timer counting down to your GATE exam. You can long-press it to change the exam date, or update it anytime in Settings.",
-            align: ContentAlign.bottom,
+            stepNumber: 2, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeProfileColor); });
         break;
@@ -594,7 +637,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("homeProfileColor", [
           makeTarget("profileAvatar", DemoKeys.homeProfileAvatar,
             "Accent Color: Tap your profile picture to cycle through color themes. The change applies across every screen — streaks, charts, progress bars — instantly.",
-            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+            stepNumber: 3, shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeStartButton); });
         break;
@@ -602,7 +645,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("homeStartButton", [
           makeTarget("startBtn", DemoKeys.homeStartButton,
             "Start Focus: Tap this button to jump straight into a study session. The pill fills with your accent color as you hit your daily goal.",
-            shape: ShapeLightFocus.RRect, radius: 30, align: ContentAlign.top,
+            stepNumber: 4, shape: ShapeLightFocus.RRect, radius: 30, align: ContentAlign.top,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeConsistencyGrid); });
         break;
@@ -610,33 +653,25 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("homeConsistencyGrid", [
           makeTarget("consistencyGrid", DemoKeys.homeConsistencyGrid,
             "Consistency Tracker: A 7-day strip centered on today. Each ring fills relative to your daily study goal — a quick visual streak indicator.",
-            align: ContentAlign.top,
+            stepNumber: 5, align: ContentAlign.top,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeNoticeButton); });
         break;
       case DemoStep.homeNoticeButton:
         _runSpotlight("homeNoticeButton", [
           makeTarget("noticeBtn", DemoKeys.homeNoticeBoardButton,
-            "Notice Board: Pin reminders, deadlines, or revision notes here. Tap Next, then tap this icon to open it.",
-            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
-          ),
-        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.homeNoticeInteract); });
-        break;
-      case DemoStep.homeCloseNotice:
-        _runSpotlight("homeCloseNotice", [
-          makeTarget("noticeBtnClose", DemoKeys.homeNoticeBoardButton,
-            "Task pinned. Tap Next to close the board and move to your Syllabus tracker.",
-            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+            "Notice Board: Pin reminders, deadlines, or revision notes here for quick access.",
+            stepNumber: 6, shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
           ),
         ], () {
-          ref.read(noticeBoardModeProvider.notifier).state = false;
-          Future.delayed(const Duration(milliseconds: 300), () {
-            ref.read(shellTabProvider.notifier).state = 1;
-            Future.delayed(const Duration(milliseconds: 520), () {
-              ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionProgressBar);
-            });
+          ref.read(shellTabProvider.notifier).state = 1;
+          Future.delayed(const Duration(milliseconds: 520), () {
+            ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionProgressBar);
           });
         });
+        break;
+      case DemoStep.homeCloseNotice:
+        ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionProgressBar);
         break;
 
       // ── Completion / Syllabus Screen ─────────────────────────────────────
@@ -644,7 +679,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("completionProgressBar", [
           makeTarget("progressBar", DemoKeys.completionProgressBar,
             "Overall Progress: This bar shows total syllabus completion — tasks done across all categories. It updates in real time as you check items off.",
-            align: ContentAlign.bottom,
+            stepNumber: 7, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionCategoryMenu); });
         break;
@@ -652,23 +687,23 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("completionCategoryMenu", [
           makeTarget("catMenu", DemoKeys.completionCategoryMenu,
             "Category Menu: Tap this three-dot icon on any category header to rename it, change its color, pin it, mark it as a weak area, or add new topics.",
-            shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
+            stepNumber: 8, shape: ShapeLightFocus.Circle, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionSubjectCards); });
         break;
       case DemoStep.completionSubjectCards:
         _runSpotlight("completionSubjectCards", [
           makeTarget("subjectCard", DemoKeys.completionFirstSubjectCard,
-            "Subject Card: Each card is a topic within a category. Tap to expand its task list. Check a task to mark it done — progress updates immediately.",
-            align: ContentAlign.bottom,
+            "Subject Card: Each card is a topic within a category. Tap to expand its task list and view tasks.",
+            stepNumber: 9, align: ContentAlign.top,
           ),
-        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionInteract); });
+        ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionLongPress); });
         break;
       case DemoStep.completionLongPress:
         _runSpotlight("completionLongPress", [
           makeTarget("subjectCardLong", DemoKeys.completionFirstSubjectCard,
             "Long Press: Long-press any subject card to access edit options — rename it, add or remove tasks, or attach a resource link.",
-            align: ContentAlign.bottom,
+            stepNumber: 10, align: ContentAlign.top,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.completionDaysLeft); });
         break;
@@ -676,7 +711,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("completionDaysLeft", [
           makeTarget("daysLeft", DemoKeys.completionDaysLeft,
             "Days Left: Shows how many days remain until your GATE exam. Long-press to update the exam date at any time.",
-            shape: ShapeLightFocus.RRect, radius: 12, align: ContentAlign.bottom,
+            stepNumber: 11, shape: ShapeLightFocus.RRect, radius: 12, align: ContentAlign.bottom,
           ),
         ], () {
           ref.read(shellTabProvider.notifier).state = 3;
@@ -691,7 +726,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("focusMethodChip", [
           makeTarget("methodChip", DemoKeys.focusTimerSelectors,
             "Focus Mode: Tap to select your study method — Pomodoro (25 min work + break), Countdown (custom duration), or Freestyle (open-ended stopwatch).",
-            radius: 12, align: ContentAlign.bottom,
+            stepNumber: 12, radius: 12, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusMethodInteract); });
         break;
@@ -699,7 +734,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("focusStartInfo", [
           makeTarget("startButton", DemoKeys.focusStartButton,
             "Start Session: In this demo the timer runs for 10 seconds. Tap Next, then tap the button to begin.",
-            shape: ShapeLightFocus.Circle, align: ContentAlign.top,
+            stepNumber: 13, shape: ShapeLightFocus.Circle, align: ContentAlign.top,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusStartInteract); });
         break;
@@ -707,7 +742,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("focusDailyGoalBar", [
           makeTarget("dailyGoalBar", DemoKeys.focusDailyGoalBar,
             "Daily Goal Bar: Tracks today's study time against your set goal. Resets at midnight and feeds your streak counter.",
-            align: ContentAlign.top,
+            stepNumber: 14, align: ContentAlign.top,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.focusDailyGoalActions); });
         break;
@@ -715,7 +750,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("focusDailyGoalActions", [
           makeTarget("dailyGoalActions", DemoKeys.focusDailyGoalBar,
             "Two gestures on this bar:\n• Tap — cycles the label through time elapsed, time left, % done, or % remaining.\n• Long press — opens the goal editor to set your daily study target.",
-            align: ContentAlign.top, isLast: false,
+            stepNumber: 15, align: ContentAlign.top, isLast: false,
           ),
         ], () {
           ref.read(shellTabProvider.notifier).state = 0;
@@ -730,7 +765,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("statsStreakCard", [
           makeTarget("streakCard", DemoKeys.statsStreakCard,
             "Streak Summary: Shows your current study streak, check-in streak, and today's goal progress — all at a glance.",
-            align: ContentAlign.bottom,
+            stepNumber: 16, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsTopButtons); });
         break;
@@ -738,7 +773,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("statsTopButtons", [
           makeTarget("topButtons", DemoKeys.statsTopButtons,
             "View Toggle: Switch between the yearly Heatmap and monthly Calendar to review your study history. Both modes show daily study durations.",
-            align: ContentAlign.bottom,
+            stepNumber: 17, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsProjection); });
         break;
@@ -746,7 +781,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("statsProjection", [
           makeTarget("projCard", DemoKeys.statsProjectionCard,
             "Projected Completion: Estimates when you will finish 100% of your syllabus based on your recent study velocity.",
-            align: ContentAlign.bottom,
+            stepNumber: 18, align: ContentAlign.bottom,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.statsChart); });
         break;
@@ -754,7 +789,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
         _runSpotlight("statsChart", [
           makeTarget("chartCard", DemoKeys.statsChartCard,
             "Study Chart: Hours studied over time, filterable by Week, Month, or Year. Below it, a donut chart breaks down time per subject.",
-            align: ContentAlign.top, isLast: true,
+            stepNumber: 19, align: ContentAlign.top, isLast: true,
           ),
         ], () { ref.read(demoGuideProvider.notifier).setStep(DemoStep.finished); });
         break;
