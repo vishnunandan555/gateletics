@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,12 +52,86 @@ int _compareSyllabusCategories(SyllabusCategory a, SyllabusCategory b) {
   return bTime.compareTo(aTime);
 }
 
+final categoryOrderLockProvider = NotifierProvider<CategoryOrderLockNotifier, List<int>>(() {
+  return CategoryOrderLockNotifier();
+});
+
+class CategoryOrderLockNotifier extends Notifier<List<int>> with WidgetsBindingObserver {
+  List<int> _cachedOrder = [];
+  bool? _cachedAutoSort;
+
+  @override
+  List<int> build() {
+    WidgetsBinding.instance.addObserver(this);
+    ref.onDispose(() {
+      WidgetsBinding.instance.removeObserver(this);
+    });
+
+    final catsAsync = ref.watch(syllabusCategoriesProvider);
+    final autoSort = ref.watch(categoryAutoSortProvider);
+
+    if (catsAsync.hasError || !catsAsync.hasValue) {
+      return [];
+    }
+
+    final cats = catsAsync.value!;
+    final incomingIds = cats.map((c) => c.id).toSet();
+    final cachedSet = _cachedOrder.toSet();
+
+    final idsChanged = incomingIds.length != cachedSet.length || 
+                       !incomingIds.containsAll(cachedSet);
+
+    final autoSortChanged = _cachedAutoSort != autoSort;
+
+    if (idsChanged || autoSortChanged || !autoSort || _cachedOrder.isEmpty) {
+      final sortedCats = List<SyllabusCategory>.from(cats);
+      if (autoSort) {
+        sortedCats.sort((a, b) => _compareSyllabusCategories(a, b));
+      } else {
+        sortedCats.sort((a, b) => a.position.compareTo(b.position));
+      }
+      _cachedOrder = sortedCats.map((c) => c.id).toList();
+      _cachedAutoSort = autoSort;
+    }
+    
+    return _cachedOrder;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unlockAndResort();
+    }
+  }
+
+  void setOrder(List<int> orderedIds) {
+    _cachedOrder = List<int>.from(orderedIds);
+    state = _cachedOrder;
+  }
+
+  void unlockAndResort() {
+    final catsAsync = ref.read(syllabusCategoriesProvider);
+    final autoSort = ref.read(categoryAutoSortProvider);
+    if (catsAsync.hasValue) {
+      final cats = catsAsync.value!;
+      final sortedCats = List<SyllabusCategory>.from(cats);
+      if (autoSort) {
+        sortedCats.sort((a, b) => _compareSyllabusCategories(a, b));
+      } else {
+        sortedCats.sort((a, b) => a.position.compareTo(b.position));
+      }
+      _cachedOrder = sortedCats.map((c) => c.id).toList();
+      state = _cachedOrder;
+    }
+  }
+}
+
 // Combined syllabus provider
 final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>((ref) {
   final catsAsync = ref.watch(syllabusCategoriesProvider);
   final topicsAsync = ref.watch(syllabusTopicsProvider);
   final tasksAsync = ref.watch(syllabusTasksProvider);
-  final autoSort = ref.watch(categoryAutoSortProvider);
+  final orderIds = ref.watch(categoryOrderLockProvider);
 
   if (catsAsync.hasError) return AsyncValue.error(catsAsync.error!, catsAsync.stackTrace!);
   if (topicsAsync.hasError) return AsyncValue.error(topicsAsync.error!, topicsAsync.stackTrace!);
@@ -70,10 +145,25 @@ final syllabusProvider = Provider<AsyncValue<List<SyllabusCategoryWithTopics>>>(
   final tops = topicsAsync.value!;
   final tsks = tasksAsync.value!;
 
-  if (autoSort) {
-    cats.sort((a, b) => _compareSyllabusCategories(a, b));
+  if (orderIds.isNotEmpty) {
+    final Map<int, int> orderMap = {for (int i = 0; i < orderIds.length; i++) orderIds[i]: i};
+    cats.sort((a, b) {
+      final indexA = orderMap[a.id];
+      final indexB = orderMap[b.id];
+      if (indexA != null && indexB != null) {
+        return indexA.compareTo(indexB);
+      }
+      if (indexA != null) return -1;
+      if (indexB != null) return 1;
+      return a.position.compareTo(b.position);
+    });
   } else {
-    cats.sort((a, b) => a.position.compareTo(b.position));
+    final autoSort = ref.watch(categoryAutoSortProvider);
+    if (autoSort) {
+      cats.sort((a, b) => _compareSyllabusCategories(a, b));
+    } else {
+      cats.sort((a, b) => a.position.compareTo(b.position));
+    }
   }
 
   // Stable partition: pinned categories float to the top
@@ -356,6 +446,7 @@ class SyllabusController extends Notifier<AsyncValue<void>> {
 
   Future<void> reorderCategories(List<int> orderedIds) async {
     await _db.updateSyllabusCategoryPositions(orderedIds);
+    ref.read(categoryOrderLockProvider.notifier).setOrder(orderedIds);
     ref.read(syllabusCategoriesOrderProvider.notifier).setOrder(orderedIds);
     _triggerSync();
   }

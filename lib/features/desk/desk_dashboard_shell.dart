@@ -13,6 +13,7 @@ import '../dashboard/widgets/shell_common.dart';
 import 'desk_dashboard_screen.dart';
 import '../../providers/overall_ui_scale_provider.dart';
 import '../dashboard/home_screen.dart';
+import '../../providers/syllabus_provider.dart';
 
 class DeskDashboardShell extends ConsumerStatefulWidget {
   const DeskDashboardShell({super.key});
@@ -45,6 +46,7 @@ class _DeskDashboardShellState extends ConsumerState<DeskDashboardShell> {
 
   void _onTabSelected(int index) {
     setState(() => _currentIndex = index);
+    ref.read(categoryOrderLockProvider.notifier).unlockAndResort();
   }
 
   @override

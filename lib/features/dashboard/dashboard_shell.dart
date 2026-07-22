@@ -113,6 +113,7 @@ class _DashboardShellState extends ConsumerState<DashboardShell> {
                 ref.read(noticeBoardModeProvider.notifier).state = false;
               }
               ref.read(syllabusCategoriesOrderProvider.notifier).clear();
+              ref.read(categoryOrderLockProvider.notifier).unlockAndResort();
               ref.read(syncProvider.notifier).syncIfPending();
             },
             children: [

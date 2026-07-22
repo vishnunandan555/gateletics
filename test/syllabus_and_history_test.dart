@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +9,18 @@ import 'package:gateletics/providers/category_autosort_provider.dart';
 class MockCategoryAutoSortNotifier extends CategoryAutoSortNotifier {
   @override
   bool build() => false;
+}
+
+class TestCategoryAutoSortNotifier extends CategoryAutoSortNotifier {
+  bool value = true;
+
+  @override
+  bool build() => value;
+
+  void setVal(bool val) {
+    value = val;
+    state = val;
+  }
 }
 
 void main() {
@@ -92,6 +105,61 @@ void main() {
       expect(syllabusData[0].category.name, 'Aptitude'); // Pinned stable order
       expect(syllabusData[1].category.name, 'CS');       // Pinned stable order
       expect(syllabusData[2].category.name, 'Maths');    // Unpinned at bottom
+    });
+
+    test('categoryOrderLockProvider freezes category order on interaction, but updates on setting or reload', () async {
+      final mathsCat = SyllabusCategory(id: 1, name: 'Maths', color: 0xFF0000FF, position: 0, lastInteractedAt: DateTime(2026, 1, 1), isDeleted: false);
+      final aptitudeCat = SyllabusCategory(id: 2, name: 'Aptitude', color: 0xFFFF0000, position: 1, lastInteractedAt: DateTime(2026, 1, 2), isDeleted: false);
+      final csCat = SyllabusCategory(id: 3, name: 'CS', color: 0xFF00FF00, position: 2, lastInteractedAt: DateTime(2026, 1, 3), isDeleted: false);
+
+      final categoriesController = StreamController<List<SyllabusCategory>>.broadcast();
+      final testNotifier = TestCategoryAutoSortNotifier();
+
+      final container = ProviderContainer(
+        overrides: [
+          categoryAutoSortProvider.overrideWith(() => testNotifier),
+          syllabusCategoriesProvider.overrideWith((ref) => categoriesController.stream),
+          syllabusTopicsProvider.overrideWith((ref) => Stream.value([])),
+          syllabusTasksProvider.overrideWith((ref) => Stream.value([])),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.listen(syllabusProvider, (prev, next) {});
+      container.listen(categoryOrderLockProvider, (prev, next) {});
+
+      categoriesController.add([mathsCat, aptitudeCat, csCat]);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      var syllabusData = container.read(syllabusProvider).value!;
+      expect(syllabusData[0].category.name, 'CS');
+      expect(syllabusData[1].category.name, 'Aptitude');
+      expect(syllabusData[2].category.name, 'Maths');
+
+      final mathsUpdated = SyllabusCategory(id: 1, name: 'Maths', color: 0xFF0000FF, position: 0, lastInteractedAt: DateTime.now(), isDeleted: false);
+      categoriesController.add([mathsUpdated, aptitudeCat, csCat]);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      syllabusData = container.read(syllabusProvider).value!;
+      expect(syllabusData[0].category.name, 'CS');
+      expect(syllabusData[1].category.name, 'Aptitude');
+      expect(syllabusData[2].category.name, 'Maths');
+
+      container.read(categoryOrderLockProvider.notifier).unlockAndResort();
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      syllabusData = container.read(syllabusProvider).value!;
+      expect(syllabusData[0].category.name, 'Maths');
+      expect(syllabusData[1].category.name, 'CS');
+      expect(syllabusData[2].category.name, 'Aptitude');
+
+      testNotifier.setVal(false);
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      syllabusData = container.read(syllabusProvider).value!;
+      expect(syllabusData[0].category.name, 'Maths');
+      expect(syllabusData[1].category.name, 'Aptitude');
+      expect(syllabusData[2].category.name, 'CS');
     });
   });
 }

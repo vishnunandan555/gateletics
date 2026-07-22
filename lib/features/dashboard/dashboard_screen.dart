@@ -166,7 +166,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               final double pixels = notification.metrics.pixels;
               if (pixels < 0) {
                 final double overscroll = -pixels;
-                if (overscroll > 15.0) {
+                // Require deeper pull (50px) to reveal search bar
+                if (overscroll > 50.0) {
                   if (!searchBarVisible) {
                     setState(() {
                       searchBarVisible = true;
@@ -174,13 +175,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     _resetAutoHideTimer();
                   }
                 }
-                if (overscroll >= 65.0) {
+                // Require intentional deep pull (120px) to automatically focus keyboard
+                if (overscroll >= 120.0) {
                   if (!_focusNode.hasFocus) {
                     _focusNode.requestFocus();
                     _resetAutoHideTimer();
                   }
                 }
-              } else if (pixels > 15.0) {
+              } else if (pixels > 5.0) {
+                // Force hide search bar and dismiss keyboard when user scrolls down
                 if (searchBarVisible) {
                   setState(() {
                     searchBarVisible = false;
