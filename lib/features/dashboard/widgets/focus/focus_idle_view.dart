@@ -37,7 +37,7 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
     final todayDurationAsync = ref.watch(todayFocusDurationProvider);
     final dailyGoalMinutes = ref.watch(dailyFocusGoalProvider);
 
-    final isDemoActive = !ref.watch(hasSeenDemoGuideProvider);
+    final isDemoActive = ref.watch(demoGuideProvider) != DemoStep.none;
 
     return Center(
       child: ConstrainedBox(
@@ -110,18 +110,21 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
               SizedBox(height: context.s(32)),
 
               // Daily Goal Progress
-              dailyGoalMinutes == 0 ? const SizedBox() : todayDurationAsync.when(
-                data: (elapsedSeconds) {
-                  final elapsedMinutes = (elapsedSeconds / 60).floor();
-                  final progressPercent = dailyGoalMinutes == 0 ? 0.0 : min(1.0, elapsedMinutes / dailyGoalMinutes);
-                  final elapsedHoursStr = (elapsedMinutes / 60).toStringAsFixed(1).replaceAll('.0', '');
-                  final goalHoursStr = (dailyGoalMinutes / 60).toStringAsFixed(1).replaceAll('.0', '');
+              () {
+                final effectiveGoalMinutes = (dailyGoalMinutes == 0 && isDemoActive) ? 120 : dailyGoalMinutes;
+                if (effectiveGoalMinutes == 0) return const SizedBox();
+                return todayDurationAsync.when(
+                  data: (elapsedSeconds) {
+                    final elapsedMinutes = (elapsedSeconds / 60).floor();
+                    final progressPercent = min(1.0, elapsedMinutes / effectiveGoalMinutes);
+                    final elapsedHoursStr = (elapsedMinutes / 60).toStringAsFixed(1).replaceAll('.0', '');
+                    final goalHoursStr = (effectiveGoalMinutes / 60).toStringAsFixed(1).replaceAll('.0', '');
 
-                  final minutesLeft = max(0, dailyGoalMinutes - elapsedMinutes);
-                  final hoursLeftStr = (minutesLeft / 60).toStringAsFixed(1).replaceAll('.0', '');
+                    final minutesLeft = max(0, effectiveGoalMinutes - elapsedMinutes);
+                    final hoursLeftStr = (minutesLeft / 60).toStringAsFixed(1).replaceAll('.0', '');
 
-                  final pctCompleted = (progressPercent * 100);
-                  final pctLeft = max(0.0, 100.0 - pctCompleted);
+                    final pctCompleted = (progressPercent * 100);
+                    final pctLeft = max(0.0, 100.0 - pctCompleted);
 
                   String progressInfo = "";
                   switch (_displayMode) {
@@ -212,7 +215,8 @@ class _FocusIdleViewState extends ConsumerState<FocusIdleView> {
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text("Goal error: $e"),
-              ),
+              );
+            }(),
               SizedBox(height: context.s(32)),
 
               // Today's History Header Row

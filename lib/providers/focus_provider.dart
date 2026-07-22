@@ -480,9 +480,11 @@ class FocusStateNotifier extends Notifier<FocusSessionState> {
     );
 
     int insertedId = -1;
-    try {
-      insertedId = await db.addFocusSession(completedEntry);
-    } catch (_) {}
+    if (ref.read(demoGuideProvider) == DemoStep.none) {
+      try {
+        insertedId = await db.addFocusSession(completedEntry);
+      } catch (_) {}
+    }
 
     final finalSession = FocusSession(
       id: insertedId,
