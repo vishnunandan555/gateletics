@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -206,46 +207,47 @@ class _DeskSidebar extends StatelessWidget {
             onTap: onTabSelected,
           ),
           const Spacer(),
-          Padding(
-            padding: isCompact
-                ? const EdgeInsets.fromLTRB(8, 0, 8, 24)
-                : const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: InkWell(
-              onTap: onMobileUiTap,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: double.infinity,
-                padding: isCompact
-                    ? const EdgeInsets.symmetric(vertical: 12)
-                    : const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(5),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withAlpha(8)),
-                ),
-                child: Row(
-                  mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
-                  children: [
-                    Icon(Icons.phone_android_rounded, color: Colors.white38, size: 18),
-                    if (!isCompact) ...[
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Mobile UI',
-                          style: GoogleFonts.outfit(
-                            color: Colors.white54,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
+          if (kIsWeb)
+            Padding(
+              padding: isCompact
+                  ? const EdgeInsets.fromLTRB(8, 0, 8, 24)
+                  : const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              child: InkWell(
+                onTap: onMobileUiTap,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: isCompact
+                      ? const EdgeInsets.symmetric(vertical: 12)
+                      : const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withAlpha(8)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: isCompact ? MainAxisAlignment.center : MainAxisAlignment.start,
+                    children: [
+                      Icon(Icons.phone_android_rounded, color: Colors.white38, size: 18),
+                      if (!isCompact) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Mobile UI',
+                            style: GoogleFonts.outfit(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                      Icon(Icons.arrow_forward_rounded, color: Colors.white24, size: 16),
+                        Icon(Icons.arrow_forward_rounded, color: Colors.white24, size: 16),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

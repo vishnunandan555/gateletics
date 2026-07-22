@@ -17,6 +17,7 @@
 *.orig
 *.rej
 *~
+.cache/
 
 # IDE and Editor files
 *.iml

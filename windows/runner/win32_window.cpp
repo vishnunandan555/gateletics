@@ -5,30 +5,7 @@
 
 #include "resource.h"
 
-// Phone aspect ratio: 9:16 (standard mobile ratio)
-static constexpr double kAspectRatioW = 9.0;
-static constexpr double kAspectRatioH = 16.0;
-// Minimum window height (in logical pixels before DPI scale)
-static constexpr int kMinHeightLogical = 355;
-static constexpr int kMaxHeightLogical = 1600;
-
 namespace {
-
-bool IsForceDeskUI() {
-  bool force_desk = false;
-#ifdef FORCE_DESK_UI
-  force_desk = true;
-#endif
-  char* env_buf = nullptr;
-  size_t env_size = 0;
-  if (_dupenv_s(&env_buf, &env_size, "FORCE_DESK_UI") == 0 && env_buf != nullptr) {
-    if (strcmp(env_buf, "true") == 0) {
-      force_desk = true;
-    }
-    free(env_buf);
-  }
-  return force_desk;
-}
 
 /// Window attribute that enables dark mode window decorations.
 ///
@@ -231,32 +208,11 @@ Win32Window::MessageHandler(HWND hwnd,
     }
 
     case WM_GETMINMAXINFO: {
-      if (IsForceDeskUI()) {
-        UINT dpi = GetDpiForWindow(hwnd);
-        double scale = dpi / 96.0;
-        int minW = static_cast<int>(600 * scale);
-        int minH = static_cast<int>(400 * scale);
-
-        RECT ncRect = {0, 0, minW, minH};
-        AdjustWindowRect(&ncRect, WS_OVERLAPPEDWINDOW, FALSE);
-        int ncW = (ncRect.right - ncRect.left) - minW;
-        int ncH = (ncRect.bottom - ncRect.top) - minH;
-
-        auto* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
-        mmi->ptMinTrackSize.x = minW + ncW;
-        mmi->ptMinTrackSize.y = minH + ncH;
-        return 0;
-      }
-
-      // Enforce min/max window size in physical pixels.
       UINT dpi = GetDpiForWindow(hwnd);
       double scale = dpi / 96.0;
-      int minH = static_cast<int>(kMinHeightLogical * scale);
-      int maxH = static_cast<int>(kMaxHeightLogical * scale);
-      int minW = static_cast<int>(minH * kAspectRatioW / kAspectRatioH);
-      int maxW = static_cast<int>(maxH * kAspectRatioW / kAspectRatioH);
+      int minW = static_cast<int>(600 * scale);
+      int minH = static_cast<int>(400 * scale);
 
-      // Account for non-client (title bar + borders) area.
       RECT ncRect = {0, 0, minW, minH};
       AdjustWindowRect(&ncRect, WS_OVERLAPPEDWINDOW, FALSE);
       int ncW = (ncRect.right - ncRect.left) - minW;
@@ -265,70 +221,7 @@ Win32Window::MessageHandler(HWND hwnd,
       auto* mmi = reinterpret_cast<MINMAXINFO*>(lparam);
       mmi->ptMinTrackSize.x = minW + ncW;
       mmi->ptMinTrackSize.y = minH + ncH;
-      mmi->ptMaxTrackSize.x = maxW + ncW;
-      mmi->ptMaxTrackSize.y = maxH + ncH;
       return 0;
-    }
-
-    case WM_SIZING: {
-      if (IsForceDeskUI()) {
-        break; // Skip ratio lock
-      }
-      // Lock to phone aspect ratio during resize.
-      auto* r = reinterpret_cast<RECT*>(lparam);
-
-      // Get non-client frame size.
-      RECT ncRect = {0, 0, 100, 100};
-      AdjustWindowRect(&ncRect, WS_OVERLAPPEDWINDOW, FALSE);
-      int ncW = (ncRect.right - ncRect.left) - 100;
-      int ncH = (ncRect.bottom - ncRect.top) - 100;
-
-      int clientW = (r->right - r->left) - ncW;
-
-      // Always derive height from width to maintain ratio.
-      int newClientW = clientW;
-      int newClientH = static_cast<int>(clientW * kAspectRatioH / kAspectRatioW);
-
-      // Adjust window rect while keeping the correct edge fixed.
-      int totalW = newClientW + ncW;
-      int totalH = newClientH + ncH;
-
-      switch (wparam) {
-        case WMSZ_RIGHT:
-        case WMSZ_BOTTOMRIGHT:
-        case WMSZ_BOTTOM:
-          r->right = r->left + totalW;
-          r->bottom = r->top + totalH;
-          break;
-        case WMSZ_LEFT:
-        case WMSZ_BOTTOMLEFT:
-          r->left = r->right - totalW;
-          r->bottom = r->top + totalH;
-          break;
-        case WMSZ_TOP:
-        case WMSZ_TOPRIGHT:
-          r->right = r->left + totalW;
-          r->top = r->bottom - totalH;
-          break;
-        case WMSZ_TOPLEFT:
-          r->left = r->right - totalW;
-          r->top = r->bottom - totalH;
-          break;
-      }
-      return TRUE;
-    }
-
-    case WM_NCHITTEST: {
-      // Map edge-only resize hits to the nearest corner so user can
-      // only resize from corners (which triggers proportional resize).
-      LRESULT hit = DefWindowProc(hwnd, WM_NCHITTEST, wparam, lparam);
-      switch (hit) {
-        case HTLEFT:    return HTTOPLEFT;      // left edge → top-left corner
-        case HTRIGHT:   return HTBOTTOMRIGHT;  // right edge → bottom-right corner
-        case HTTOP:     return HTTOPLEFT;      // top edge → top-left corner
-        case HTBOTTOM:  return HTBOTTOMLEFT;   // bottom edge → bottom-left corner
-        default:        return hit;
-      }
     }
 
     case WM_ACTIVATE:

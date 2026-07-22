@@ -1,36 +1,30 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 
-const bool forceDeskUI = bool.fromEnvironment('FORCE_DESK_UI', defaultValue: false);
 
 // Cached setting loaded synchronously from SharedPreferences before runApp
 bool? persistedUserWantsDesktopUI;
 
 String resolveInitialRoute() {
-  if (forceDeskUI) {
-    return '/desk';
-  }
-  if (!kIsWeb) {
-    try {
-      if (Platform.environment['FORCE_DESK_UI'] == 'true') {
-        return '/desk';
-      }
-    } catch (_) {}
-  }
-
-  // 1. Check user preference saved in settings (applicable to both Web and native Desktop)
-  if (persistedUserWantsDesktopUI != null) {
-    return persistedUserWantsDesktopUI! ? '/desk' : '/';
-  }
-
-  // 2. Mobile platforms always default to mobile UI (Android/iOS)
-  if (defaultTargetPlatform == TargetPlatform.android ||
-      defaultTargetPlatform == TargetPlatform.iOS) {
+  // 1. Native Mobile (Android, iOS) -> ALWAYS Mobile UI ('/')
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+       defaultTargetPlatform == TargetPlatform.iOS)) {
     return '/';
   }
 
-  // 3. Desktop layouts (Windows, Linux, macOS, Web on large screens)
+  // 2. Native Desktop (Windows, Linux, macOS) -> ALWAYS Desktop UI ('/desk')
+  if (!kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.windows ||
+       defaultTargetPlatform == TargetPlatform.linux ||
+       defaultTargetPlatform == TargetPlatform.macOS)) {
+    return '/desk';
+  }
+
+  // 3. Web Target -> Adaptive layout resolution
   if (kIsWeb) {
+    if (persistedUserWantsDesktopUI != null) {
+      return persistedUserWantsDesktopUI! ? '/desk' : '/';
+    }
     try {
       final path = Uri.base.path;
       if (path.contains('/desk')) {
@@ -42,9 +36,6 @@ String resolveInitialRoute() {
         return '/desk';
       }
     } catch (_) {}
-  } else {
-    // Native Desktop app (Windows/Linux) defaults to desktop UI
-    return '/desk';
   }
 
   return '/';

@@ -1315,17 +1315,20 @@ class _TickingCountdownTimerState extends ConsumerState<_TickingCountdownTimer> 
             border: Border.all(color: accentColor.withAlpha(102), width: context.s(1.2)),
             borderRadius: BorderRadius.circular(context.s(8)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              buildTimeSegment(totalDaysStr, 'DAYS'),
-              buildColon(),
-              buildTimeSegment(hoursStr, 'HRS'),
-              buildColon(),
-              buildTimeSegment(minutesStr, 'MINS'),
-              buildColon(),
-              buildTimeSegment(secondsStr, 'SECS'),
-            ],
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                buildTimeSegment(totalDaysStr, 'DAYS'),
+                buildColon(),
+                buildTimeSegment(hoursStr, 'HRS'),
+                buildColon(),
+                buildTimeSegment(minutesStr, 'MINS'),
+                buildColon(),
+                buildTimeSegment(secondsStr, 'SECS'),
+              ],
+            ),
           ),
         ),
       ),
