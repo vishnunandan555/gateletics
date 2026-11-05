@@ -1,8 +1,8 @@
 # ⚠️ Gateletics is Discontinued
 
 > [!IMPORTANT]
-> **Gateletics has been retired and rebranded to [Prepletics](https://github.com/prepletics/prepletics).**  
-> Active development has moved to the new repository: [github.com/prepletics/prepletics](https://github.com/prepletics/prepletics).
+> **Gateletics has been retired and rebranded to [Prepletics](https://github.com/vishnunandan555/prepletics).**  
+> Active development has moved to the new repository: [github.com/vishnunandan555/prepletics](https://github.com/vishnunandan555/prepletics).
 
 ---
 
