@@ -1,3 +1,11 @@
+# ⚠️ Gateletics is Discontinued
+
+> [!IMPORTANT]
+> **Gateletics has been retired and rebranded to [Prepletics](https://github.com/prepletics/prepletics).**  
+> Active development has moved to the new repository: [github.com/prepletics/prepletics](https://github.com/prepletics/prepletics).
+
+---
+
 <p align="center">
   <img src="assets/icon.png" width="128" height="128" alt="GATEletics Logo" style="border-radius: 24px; filter: drop-shadow(0 8px 24px rgba(0,229,255,0.3));">
 </p>
